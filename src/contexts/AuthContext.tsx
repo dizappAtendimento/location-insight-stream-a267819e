@@ -44,13 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: { email, password }
       });
 
+      // Check if there's an error in the response data first (for 403 etc)
+      if (data?.error) {
+        return { error: data.error };
+      }
+
       if (error) {
         console.error('Login error:', error);
         return { error: 'Erro ao conectar ao servidor' };
-      }
-
-      if (data.error) {
-        return { error: data.error };
       }
 
       if (data.user) {
