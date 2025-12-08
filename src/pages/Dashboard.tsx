@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react';
-import { FileText, Users, Mail, Phone, TrendingUp, Calendar, RefreshCw } from 'lucide-react';
+import { FileText, Users, Mail, Phone, TrendingUp, Calendar, RefreshCw, BarChart3 } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatCard } from '@/components/StatCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useExtractionHistory } from '@/hooks/useExtractionHistory';
-import { format, subDays, isAfter, startOfDay } from 'date-fns';
+import { format, subDays, isAfter, startOfDay, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 type PeriodFilter = '7' | '14' | '30' | 'custom';
 
@@ -45,6 +46,27 @@ const Dashboard = () => {
       totalPhones: filteredHistory.reduce((acc, r) => acc + r.phonesFound, 0),
     };
   }, [filteredHistory]);
+
+  const chartData = useMemo(() => {
+    const days = eachDayOfInterval({ start: startDate, end: endDate });
+    
+    return days.map(day => {
+      const dayStart = startOfDay(day);
+      const dayEnd = new Date(day);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const dayRecords = filteredHistory.filter(r => {
+        const recordDate = new Date(r.createdAt);
+        return recordDate >= dayStart && recordDate <= dayEnd;
+      });
+      
+      return {
+        date: format(day, 'dd/MM', { locale: ptBR }),
+        extractions: dayRecords.length,
+        leads: dayRecords.reduce((acc, r) => acc + r.totalResults, 0),
+      };
+    });
+  }, [filteredHistory, startDate, endDate]);
 
   const handlePeriodChange = (period: PeriodFilter) => {
     setPeriodFilter(period);
@@ -168,8 +190,78 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Recent Extractions */}
+        {/* Chart */}
         <Card className="opacity-0 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Extrações por Dia
+            </CardTitle>
+            <CardDescription>
+              Evolução das extrações e leads no período
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorExtractions" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="extractions"
+                    name="Extrações"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fill="url(#colorExtractions)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="leads"
+                    name="Leads"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fill="url(#colorLeads)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Extractions */}
+        <Card className="opacity-0 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
