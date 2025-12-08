@@ -4,40 +4,45 @@ import { useSearchPlaces } from '@/hooks/useSearchPlaces';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin, Search, Download, FileJson, FileSpreadsheet, FileDown } from 'lucide-react';
-import { AppNavLink } from '@/components/AppNavLink';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { useExtractionHistory } from '@/hooks/useExtractionHistory';
+import { useEffect, useRef } from 'react';
 
 const Index = () => {
   const { isLoading, results, searchPlaces, downloadCSV, downloadJSON, downloadExcel } = useSearchPlaces();
+  const { addRecord } = useExtractionHistory();
+  const lastResultsRef = useRef<string | null>(null);
+
+  // Track extractions in history
+  useEffect(() => {
+    if (results && results.places.length > 0) {
+      const resultId = `${results.searchQuery}-${results.places.length}`;
+      if (lastResultsRef.current !== resultId) {
+        lastResultsRef.current = resultId;
+        addRecord({
+          type: 'places',
+          segment: results.searchQuery,
+          totalResults: results.places.length,
+          emailsFound: 0,
+          phonesFound: results.places.filter(p => p.phone).length,
+        });
+      }
+    }
+  }, [results, addRecord]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Buscador de Lugares</h1>
-                <p className="text-sm text-muted-foreground">Encontre empresas e estabelecimentos</p>
-              </div>
-            </div>
-            
-            <nav className="flex gap-2">
-              <AppNavLink to="/" icon="MapPin">Lugares</AppNavLink>
-              <AppNavLink to="/instagram" icon="Instagram">Instagram</AppNavLink>
-              <AppNavLink to="/linkedin" icon="Linkedin">LinkedIn</AppNavLink>
-            </nav>
-          </div>
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <MapPin className="w-6 h-6 text-green-500" />
+            Buscador de Lugares
+          </h1>
+          <p className="text-muted-foreground">Encontre empresas e estabelecimentos</p>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
         {/* Search Card */}
-        <Card className="mb-8">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="w-5 h-5" />
@@ -112,8 +117,8 @@ const Index = () => {
             </CardContent>
           </Card>
         )}
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

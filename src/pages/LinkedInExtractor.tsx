@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Linkedin, Search, FileDown, Mail, User, Loader2, Users, Phone, Building2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AppNavLink } from '@/components/AppNavLink';
 import { supabase } from '@/integrations/supabase/client';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { useExtractionHistory } from '@/hooks/useExtractionHistory';
 import * as XLSX from 'xlsx';
 
 interface LinkedInLead {
@@ -22,6 +23,7 @@ interface LinkedInLead {
 
 const LinkedInExtractor = () => {
   const { toast } = useToast();
+  const { addRecord } = useExtractionHistory();
   const [segment, setSegment] = useState('');
   const [location, setLocation] = useState('');
   const [maxResults, setMaxResults] = useState('100');
@@ -51,19 +53,25 @@ const LinkedInExtractor = () => {
         }
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setLeads(data.profiles || []);
+      const profiles = data.profiles || [];
+      setLeads(profiles);
+      
+      // Save to history
+      addRecord({
+        type: 'linkedin',
+        segment: segment.trim(),
+        location: location.trim() || undefined,
+        totalResults: profiles.length,
+        emailsFound: profiles.filter((p: LinkedInLead) => p.email).length,
+        phonesFound: profiles.filter((p: LinkedInLead) => p.phone).length,
+      });
       
       toast({
         title: "Extração concluída",
-        description: `${data.profiles?.length || 0} perfis de "${segment}" encontrados`,
+        description: `${profiles.length} perfis de "${segment}" encontrados`,
       });
     } catch (error) {
       console.error('Error extracting leads:', error);
@@ -112,32 +120,16 @@ const LinkedInExtractor = () => {
   const companyCount = leads.filter(l => l.company).length;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#0A66C2] text-white">
-                <Linkedin className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Extrator de Leads LinkedIn</h1>
-                <p className="text-sm text-muted-foreground">Encontre profissionais por segmento/nicho</p>
-              </div>
-            </div>
-            
-            <nav className="flex gap-2">
-              <AppNavLink to="/" icon="MapPin">Lugares</AppNavLink>
-              <AppNavLink to="/instagram" icon="Instagram">Instagram</AppNavLink>
-              <AppNavLink to="/linkedin" icon="Linkedin">LinkedIn</AppNavLink>
-            </nav>
-          </div>
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Linkedin className="w-6 h-6 text-[#0A66C2]" />
+            Extrator de Leads LinkedIn
+          </h1>
+          <p className="text-muted-foreground">Encontre profissionais por segmento/nicho</p>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Input Card */}
           <Card>
@@ -319,8 +311,8 @@ const LinkedInExtractor = () => {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
