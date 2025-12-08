@@ -110,42 +110,37 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-border/30">
-        <SidebarMenu>
+      <SidebarFooter className="p-2 border-t border-border/20">
+        <SidebarMenu className="gap-0.5">
           <SidebarMenuItem>
             <SidebarMenuButton 
               asChild
               isActive={isActive('/configuracoes')}
               tooltip="Configurações" 
-              className="transition-all duration-200"
+              className="h-8"
             >
-              <Link to="/configuracoes" className="flex items-center gap-3">
-                <Settings className={cn("w-5 h-5", isActive('/configuracoes') && "text-primary")} strokeWidth={3} />
-                <span className="font-semibold text-[15px]">Configurações</span>
+              <Link to="/configuracoes" className="flex items-center gap-2">
+                <Settings className={cn("w-4 h-4", isActive('/configuracoes') && "text-primary")} strokeWidth={2} />
+                <span className="text-sm">Configurações</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton 
               tooltip="Sair" 
-              className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
+              className="h-8 hover:bg-destructive/10 hover:text-destructive"
               onClick={handleLogout}
             >
-              <LogOut className="w-5 h-5" strokeWidth={3} />
-              <span className="font-semibold text-[15px]">Sair</span>
+              <LogOut className="w-4 h-4" strokeWidth={2} />
+              <span className="text-sm">Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         {!collapsed && user && (
-          <div className="mt-2 px-2 py-1.5 rounded-md bg-muted/50">
-            <p className="text-xs font-medium text-foreground truncate">{user.nome || 'Usuário'}</p>
+          <div className="mt-1.5 px-2 py-1 rounded bg-muted/30">
+            <p className="text-xs text-foreground/80 truncate">{user.nome || 'Usuário'}</p>
             <p className="text-[10px] text-muted-foreground truncate">{user.Email}</p>
           </div>
-        )}
-        {!collapsed && (
-          <p className="text-[10px] text-muted-foreground/50 text-center mt-3 font-medium tracking-wide">
-            v1.0.0
-          </p>
         )}
       </SidebarFooter>
     </Sidebar>
