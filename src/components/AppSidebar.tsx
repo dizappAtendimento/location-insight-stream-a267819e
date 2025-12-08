@@ -143,7 +143,7 @@ export function AppSidebar() {
                 asChild
                 isActive={isActive('/admin')}
                 tooltip="Admin" 
-                className="h-9 rounded-md transition-all duration-200 hover:bg-primary/10"
+                className="h-9 rounded-md transition-all duration-200 hover:bg-muted/50"
               >
                 <Link to="/admin" className="flex items-center gap-2.5">
                   <Shield className={cn("w-[18px] h-[18px] transition-colors", isActive('/admin') ? "text-primary" : "text-amber-500")} strokeWidth={1.5} />
@@ -160,7 +160,7 @@ export function AppSidebar() {
               className="h-9 rounded-md transition-all duration-200 hover:bg-muted/50"
             >
               <Link to="/configuracoes" className="flex items-center gap-2.5">
-                <Settings className={cn("w-[18px] h-[18px] transition-colors", isActive('/configuracoes') ? "text-primary" : "text-muted-foreground")} strokeWidth={1.5} />
+                <Settings className="w-[18px] h-[18px] text-muted-foreground transition-colors" strokeWidth={1.5} />
                 <span className="text-[13px] font-medium">Configurações</span>
               </Link>
             </SidebarMenuButton>
@@ -168,11 +168,11 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton 
               tooltip="Sair" 
-              className="h-9 rounded-md transition-all duration-200 hover:bg-destructive/10 group"
+              className="h-9 rounded-md transition-all duration-200 hover:bg-muted/50"
               onClick={handleLogout}
             >
-              <LogOut className="w-[18px] h-[18px] text-muted-foreground group-hover:text-destructive transition-colors" strokeWidth={1.5} />
-              <span className="text-[13px] font-medium group-hover:text-destructive transition-colors">Sair</span>
+              <LogOut className="w-[18px] h-[18px] text-muted-foreground transition-colors" strokeWidth={1.5} />
+              <span className="text-[13px] font-medium">Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
