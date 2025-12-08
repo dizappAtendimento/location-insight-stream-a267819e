@@ -1,4 +1,4 @@
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Instagram,
@@ -6,7 +6,9 @@ import {
   MapPin,
   History,
   Settings,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Sidebar,
   SidebarContent,
@@ -36,10 +38,17 @@ const extractorItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { state } = useSidebar();
+  const { user, logout } = useAuth();
   const collapsed = state === 'collapsed';
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth');
+  };
 
   return (
     <Sidebar
@@ -116,7 +125,23 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              tooltip="Sair" 
+              className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-5 h-5" strokeWidth={3} />
+              <span className="font-semibold text-[15px]">Sair</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
+        {!collapsed && user && (
+          <div className="mt-2 px-2 py-1.5 rounded-md bg-muted/50">
+            <p className="text-xs font-medium text-foreground truncate">{user.nome || 'Usuário'}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{user.Email}</p>
+          </div>
+        )}
         {!collapsed && (
           <p className="text-[10px] text-muted-foreground/50 text-center mt-3 font-medium tracking-wide">
             v1.0.0
