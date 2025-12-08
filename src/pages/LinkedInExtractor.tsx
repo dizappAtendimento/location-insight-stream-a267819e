@@ -4,29 +4,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Instagram, Search, FileDown, Link2, Mail, User, Loader2, Users, Phone, ExternalLink } from 'lucide-react';
+import { Linkedin, Search, FileDown, Mail, User, Loader2, Users, Phone, Building2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AppNavLink } from '@/components/AppNavLink';
 import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
 
-interface InstagramLead {
-  username: string;
-  profileId: string;
+interface LinkedInLead {
+  name: string;
+  headline: string;
   profileLink: string;
   email: string;
-  phone?: string;
-  bioLink?: string;
-  bio?: string;
+  phone: string;
+  company: string;
+  location: string;
 }
 
-const InstagramExtractor = () => {
+const LinkedInExtractor = () => {
   const { toast } = useToast();
   const [segment, setSegment] = useState('');
   const [location, setLocation] = useState('');
   const [maxResults, setMaxResults] = useState('100');
   const [isLoading, setIsLoading] = useState(false);
-  const [leads, setLeads] = useState<InstagramLead[]>([]);
+  const [leads, setLeads] = useState<LinkedInLead[]>([]);
   const [searchedSegment, setSearchedSegment] = useState('');
 
   const extractLeads = async () => {
@@ -43,7 +43,7 @@ const InstagramExtractor = () => {
     setSearchedSegment(segment);
     
     try {
-      const { data, error } = await supabase.functions.invoke('search-instagram', {
+      const { data, error } = await supabase.functions.invoke('search-linkedin', {
         body: { 
           segment: segment.trim(),
           location: location.trim(),
@@ -81,34 +81,35 @@ const InstagramExtractor = () => {
     if (leads.length === 0) return;
 
     const data = leads.map(lead => ({
-      'Username': lead.username,
+      'Nome': lead.name,
+      'Cargo/Título': lead.headline,
+      'Empresa': lead.company,
+      'Localização': lead.location,
       'Link do Perfil': lead.profileLink,
       'Email': lead.email || '',
       'Telefone': lead.phone || '',
-      'Link da Bio': lead.bioLink || '',
-      'Bio': lead.bio || '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Leads Instagram');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Leads LinkedIn');
     
     worksheet['!cols'] = [
+      { wch: 30 },
+      { wch: 40 },
+      { wch: 30 },
       { wch: 25 },
-      { wch: 45 },
+      { wch: 50 },
       { wch: 35 },
       { wch: 20 },
-      { wch: 40 },
-      { wch: 60 },
     ];
 
-    XLSX.writeFile(workbook, `leads_instagram_${searchedSegment.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `leads_linkedin_${searchedSegment.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  // Contadores de dados
   const emailCount = leads.filter(l => l.email).length;
   const phoneCount = leads.filter(l => l.phone).length;
-  const bioLinkCount = leads.filter(l => l.bioLink).length;
+  const companyCount = leads.filter(l => l.company).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -117,12 +118,12 @@ const InstagramExtractor = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 text-white">
-                <Instagram className="w-5 h-5" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#0A66C2] text-white">
+                <Linkedin className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Extrator de Leads Instagram</h1>
-                <p className="text-sm text-muted-foreground">Encontre perfis por segmento/nicho</p>
+                <h1 className="text-xl font-bold text-foreground">Extrator de Leads LinkedIn</h1>
+                <p className="text-sm text-muted-foreground">Encontre profissionais por segmento/nicho</p>
               </div>
             </div>
             
@@ -143,18 +144,18 @@ const InstagramExtractor = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Buscar por Segmento
+                Buscar Profissionais
               </CardTitle>
               <CardDescription>
-                Digite o nicho/segmento para encontrar perfis do Instagram
+                Digite a profissão ou segmento para encontrar perfis do LinkedIn
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="segment">Segmento/Nicho</Label>
+                <Label htmlFor="segment">Profissão/Segmento</Label>
                 <Input
                   id="segment"
-                  placeholder="Ex: dentista, advogado, nutricionista..."
+                  placeholder="Ex: advogado, desenvolvedor, marketing..."
                   value={segment}
                   onChange={(e) => setSegment(e.target.value)}
                 />
@@ -188,18 +189,18 @@ const InstagramExtractor = () => {
               
               <Button 
                 onClick={extractLeads} 
-                className="w-full"
+                className="w-full bg-[#0A66C2] hover:bg-[#004182]"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Buscando perfis...
+                    Buscando profissionais...
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4 mr-2" />
-                    Buscar Perfis
+                    Buscar Profissionais
                   </>
                 )}
               </Button>
@@ -214,7 +215,7 @@ const InstagramExtractor = () => {
                   <CardTitle>Resultados</CardTitle>
                   <CardDescription>
                     {leads.length > 0 
-                      ? `${leads.length} perfis • ${emailCount} emails • ${phoneCount} telefones • ${bioLinkCount} links`
+                      ? `${leads.length} perfis • ${emailCount} emails • ${phoneCount} telefones • ${companyCount} empresas`
                       : '0 leads extraídos'
                     }
                   </CardDescription>
@@ -233,22 +234,37 @@ const InstagramExtractor = () => {
                   {leads.map((lead, index) => (
                     <div 
                       key={index}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors"
+                      className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-[#0A66C2]/30 transition-colors"
                     >
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold shrink-0">
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0A66C2]/10 text-[#0A66C2] text-sm font-bold shrink-0 mt-0.5">
                         {index + 1}
                       </span>
                       
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2 text-sm">
                           <User className="w-3 h-3 text-muted-foreground shrink-0" />
-                          <span className="font-medium truncate">@{lead.username}</span>
+                          <span className="font-medium truncate">{lead.name}</span>
                         </div>
+                        {lead.headline && (
+                          <p className="text-xs text-muted-foreground truncate">{lead.headline}</p>
+                        )}
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          {lead.company && (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              <span className="truncate max-w-[120px]">{lead.company}</span>
+                            </span>
+                          )}
+                          {lead.location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              <span className="truncate max-w-[100px]">{lead.location}</span>
+                            </span>
+                          )}
                           {lead.email && (
                             <span className="flex items-center gap-1">
                               <Mail className="w-3 h-3" />
-                              <span className="truncate max-w-[150px]">{lead.email}</span>
+                              <span className="truncate max-w-[120px]">{lead.email}</span>
                             </span>
                           )}
                           {lead.phone && (
@@ -268,19 +284,8 @@ const InstagramExtractor = () => {
                           className="p-1.5 rounded hover:bg-muted transition-colors"
                           title="Abrir perfil"
                         >
-                          <Instagram className="w-4 h-4 text-muted-foreground hover:text-pink-500" />
+                          <Linkedin className="w-4 h-4 text-muted-foreground hover:text-[#0A66C2]" />
                         </a>
-                        {lead.bioLink && (
-                          <a 
-                            href={lead.bioLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded hover:bg-muted transition-colors"
-                            title="Link da bio"
-                          >
-                            <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-primary" />
-                          </a>
-                        )}
                         {lead.email && (
                           <a 
                             href={`mailto:${lead.email}`}
@@ -305,7 +310,7 @@ const InstagramExtractor = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <Instagram className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+                  <Linkedin className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
                   <p className="text-muted-foreground">
                     Digite um segmento e clique em buscar
                   </p>
@@ -319,4 +324,4 @@ const InstagramExtractor = () => {
   );
 };
 
-export default InstagramExtractor;
+export default LinkedInExtractor;

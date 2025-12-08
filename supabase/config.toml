@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.search-instagram]
 verify_jwt = false
+
+[functions.search-linkedin]
+verify_jwt = false

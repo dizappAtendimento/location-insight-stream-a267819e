@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MapPin, Instagram } from 'lucide-react';
+import { MapPin, Instagram, Linkedin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const icons = {
   MapPin,
   Instagram,
+  Linkedin,
 };
 
 interface AppNavLinkProps {
