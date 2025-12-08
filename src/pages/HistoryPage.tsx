@@ -1,15 +1,30 @@
-import { History, Trash2, Calendar, FileDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useExtractionHistory } from '@/hooks/useExtractionHistory';
-import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useExtractionHistory, ExtractionRecord } from '@/hooks/useExtractionHistory';
+import { format, subDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+
+type TypeFilter = 'all' | 'instagram' | 'linkedin' | 'places';
+type PeriodFilter = '7' | '14' | '30' | 'all' | 'custom';
 
 const HistoryPage = () => {
   const { history, clearHistory } = useExtractionHistory();
   const { toast } = useToast();
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 7));
+  const [endDate, setEndDate] = useState<Date>(new Date());
 
   const typeLabels = {
     instagram: 'Instagram',
@@ -17,11 +32,65 @@ const HistoryPage = () => {
     places: 'Google Places',
   };
 
-  const typeColors = {
-    instagram: 'bg-pink-500/10 text-pink-500 border-pink-500/20',
-    linkedin: 'bg-[#0A66C2]/10 text-[#0A66C2] border-[#0A66C2]/20',
-    places: 'bg-green-500/10 text-green-500 border-green-500/20',
+  const typeIcons = {
+    instagram: Instagram,
+    linkedin: Linkedin,
+    places: MapPin,
   };
+
+  const typeColors = {
+    instagram: 'bg-gradient-to-br from-pink-500 to-purple-600',
+    linkedin: 'bg-[#0A66C2]',
+    places: 'bg-gradient-to-br from-emerald-500 to-green-600',
+  };
+
+  const typeBadgeColors = {
+    instagram: 'bg-pink-500/10 text-pink-500',
+    linkedin: 'bg-[#0A66C2]/10 text-[#0A66C2]',
+    places: 'bg-emerald-500/10 text-emerald-500',
+  };
+
+  const filteredHistory = useMemo(() => {
+    return history.filter((record) => {
+      // Type filter
+      if (typeFilter !== 'all' && record.type !== typeFilter) return false;
+      
+      // Search filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        if (!record.segment.toLowerCase().includes(search) && 
+            !(record.location?.toLowerCase().includes(search))) {
+          return false;
+        }
+      }
+      
+      // Period filter
+      if (periodFilter !== 'all') {
+        const recordDate = new Date(record.createdAt);
+        if (periodFilter === 'custom') {
+          const start = startOfDay(startDate);
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (recordDate < start || recordDate > end) return false;
+        } else {
+          const days = parseInt(periodFilter);
+          const cutoff = subDays(new Date(), days);
+          if (recordDate < cutoff) return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [history, typeFilter, searchTerm, periodFilter, startDate, endDate]);
+
+  const stats = useMemo(() => {
+    return {
+      total: filteredHistory.length,
+      leads: filteredHistory.reduce((acc, r) => acc + r.totalResults, 0),
+      emails: filteredHistory.reduce((acc, r) => acc + r.emailsFound, 0),
+      phones: filteredHistory.reduce((acc, r) => acc + r.phonesFound, 0),
+    };
+  }, [filteredHistory]);
 
   const handleClearHistory = () => {
     clearHistory();
@@ -31,81 +100,266 @@ const HistoryPage = () => {
     });
   };
 
+  const handlePeriodChange = (period: PeriodFilter) => {
+    setPeriodFilter(period);
+    if (period !== 'custom' && period !== 'all') {
+      const days = parseInt(period);
+      setStartDate(subDays(new Date(), days));
+      setEndDate(new Date());
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Histórico de Extrações</h1>
-            <p className="text-muted-foreground">
-              Visualize todas as suas extrações anteriores
-            </p>
+        {/* Header */}
+        <div className="opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 shadow-lg shadow-primary/20">
+                <History className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Histórico</h1>
+                <p className="text-muted-foreground text-sm">Visualize todas as suas extrações</p>
+              </div>
+            </div>
+            {history.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleClearHistory} className="text-destructive hover:text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Limpar
+              </Button>
+            )}
           </div>
-          {history.length > 0 && (
-            <Button variant="outline" size="sm" onClick={handleClearHistory}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Limpar Histórico
-            </Button>
-          )}
         </div>
 
-        <Card>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
+          <Card className="bg-secondary/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                  <p className="text-xs text-muted-foreground">Extrações</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-secondary/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/10">
+                  <Users className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.leads}</p>
+                  <p className="text-xs text-muted-foreground">Leads</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-secondary/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <Mail className="w-4 h-4 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.emails}</p>
+                  <p className="text-xs text-muted-foreground">Emails</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-secondary/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Phone className="w-4 h-4 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.phones}</p>
+                  <p className="text-xs text-muted-foreground">Telefones</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="opacity-0 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Filter className="w-4 h-4" />
+              Filtros
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Search */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Buscar por segmento ou localização..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Type Filter */}
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  <SelectItem value="places">Google Places</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Period Filter */}
+              <div className="flex items-center gap-1">
+                {(['7', '14', '30', 'all'] as const).map((period) => (
+                  <Button
+                    key={period}
+                    variant={periodFilter === period ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handlePeriodChange(period)}
+                    className="min-w-[60px]"
+                  >
+                    {period === 'all' ? 'Todos' : `${period}d`}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Custom Date Range */}
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn(periodFilter === 'custom' && 'border-primary')}>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      {periodFilter === 'custom' 
+                        ? `${format(startDate, "dd/MM")} - ${format(endDate, "dd/MM")}`
+                        : 'Personalizado'
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="end">
+                    <div className="p-3 space-y-3">
+                      <p className="text-sm font-medium">Selecione o período</p>
+                      <div className="flex gap-2">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Início</p>
+                          <CalendarComponent
+                            mode="single"
+                            selected={startDate}
+                            onSelect={(date) => { if (date) { setStartDate(date); setPeriodFilter('custom'); }}}
+                            className="pointer-events-auto"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Fim</p>
+                          <CalendarComponent
+                            mode="single"
+                            selected={endDate}
+                            onSelect={(date) => { if (date) { setEndDate(date); setPeriodFilter('custom'); }}}
+                            className="pointer-events-auto"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Results List */}
+        <Card className="opacity-0 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <History className="w-5 h-5" />
-              Todas as Extrações
+              Extrações
             </CardTitle>
             <CardDescription>
-              {history.length} extrações registradas
+              {filteredHistory.length} de {history.length} extrações
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {history.length > 0 ? (
-              <div className="space-y-3">
-                {history.map((record) => (
-                  <div
-                    key={record.id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:border-primary/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded border ${typeColors[record.type]}`}>
-                        {typeLabels[record.type]}
-                      </span>
-                      <div>
-                        <p className="font-medium text-foreground">{record.segment}</p>
-                        {record.location && (
-                          <p className="text-sm text-muted-foreground">{record.location}</p>
-                        )}
+            {filteredHistory.length > 0 ? (
+              <div className="space-y-2">
+                {filteredHistory.map((record, index) => {
+                  const TypeIcon = typeIcons[record.type];
+                  return (
+                    <div
+                      key={record.id}
+                      className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all duration-200"
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shadow-sm", typeColors[record.type])}>
+                          <TypeIcon className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground">{record.segment}</p>
+                            <span className={cn("px-2 py-0.5 text-xs font-medium rounded-full", typeBadgeColors[record.type])}>
+                              {typeLabels[record.type]}
+                            </span>
+                          </div>
+                          {record.location && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3" />
+                              {record.location}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6 text-sm">
+                        <div className="text-center">
+                          <p className="font-bold text-primary">{record.totalResults}</p>
+                          <p className="text-xs text-muted-foreground">leads</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-foreground">{record.emailsFound}</p>
+                          <p className="text-xs text-muted-foreground">emails</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-foreground">{record.phonesFound}</p>
+                          <p className="text-xs text-muted-foreground">tel</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground min-w-[110px]">
+                          <Calendar className="w-3 h-3" />
+                          <span className="text-xs">
+                            {format(new Date(record.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6 text-sm">
-                      <div className="text-center">
-                        <p className="font-semibold text-foreground">{record.totalResults}</p>
-                        <p className="text-xs text-muted-foreground">leads</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-foreground">{record.emailsFound}</p>
-                        <p className="text-xs text-muted-foreground">emails</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-foreground">{record.phonesFound}</p>
-                        <p className="text-xs text-muted-foreground">telefones</p>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground min-w-[100px]">
-                        <Calendar className="w-3 h-3" />
-                        <span className="text-xs">
-                          {format(new Date(record.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <History className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                <p>Nenhuma extração registrada</p>
-                <p className="text-sm">O histórico aparecerá aqui após realizar extrações</p>
+              <div className="text-center py-16">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <History className="w-8 h-8 text-primary/50" />
+                </div>
+                <p className="text-muted-foreground font-medium">
+                  {history.length === 0 ? 'Nenhuma extração registrada' : 'Nenhum resultado encontrado'}
+                </p>
+                <p className="text-muted-foreground/70 text-sm mt-1">
+                  {history.length === 0 
+                    ? 'O histórico aparecerá aqui após realizar extrações'
+                    : 'Tente ajustar os filtros'
+                  }
+                </p>
               </div>
             )}
           </CardContent>
