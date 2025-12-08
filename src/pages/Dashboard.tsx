@@ -64,7 +64,7 @@ const Dashboard = () => {
     <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header with filters */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
             <p className="text-muted-foreground">
@@ -78,7 +78,7 @@ const Dashboard = () => {
         </div>
 
         {/* Period Filters */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
           <div className="flex items-center gap-1">
             <span className="text-sm text-muted-foreground mr-2">Período</span>
             {(['7', '14', '30'] as const).map((period) => (
@@ -144,6 +144,7 @@ const Dashboard = () => {
             icon={FileText}
             trend={`+${stats.todayExtractions} hoje`}
             trendPositive={stats.todayExtractions > 0}
+            delay={100}
           />
           <StatCard
             title="Total de Leads"
@@ -151,21 +152,24 @@ const Dashboard = () => {
             icon={Users}
             trend={`+${stats.todayLeads} hoje`}
             trendPositive={stats.todayLeads > 0}
+            delay={150}
           />
           <StatCard
             title="Emails Encontrados"
             value={stats.totalEmails}
             icon={Mail}
+            delay={200}
           />
           <StatCard
             title="Telefones Encontrados"
             value={stats.totalPhones}
             icon={Phone}
+            delay={250}
           />
         </div>
 
         {/* Recent Extractions */}
-        <Card>
+        <Card className="opacity-0 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
