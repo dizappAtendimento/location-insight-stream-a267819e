@@ -47,11 +47,8 @@ export function AppSidebar() {
       collapsible="icon"
     >
       <SidebarHeader className="p-4 border-b border-border/50">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
-          {!collapsed && (
-            <span className="font-bold text-lg text-foreground">dizapp</span>
-          )}
+        <Link to="/" className="flex items-center justify-center">
+          <img src={logo} alt="Logo" className={cn("object-contain transition-all", collapsed ? "w-8 h-8" : "w-32 h-10")} />
         </Link>
       </SidebarHeader>
 
