@@ -156,9 +156,10 @@ serve(async (req) => {
       }
 
       case 'get-plans': {
+        // Get plans without embedded count (due to multiple FK relationships)
         const { data: plans, error } = await supabase
           .from('SAAS_Planos')
-          .select('*, total_usuarios:SAAS_Usuarios(count)')
+          .select('*')
           .order('id', { ascending: true });
 
         if (error) {
@@ -169,11 +170,20 @@ serve(async (req) => {
           );
         }
 
-        // Transform the count
-        const transformedPlans = plans?.map(plan => ({
-          ...plan,
-          total_usuarios: plan.total_usuarios?.[0]?.count || 0
-        }));
+        // Get user counts per plan separately
+        const { data: userCounts } = await supabase
+          .from('SAAS_Usuarios')
+          .select('plano, plano_extrator');
+
+        // Count users per plan (either as disparador or extrator)
+        const transformedPlans = plans?.map(plan => {
+          const countDisparador = userCounts?.filter(u => u.plano === plan.id).length || 0;
+          const countExtrator = userCounts?.filter(u => u.plano_extrator === plan.id).length || 0;
+          return {
+            ...plan,
+            total_usuarios: countDisparador + countExtrator
+          };
+        });
 
         console.log(`[Admin API] Fetched ${plans?.length || 0} plans`);
 
