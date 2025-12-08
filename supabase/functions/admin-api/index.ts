@@ -100,6 +100,7 @@ serve(async (req) => {
       }
 
       case 'get-users': {
+        // Get users from the view
         const { data: users, error } = await supabase
           .from('vw_Usuarios_Com_Plano')
           .select('*')
@@ -113,10 +114,21 @@ serve(async (req) => {
           );
         }
 
+        // Get plan types
+        const { data: plans } = await supabase
+          .from('SAAS_Planos')
+          .select('id, tipo');
+
+        // Map users with plan type
+        const usersWithPlanType = users?.map(user => ({
+          ...user,
+          plano_tipo: plans?.find(p => p.id === user.plano_id)?.tipo || 'disparador'
+        }));
+
         console.log(`[Admin API] Fetched ${users?.length || 0} users`);
 
         return new Response(
-          JSON.stringify({ users }),
+          JSON.stringify({ users: usersWithPlanType }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -199,6 +211,36 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ success: true, newStatus }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'create-user': {
+        const { error } = await supabase
+          .from('SAAS_Usuarios')
+          .insert({
+            nome: userData.nome,
+            Email: userData.Email,
+            telefone: userData.telefone,
+            senha: userData.senha,
+            dataValidade: userData.dataValidade,
+            plano: userData.plano,
+            status: userData.status ?? true,
+            'Status Ex': userData.status ?? true,
+          });
+
+        if (error) {
+          console.error('[Admin API] Error creating user:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao criar usuário' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] User created successfully`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
