@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Instagram, Search, FileDown, Link2, Mail, User, Loader2, Users } from 'lucide-react';
+import { Instagram, Search, FileDown, Link2, Mail, User, Loader2, Users, Phone, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AppNavLink } from '@/components/AppNavLink';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,8 @@ interface InstagramLead {
   profileId: string;
   profileLink: string;
   email: string;
+  phone?: string;
+  bioLink?: string;
   bio?: string;
 }
 
@@ -80,9 +82,10 @@ const InstagramExtractor = () => {
 
     const data = leads.map(lead => ({
       'Username': lead.username,
-      'ID do Perfil': lead.profileId,
       'Link do Perfil': lead.profileLink,
-      'Email': lead.email,
+      'Email': lead.email || '',
+      'Telefone': lead.phone || '',
+      'Link da Bio': lead.bioLink || '',
       'Bio': lead.bio || '',
     }));
 
@@ -92,14 +95,20 @@ const InstagramExtractor = () => {
     
     worksheet['!cols'] = [
       { wch: 25 },
-      { wch: 20 },
       { wch: 45 },
       { wch: 35 },
-      { wch: 50 },
+      { wch: 20 },
+      { wch: 40 },
+      { wch: 60 },
     ];
 
     XLSX.writeFile(workbook, `leads_instagram_${searchedSegment.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
+
+  // Contadores de dados
+  const emailCount = leads.filter(l => l.email).length;
+  const phoneCount = leads.filter(l => l.phone).length;
+  const bioLinkCount = leads.filter(l => l.bioLink).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -204,7 +213,7 @@ const InstagramExtractor = () => {
                   <CardTitle>Resultados</CardTitle>
                   <CardDescription>
                     {leads.length > 0 
-                      ? `${leads.length} perfis de "${searchedSegment}"`
+                      ? `${leads.length} perfis • ${emailCount} emails • ${phoneCount} telefones • ${bioLinkCount} links`
                       : '0 leads extraídos'
                     }
                   </CardDescription>
@@ -229,17 +238,28 @@ const InstagramExtractor = () => {
                         {index + 1}
                       </span>
                       
-                      <div className="flex-1 min-w-0 grid gap-1">
+                      <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2 text-sm">
-                          <User className="w-3 h-3 text-muted-foreground" />
+                          <User className="w-3 h-3 text-muted-foreground shrink-0" />
                           <span className="font-medium truncate">@{lead.username}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>ID: {lead.profileId}</span>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          {lead.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              <span className="truncate max-w-[150px]">{lead.email}</span>
+                            </span>
+                          )}
+                          {lead.phone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {lead.phone}
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         <a 
                           href={lead.profileLink}
                           target="_blank"
@@ -247,8 +267,19 @@ const InstagramExtractor = () => {
                           className="p-1.5 rounded hover:bg-muted transition-colors"
                           title="Abrir perfil"
                         >
-                          <Link2 className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                          <Instagram className="w-4 h-4 text-muted-foreground hover:text-pink-500" />
                         </a>
+                        {lead.bioLink && (
+                          <a 
+                            href={lead.bioLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded hover:bg-muted transition-colors"
+                            title="Link da bio"
+                          >
+                            <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                          </a>
+                        )}
                         {lead.email && (
                           <a 
                             href={`mailto:${lead.email}`}
@@ -256,6 +287,15 @@ const InstagramExtractor = () => {
                             title="Enviar email"
                           >
                             <Mail className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                          </a>
+                        )}
+                        {lead.phone && (
+                          <a 
+                            href={`tel:${lead.phone.replace(/\D/g, '')}`}
+                            className="p-1.5 rounded hover:bg-muted transition-colors"
+                            title="Ligar"
+                          >
+                            <Phone className="w-4 h-4 text-muted-foreground hover:text-green-500" />
                           </a>
                         )}
                       </div>
