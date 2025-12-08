@@ -20,29 +20,31 @@ interface InstagramLead {
 
 const InstagramExtractor = () => {
   const { toast } = useToast();
-  const [targetUsername, setTargetUsername] = useState('');
+  const [segment, setSegment] = useState('');
+  const [location, setLocation] = useState('');
   const [maxResults, setMaxResults] = useState('100');
   const [isLoading, setIsLoading] = useState(false);
   const [leads, setLeads] = useState<InstagramLead[]>([]);
-  const [extractedFrom, setExtractedFrom] = useState('');
+  const [searchedSegment, setSearchedSegment] = useState('');
 
   const extractLeads = async () => {
-    if (!targetUsername.trim()) {
+    if (!segment.trim()) {
       toast({
         title: "Erro",
-        description: "Digite o username do perfil",
+        description: "Digite o segmento que deseja buscar",
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    setExtractedFrom(targetUsername.replace('@', ''));
+    setSearchedSegment(segment);
     
     try {
       const { data, error } = await supabase.functions.invoke('search-instagram', {
         body: { 
-          username: targetUsername.replace('@', ''),
+          segment: segment.trim(),
+          location: location.trim(),
           maxResults: parseInt(maxResults)
         }
       });
@@ -59,7 +61,7 @@ const InstagramExtractor = () => {
       
       toast({
         title: "Extração concluída",
-        description: `${data.profiles?.length || 0} perfis encontrados relacionados a @${targetUsername.replace('@', '')}`,
+        description: `${data.profiles?.length || 0} perfis de "${segment}" encontrados`,
       });
     } catch (error) {
       console.error('Error extracting leads:', error);
@@ -81,6 +83,7 @@ const InstagramExtractor = () => {
       'ID do Perfil': lead.profileId,
       'Link do Perfil': lead.profileLink,
       'Email': lead.email,
+      'Bio': lead.bio || '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -92,9 +95,10 @@ const InstagramExtractor = () => {
       { wch: 20 },
       { wch: 45 },
       { wch: 35 },
+      { wch: 50 },
     ];
 
-    XLSX.writeFile(workbook, `leads_instagram_${extractedFrom}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `leads_instagram_${searchedSegment.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   return (
@@ -109,7 +113,7 @@ const InstagramExtractor = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">Extrator de Leads Instagram</h1>
-                <p className="text-sm text-muted-foreground">Extraia seguidores de um perfil</p>
+                <p className="text-sm text-muted-foreground">Encontre perfis por segmento/nicho</p>
               </div>
             </div>
             
@@ -129,36 +133,45 @@ const InstagramExtractor = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Extrair Seguidores
+                Buscar por Segmento
               </CardTitle>
               <CardDescription>
-                Digite o username do perfil para extrair seus seguidores
+                Digite o nicho/segmento para encontrar perfis do Instagram
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="targetUsername">Username do Perfil</Label>
+                <Label htmlFor="segment">Segmento/Nicho</Label>
                 <Input
-                  id="targetUsername"
-                  placeholder="@perfil_alvo"
-                  value={targetUsername}
-                  onChange={(e) => setTargetUsername(e.target.value)}
-                  className="font-mono"
+                  id="segment"
+                  placeholder="Ex: dentista, advogado, nutricionista..."
+                  value={segment}
+                  onChange={(e) => setSegment(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="maxResults">Quantidade de Seguidores</Label>
+                <Label htmlFor="location">Localização (opcional)</Label>
+                <Input
+                  id="location"
+                  placeholder="Ex: São Paulo, Brasília..."
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maxResults">Quantidade de Resultados</Label>
                 <Select value={maxResults} onValueChange={setMaxResults}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="50">50 seguidores</SelectItem>
-                    <SelectItem value="100">100 seguidores</SelectItem>
-                    <SelectItem value="200">200 seguidores</SelectItem>
-                    <SelectItem value="500">500 seguidores</SelectItem>
-                    <SelectItem value="1000">1000 seguidores</SelectItem>
+                    <SelectItem value="50">50 perfis</SelectItem>
+                    <SelectItem value="100">100 perfis</SelectItem>
+                    <SelectItem value="200">200 perfis</SelectItem>
+                    <SelectItem value="500">500 perfis</SelectItem>
+                    <SelectItem value="1000">1000 perfis</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -171,12 +184,12 @@ const InstagramExtractor = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Extraindo seguidores...
+                    Buscando perfis...
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4 mr-2" />
-                    Extrair Seguidores
+                    Buscar Perfis
                   </>
                 )}
               </Button>
@@ -191,7 +204,7 @@ const InstagramExtractor = () => {
                   <CardTitle>Resultados</CardTitle>
                   <CardDescription>
                     {leads.length > 0 
-                      ? `${leads.length} seguidores de @${extractedFrom}`
+                      ? `${leads.length} perfis de "${searchedSegment}"`
                       : '0 leads extraídos'
                     }
                   </CardDescription>
@@ -253,7 +266,7 @@ const InstagramExtractor = () => {
                 <div className="text-center py-12">
                   <Instagram className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
                   <p className="text-muted-foreground">
-                    Digite um perfil e clique em extrair
+                    Digite um segmento e clique em buscar
                   </p>
                 </div>
               )}

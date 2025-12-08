@@ -19,11 +19,11 @@ serve(async (req) => {
   }
 
   try {
-    const { username, maxResults = 100 } = await req.json();
+    const { segment, location, maxResults = 100 } = await req.json();
 
-    if (!username) {
+    if (!segment) {
       return new Response(
-        JSON.stringify({ error: 'Username é obrigatório' }),
+        JSON.stringify({ error: 'Segmento é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -37,18 +37,19 @@ serve(async (req) => {
       );
     }
 
-    const cleanUsername = username.replace('@', '').trim();
-    console.log(`Searching Instagram profiles related to: ${cleanUsername}, max: ${maxResults}`);
+    // Construir query de busca por segmento no Instagram
+    let searchQuery = `instagram ${segment}`;
+    if (location) {
+      searchQuery += ` ${location}`;
+    }
+    
+    console.log(`Searching Instagram profiles for segment: ${segment}, location: ${location || 'any'}, max: ${maxResults}`);
 
-    // Buscar perfis relacionados ao Instagram usando Serper
     const allResults: SerperResult[] = [];
     const resultsPerPage = 100;
     const pagesToFetch = Math.ceil(maxResults / resultsPerPage);
 
-  for (let page = 0; page < pagesToFetch && allResults.length < maxResults; page++) {
-      // Buscar por perfis do Instagram sem usar site: operator
-      const searchQuery = `instagram ${cleanUsername} perfil`;
-      
+    for (let page = 0; page < pagesToFetch && allResults.length < maxResults; page++) {
       console.log(`Fetching page ${page + 1} for: ${searchQuery}`);
 
       const response = await fetch('https://google.serper.dev/search', {
@@ -107,7 +108,7 @@ serve(async (req) => {
       })
       .filter((profile: { username: string }) => 
         profile.username && 
-        !['p', 'explore', 'reel', 'stories', 'accounts', 'directory'].includes(profile.username)
+        !['p', 'explore', 'reel', 'reels', 'stories', 'accounts', 'directory', 'tv', 'about'].includes(profile.username)
       )
       .slice(0, maxResults);
 
@@ -120,12 +121,12 @@ serve(async (req) => {
       return acc;
     }, []);
 
-    console.log(`Returning ${uniqueProfiles.length} unique Instagram profiles`);
+    console.log(`Returning ${uniqueProfiles.length} unique Instagram profiles for segment: ${segment}`);
 
     return new Response(
       JSON.stringify({ 
         profiles: uniqueProfiles,
-        searchQuery: cleanUsername,
+        searchQuery: segment,
         total: uniqueProfiles.length 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
