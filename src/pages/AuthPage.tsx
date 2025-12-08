@@ -40,26 +40,27 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+    <div className="min-h-screen flex flex-col items-center justify-center login-bg relative overflow-hidden p-4">
+      {/* Floating orbs */}
+      <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-primary/40 rounded-full animate-float" style={{ animationDelay: '0s' }} />
+      <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-primary/30 rounded-full animate-float" style={{ animationDelay: '2s' }} />
+      <div className="absolute bottom-1/3 left-1/3 w-2 h-2 bg-primary/50 rounded-full animate-float" style={{ animationDelay: '4s' }} />
+      <div className="absolute top-2/3 right-1/4 w-4 h-4 bg-primary/20 rounded-full animate-float" style={{ animationDelay: '1s' }} />
+
+      {/* Logo outside card */}
+      <div className="mb-8 animate-fade-in">
+        <img src={logo} alt="Logo" className="h-14 w-auto" />
       </div>
 
-      <Card className="w-full max-w-md relative z-10 border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <img src={logo} alt="Logo" className="h-16 w-auto" />
-          </div>
-          <div>
-            <CardTitle className="text-2xl font-bold">Bem-vindo</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Entre com suas credenciais para acessar o sistema
-            </CardDescription>
-          </div>
+      <Card className="w-full max-w-md relative z-10 border-border/50 bg-card/90 backdrop-blur-md animate-scale-in">
+        <CardHeader className="text-center space-y-2 pt-8">
+          <CardTitle className="text-2xl font-bold">Bem-vindo</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Entre com suas credenciais para acessar o sistema
+          </CardDescription>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="pb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -115,6 +116,11 @@ export default function AuthPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Version */}
+      <p className="text-xs text-muted-foreground/50 mt-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+        v1.0.0
+      </p>
     </div>
   );
 }
