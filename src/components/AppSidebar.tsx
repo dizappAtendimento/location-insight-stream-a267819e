@@ -6,8 +6,6 @@ import {
   MapPin,
   History,
   Settings,
-  LogOut,
-  Search,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -23,6 +21,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.png';
 
 const menuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -44,16 +43,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="border-r border-border/50 bg-card"
+      className="border-r border-border/50 bg-sidebar-background"
       collapsible="icon"
     >
       <SidebarHeader className="p-4 border-b border-border/50">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
-            <Search className="w-4 h-4" />
-          </div>
+          <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
           {!collapsed && (
-            <span className="font-bold text-lg text-foreground">LeadExtract</span>
+            <span className="font-bold text-lg text-foreground">dizapp</span>
           )}
         </Link>
       </SidebarHeader>
