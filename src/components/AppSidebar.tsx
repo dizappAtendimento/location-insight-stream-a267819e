@@ -65,14 +65,14 @@ export function AppSidebar() {
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
+            <SidebarMenu className="gap-0">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className="group transition-all duration-200 h-9"
+                    className="group transition-all duration-200 h-8"
                   >
                     <Link to={item.url} className="flex items-center gap-3">
                       <item.icon className={cn("w-4 h-4 transition-colors", isActive(item.url) && "text-primary")} />
@@ -81,20 +81,13 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup className="mt-2 py-0">
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
               {extractorItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className="group transition-all duration-200 h-9"
+                    className="group transition-all duration-200 h-8"
                   >
                     <Link to={item.url} className="flex items-center gap-3">
                       <item.icon className={cn("w-4 h-4 transition-colors", item.color, isActive(item.url) && "text-primary")} />
