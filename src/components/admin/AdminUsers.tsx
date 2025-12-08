@@ -99,8 +99,12 @@ export function AdminUsers() {
     dataValidade_extrator: '',
   });
 
-  const disparadorPlans = plans.filter(p => p.tipo !== 'extrator');
+  const disparadorPlans = plans.filter(p => !p.tipo || p.tipo === 'disparador');
   const extratorPlans = plans.filter(p => p.tipo === 'extrator');
+  
+  console.log('Plans loaded:', plans);
+  console.log('Disparador plans:', disparadorPlans);
+  console.log('Extrator plans:', extratorPlans);
 
   const fetchUsers = async () => {
     setIsLoading(true);
