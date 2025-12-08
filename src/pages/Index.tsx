@@ -10,9 +10,12 @@ import { useExtractionHistory } from '@/hooks/useExtractionHistory';
 import { useEffect, useRef } from 'react';
 
 const Index = () => {
-  const { isLoading, results, progress, searchPlaces, downloadCSV, downloadJSON, downloadExcel } = useSearchPlaces();
+  const { isLoading, results, progress, liveResults, searchPlaces, downloadCSV, downloadJSON, downloadExcel } = useSearchPlaces();
   const { addRecord } = useExtractionHistory();
   const lastResultsRef = useRef<string | null>(null);
+
+  // Determine which results to show
+  const displayResults = results?.places || liveResults;
 
   useEffect(() => {
     if (results && results.places.length > 0) {
@@ -68,7 +71,31 @@ const Index = () => {
           <SearchProgressBar progress={progress} />
         )}
 
-        {/* Results */}
+        {/* Live Results During Search */}
+        {liveResults.length > 0 && !results && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  Resultados em tempo real
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs font-medium animate-pulse">
+                    Buscando...
+                  </span>
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium">
+                  {liveResults.length} lugares encontrados até agora
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-2">
+              {liveResults.slice(-20).map((place, index) => (
+                <PlaceCard key={place.cid || `live-${index}`} place={place} index={index} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Final Results */}
         {results && (
           <div className="space-y-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
