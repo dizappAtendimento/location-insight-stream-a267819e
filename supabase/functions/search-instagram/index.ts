@@ -12,8 +12,96 @@ interface SerperResult {
   imageUrl?: string;
 }
 
+interface InstagramProfile {
+  username: string;
+  profileId: string;
+  profileLink: string;
+  email: string;
+  phone: string;
+  bioLink: string;
+  bio: string;
+}
+
+// Mapa de termos relacionados para expansão de busca
+const relatedTerms: Record<string, string[]> = {
+  'mecanica': ['mecânico', 'autocenter', 'oficina mecânica', 'auto center', 'auto mecânica', 'funilaria', 'borracharia', 'troca de óleo', 'centro automotivo'],
+  'dentista': ['odontologia', 'dentista', 'ortodontista', 'clínica odontológica', 'consultório odontológico', 'implante dentário'],
+  'advogado': ['advocacia', 'escritório de advocacia', 'advogada', 'jurídico', 'direito'],
+  'nutricionista': ['nutrição', 'nutri', 'nutricionista clínica', 'emagrecimento', 'dieta'],
+  'personal': ['personal trainer', 'treinador pessoal', 'academia', 'fitness', 'treino'],
+  'salao': ['salão de beleza', 'cabeleireiro', 'cabeleireira', 'barbearia', 'beauty', 'hair'],
+  'estetica': ['estética', 'clínica de estética', 'esteticista', 'spa', 'beauty center', 'harmonização facial'],
+  'restaurante': ['restaurante', 'gastronomia', 'chef', 'comida', 'delivery', 'food'],
+  'loja': ['loja', 'store', 'shop', 'boutique', 'outlet'],
+  'fotografo': ['fotógrafo', 'fotografia', 'foto', 'ensaio fotográfico', 'estúdio fotográfico'],
+  'arquiteto': ['arquitetura', 'arquiteto', 'design de interiores', 'decoração', 'interiores'],
+  'psicologo': ['psicologia', 'psicólogo', 'psicóloga', 'terapia', 'saúde mental'],
+  'medico': ['médico', 'medicina', 'clínica médica', 'doutor', 'doutora', 'consultório'],
+  'contador': ['contabilidade', 'contador', 'contadora', 'escritório contábil'],
+  'imobiliaria': ['imobiliária', 'corretor de imóveis', 'imóveis', 'real estate'],
+};
+
+function getRelatedTerms(segment: string): string[] {
+  const lowerSegment = segment.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  // Encontrar termos relacionados
+  for (const [key, terms] of Object.entries(relatedTerms)) {
+    if (lowerSegment.includes(key) || key.includes(lowerSegment)) {
+      return [segment, ...terms];
+    }
+  }
+  
+  // Se não encontrou, retornar variações básicas
+  return [segment, `${segment}s`, `profissional ${segment}`, `especialista ${segment}`];
+}
+
+function extractEmail(text: string): string {
+  const emailMatch = text?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  return emailMatch ? emailMatch[0] : '';
+}
+
+function extractPhone(text: string): string {
+  // Padrões brasileiros de telefone
+  const phonePatterns = [
+    /\+55\s?\d{2}\s?\d{4,5}[-.\s]?\d{4}/,
+    /\(\d{2}\)\s?\d{4,5}[-.\s]?\d{4}/,
+    /\d{2}\s?\d{4,5}[-.\s]?\d{4}/,
+    /\d{4,5}[-.\s]?\d{4}/,
+  ];
+  
+  for (const pattern of phonePatterns) {
+    const match = text?.match(pattern);
+    if (match) {
+      return match[0].replace(/[^\d+]/g, '').replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+    }
+  }
+  return '';
+}
+
+function extractBioLink(text: string): string {
+  // Procurar links comuns em bios
+  const linkPatterns = [
+    /linktr\.ee\/[^\s]+/i,
+    /bit\.ly\/[^\s]+/i,
+    /wa\.me\/[^\s]+/i,
+    /api\.whatsapp\.com\/[^\s]+/i,
+    /https?:\/\/[^\s]+/,
+  ];
+  
+  for (const pattern of linkPatterns) {
+    const match = text?.match(pattern);
+    if (match) {
+      let link = match[0];
+      if (!link.startsWith('http')) {
+        link = 'https://' + link;
+      }
+      return link;
+    }
+  }
+  return '';
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -37,97 +125,104 @@ serve(async (req) => {
       );
     }
 
-    // Construir query de busca por segmento no Instagram
-    let searchQuery = `instagram ${segment}`;
-    if (location) {
-      searchQuery += ` ${location}`;
-    }
+    // Obter termos relacionados para busca expandida
+    const searchTerms = getRelatedTerms(segment);
+    console.log(`Segment: ${segment}, Related terms: ${searchTerms.join(', ')}`);
     
-    console.log(`Searching Instagram profiles for segment: ${segment}, location: ${location || 'any'}, max: ${maxResults}`);
+    const allProfiles: Map<string, InstagramProfile> = new Map();
+    const resultsPerQuery = Math.ceil(maxResults / searchTerms.length);
 
-    const allResults: SerperResult[] = [];
-    const resultsPerPage = 100;
-    const pagesToFetch = Math.ceil(maxResults / resultsPerPage);
+    // Fazer buscas para cada termo relacionado
+    for (const term of searchTerms) {
+      if (allProfiles.size >= maxResults) break;
 
-    for (let page = 0; page < pagesToFetch && allResults.length < maxResults; page++) {
-      console.log(`Fetching page ${page + 1} for: ${searchQuery}`);
-
-      const response = await fetch('https://google.serper.dev/search', {
-        method: 'POST',
-        headers: {
-          'X-API-KEY': SERPER_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          q: searchQuery,
-          num: resultsPerPage,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Serper API error:', response.status, errorText);
-        throw new Error(`Serper API error: ${response.status}`);
+      let searchQuery = `instagram ${term}`;
+      if (location) {
+        searchQuery += ` ${location}`;
       }
+      
+      console.log(`Searching: ${searchQuery}`);
 
-      const data = await response.json();
-      console.log(`Page ${page + 1} returned ${data.organic?.length || 0} results`);
+      try {
+        const response = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': SERPER_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: searchQuery,
+            num: Math.min(resultsPerQuery, 100),
+          }),
+        });
 
-      if (data.organic && data.organic.length > 0) {
-        allResults.push(...data.organic);
-      } else {
-        break;
-      }
+        if (!response.ok) {
+          console.error(`Serper error for "${term}":`, response.status);
+          continue;
+        }
 
-      // Delay para evitar rate limiting
-      if (page < pagesToFetch - 1) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        const data = await response.json();
+        console.log(`Found ${data.organic?.length || 0} results for "${term}"`);
+
+        if (data.organic) {
+          for (const result of data.organic as SerperResult[]) {
+            if (!result.link?.includes('instagram.com')) continue;
+            
+            const usernameMatch = result.link.match(/instagram\.com\/([^\/\?]+)/);
+            const username = usernameMatch ? usernameMatch[1] : '';
+            
+            // Filtrar usernames inválidos
+            if (!username || ['p', 'explore', 'reel', 'reels', 'stories', 'accounts', 'directory', 'tv', 'about', 'tags', 'locations'].includes(username)) {
+              continue;
+            }
+
+            // Se já temos esse perfil, merge os dados
+            if (allProfiles.has(username)) {
+              const existing = allProfiles.get(username)!;
+              const newEmail = extractEmail(result.snippet || '');
+              const newPhone = extractPhone(result.snippet || '');
+              const newBioLink = extractBioLink(result.snippet || '');
+              
+              if (!existing.email && newEmail) existing.email = newEmail;
+              if (!existing.phone && newPhone) existing.phone = newPhone;
+              if (!existing.bioLink && newBioLink) existing.bioLink = newBioLink;
+              if (!existing.bio && result.snippet) existing.bio = result.snippet;
+              
+              continue;
+            }
+
+            const profile: InstagramProfile = {
+              username,
+              profileId: `ig_${username}`,
+              profileLink: result.link,
+              email: extractEmail(result.snippet || ''),
+              phone: extractPhone(result.snippet || ''),
+              bioLink: extractBioLink(result.snippet || ''),
+              bio: result.snippet || '',
+            };
+
+            allProfiles.set(username, profile);
+          }
+        }
+
+        // Delay para evitar rate limiting
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+      } catch (error) {
+        console.error(`Error searching for "${term}":`, error);
+        continue;
       }
     }
 
-    // Extrair perfis do Instagram dos resultados
-    const profiles = allResults
-      .filter((result: SerperResult) => result.link?.includes('instagram.com'))
-      .map((result: SerperResult) => {
-        const link = result.link || '';
-        // Extrair username do link do Instagram
-        const usernameMatch = link.match(/instagram\.com\/([^\/\?]+)/);
-        const extractedUsername = usernameMatch ? usernameMatch[1] : '';
-        
-        // Tentar extrair email do snippet
-        const emailMatch = result.snippet?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-        const email = emailMatch ? emailMatch[0] : '';
-
-        return {
-          username: extractedUsername,
-          profileId: extractedUsername ? `ig_${extractedUsername}` : '',
-          profileLink: link,
-          email: email,
-          bio: result.snippet || '',
-        };
-      })
-      .filter((profile: { username: string }) => 
-        profile.username && 
-        !['p', 'explore', 'reel', 'reels', 'stories', 'accounts', 'directory', 'tv', 'about'].includes(profile.username)
-      )
-      .slice(0, maxResults);
-
-    // Remover duplicados baseado no username
-    const uniqueProfiles = profiles.reduce((acc: typeof profiles, current: typeof profiles[0]) => {
-      const exists = acc.find((item: typeof profiles[0]) => item.username === current.username);
-      if (!exists) {
-        acc.push(current);
-      }
-      return acc;
-    }, []);
-
-    console.log(`Returning ${uniqueProfiles.length} unique Instagram profiles for segment: ${segment}`);
+    const profiles = Array.from(allProfiles.values()).slice(0, maxResults);
+    console.log(`Returning ${profiles.length} unique profiles for segment: ${segment}`);
 
     return new Response(
       JSON.stringify({ 
-        profiles: uniqueProfiles,
+        profiles,
         searchQuery: segment,
-        total: uniqueProfiles.length 
+        termsSearched: searchTerms,
+        total: profiles.length 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
