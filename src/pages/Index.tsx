@@ -4,6 +4,7 @@ import { useSearchPlaces } from '@/hooks/useSearchPlaces';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin, Search, Download, FileJson, FileSpreadsheet, FileDown } from 'lucide-react';
+import { AppNavLink } from '@/components/AppNavLink';
 
 const Index = () => {
   const { isLoading, results, searchPlaces, downloadCSV, downloadJSON, downloadExcel } = useSearchPlaces();
@@ -13,14 +14,21 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border/50 bg-card">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground">
-              <MapPin className="w-5 h-5" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">Buscador de Lugares</h1>
+                <p className="text-sm text-muted-foreground">Encontre empresas e estabelecimentos</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Buscador de Lugares</h1>
-              <p className="text-sm text-muted-foreground">Encontre empresas e estabelecimentos</p>
-            </div>
+            
+            <nav className="flex gap-2">
+              <AppNavLink to="/" icon="MapPin">Buscador de Lugares</AppNavLink>
+              <AppNavLink to="/instagram" icon="Instagram">Instagram</AppNavLink>
+            </nav>
           </div>
         </div>
       </header>
