@@ -45,8 +45,9 @@ serve(async (req) => {
     const resultsPerPage = 100;
     const pagesToFetch = Math.ceil(maxResults / resultsPerPage);
 
-    for (let page = 0; page < pagesToFetch && allResults.length < maxResults; page++) {
-      const searchQuery = `site:instagram.com "${cleanUsername}" followers`;
+  for (let page = 0; page < pagesToFetch && allResults.length < maxResults; page++) {
+      // Buscar por perfis do Instagram sem usar site: operator
+      const searchQuery = `instagram ${cleanUsername} perfil`;
       
       console.log(`Fetching page ${page + 1} for: ${searchQuery}`);
 
@@ -59,7 +60,6 @@ serve(async (req) => {
         body: JSON.stringify({
           q: searchQuery,
           num: resultsPerPage,
-          page: page + 1,
         }),
       });
 
