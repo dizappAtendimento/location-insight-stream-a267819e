@@ -111,6 +111,12 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-2 border-t border-border/20">
+        {!collapsed && user && (
+          <div className="px-2 py-1.5 mb-1">
+            <p className="text-sm text-foreground truncate">{user.nome || 'Usuário'}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.Email}</p>
+          </div>
+        )}
         <SidebarMenu className="gap-0.5">
           <SidebarMenuItem>
             <SidebarMenuButton 
@@ -136,12 +142,6 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        {!collapsed && user && (
-          <div className="mt-1.5 px-2 py-1 rounded bg-muted/30">
-            <p className="text-xs text-foreground/80 truncate">{user.nome || 'Usuário'}</p>
-            <p className="text-[10px] text-muted-foreground truncate">{user.Email}</p>
-          </div>
-        )}
       </SidebarFooter>
     </Sidebar>
   );
