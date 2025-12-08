@@ -11,6 +11,7 @@ import LinkedInExtractor from "./pages/LinkedInExtractor";
 import Dashboard from "./pages/Dashboard";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
+import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/instagram" element={<ProtectedRoute><InstagramExtractor /></ProtectedRoute>} />
             <Route path="/linkedin" element={<ProtectedRoute><LinkedInExtractor /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

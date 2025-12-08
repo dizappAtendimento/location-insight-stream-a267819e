@@ -1,4 +1,5 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Instagram,
@@ -7,8 +8,10 @@ import {
   History,
   Settings,
   LogOut,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Sidebar,
   SidebarContent,
@@ -42,6 +45,22 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { user, logout } = useAuth();
   const collapsed = state === 'collapsed';
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user?.id) return;
+      try {
+        const { data } = await supabase.functions.invoke('admin-api', {
+          body: { action: 'check-admin', userId: user.id }
+        });
+        setIsAdmin(data?.isAdmin || false);
+      } catch (err) {
+        console.error('Error checking admin:', err);
+      }
+    };
+    checkAdmin();
+  }, [user?.id]);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -118,6 +137,21 @@ export function AppSidebar() {
           </div>
         )}
         <SidebarMenu className="gap-0.5">
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                asChild
+                isActive={isActive('/admin')}
+                tooltip="Admin" 
+                className="h-9 rounded-md transition-all duration-200 hover:bg-primary/10"
+              >
+                <Link to="/admin" className="flex items-center gap-2.5">
+                  <Shield className={cn("w-[18px] h-[18px] transition-colors", isActive('/admin') ? "text-primary" : "text-amber-500")} strokeWidth={1.5} />
+                  <span className="text-[13px] font-medium">Painel Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton 
               asChild
