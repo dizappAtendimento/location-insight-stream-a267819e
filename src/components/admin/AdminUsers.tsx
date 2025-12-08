@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Table, 
@@ -520,11 +521,13 @@ export function AdminUsers() {
                   
                   {/* Disparador */}
                   <TableCell className="py-2.5 text-center">
-                    <div className="inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-2">
                       <span className="text-xs text-blue-400">{user.plano_nome || '—'}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${user.status ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {user.status ? 'ON' : 'OFF'}
-                      </span>
+                      <Switch
+                        checked={!!user.status}
+                        onCheckedChange={() => handleToggleStatus(user.id, 'disparador')}
+                        className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500/50 scale-75"
+                      />
                     </div>
                     {user.dataValidade && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -535,11 +538,13 @@ export function AdminUsers() {
                   
                   {/* Extrator */}
                   <TableCell className="py-2.5 text-center">
-                    <div className="inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-2">
                       <span className="text-xs text-violet-400">{user.plano_extrator_nome || '—'}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${user.status_ex ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {user.status_ex ? 'ON' : 'OFF'}
-                      </span>
+                      <Switch
+                        checked={!!user.status_ex}
+                        onCheckedChange={() => handleToggleStatus(user.id, 'extrator')}
+                        className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500/50 scale-75"
+                      />
                     </div>
                     {user.dataValidade_extrator && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -550,17 +555,9 @@ export function AdminUsers() {
                   
                   {/* Ações */}
                   <TableCell className="py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-0.5">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditUser(user)} title="Editar">
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleToggleStatus(user.id, 'disparador')} title={user.status ? 'Desativar Disparador' : 'Ativar Disparador'}>
-                        {user.status ? <UserX className="w-3.5 h-3.5 text-blue-400" /> : <UserCheck className="w-3.5 h-3.5 text-blue-400" />}
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleToggleStatus(user.id, 'extrator')} title={user.status_ex ? 'Desativar Extrator' : 'Ativar Extrator'}>
-                        {user.status_ex ? <UserX className="w-3.5 h-3.5 text-violet-400" /> : <UserCheck className="w-3.5 h-3.5 text-violet-400" />}
-                      </Button>
-                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditUser(user)} title="Editar">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
