@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles } from 'lucide-react';
+import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, Download, FileSpreadsheet } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import * as XLSX from 'xlsx';
 
 type TypeFilter = 'all' | 'instagram' | 'linkedin' | 'places';
 type PeriodFilter = '7' | '14' | '30' | 'all' | 'custom';
@@ -109,6 +110,44 @@ const HistoryPage = () => {
     }
   };
 
+  const exportToExcel = (records: ExtractionRecord[], filename: string) => {
+    const data = records.map(r => ({
+      'Tipo': typeLabels[r.type],
+      'Segmento': r.segment,
+      'Localização': r.location || '-',
+      'Leads': r.totalResults,
+      'Emails': r.emailsFound,
+      'Telefones': r.phonesFound,
+      'Data': format(new Date(r.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Histórico');
+    XLSX.writeFile(wb, `${filename}.xlsx`);
+    
+    toast({
+      title: "Exportado com sucesso",
+      description: `${records.length} registros exportados para Excel`,
+    });
+  };
+
+  const handleExportAll = () => {
+    if (filteredHistory.length === 0) {
+      toast({
+        title: "Nenhum registro",
+        description: "Não há registros para exportar",
+        variant: "destructive",
+      });
+      return;
+    }
+    exportToExcel(filteredHistory, `historico_extracoes_${format(new Date(), 'yyyy-MM-dd')}`);
+  };
+
+  const handleExportSingle = (record: ExtractionRecord) => {
+    exportToExcel([record], `extração_${record.segment.replace(/\s+/g, '_')}_${format(new Date(record.createdAt), 'yyyy-MM-dd')}`);
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
@@ -124,12 +163,20 @@ const HistoryPage = () => {
                 <p className="text-muted-foreground text-sm">Visualize todas as suas extrações</p>
               </div>
             </div>
-            {history.length > 0 && (
-              <Button variant="outline" size="sm" onClick={handleClearHistory} className="text-destructive hover:text-destructive">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Limpar
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {filteredHistory.length > 0 && (
+                <Button variant="outline" size="sm" onClick={handleExportAll} className="text-primary hover:text-primary">
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Exportar
+                </Button>
+              )}
+              {history.length > 0 && (
+                <Button variant="outline" size="sm" onClick={handleClearHistory} className="text-destructive hover:text-destructive">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpar
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -341,6 +388,15 @@ const HistoryPage = () => {
                             {format(new Date(record.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </span>
                         </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleExportSingle(record)}
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          title="Baixar registro"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   );
