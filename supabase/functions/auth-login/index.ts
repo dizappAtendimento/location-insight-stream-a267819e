@@ -41,7 +41,7 @@ serve(async (req) => {
     // Query user by email using service role (bypasses RLS)
     const { data: user, error } = await supabase
       .from('SAAS_Usuarios')
-      .select('id, nome, Email, telefone, status, senha')
+      .select('id, nome, Email, telefone, "Status Ex", senha')
       .eq('Email', email)
       .maybeSingle();
 
@@ -69,7 +69,8 @@ serve(async (req) => {
       );
     }
 
-    if (!user.status) {
+    const statusEx = user['Status Ex'];
+    if (!statusEx) {
       console.log(`[Login] Account disabled: ${email}`);
       return new Response(
         JSON.stringify({ error: 'Conta desativada. Entre em contato com o suporte.' }),
@@ -87,7 +88,7 @@ serve(async (req) => {
           nome: user.nome,
           Email: user.Email,
           telefone: user.telefone,
-          status: user.status,
+          status: user['Status Ex'],
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

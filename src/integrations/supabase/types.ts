@@ -424,6 +424,7 @@ export type Database = {
           plano: number | null
           senha: string | null
           status: boolean | null
+          "Status Ex": boolean | null
           telefone: string | null
         }
         Insert: {
@@ -436,6 +437,7 @@ export type Database = {
           plano?: number | null
           senha?: string | null
           status?: boolean | null
+          "Status Ex"?: boolean | null
           telefone?: string | null
         }
         Update: {
@@ -448,6 +450,7 @@ export type Database = {
           plano?: number | null
           senha?: string | null
           status?: boolean | null
+          "Status Ex"?: boolean | null
           telefone?: string | null
         }
         Relationships: [
