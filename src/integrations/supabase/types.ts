@@ -467,6 +467,51 @@ export type Database = {
           },
         ]
       }
+      search_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          location: string | null
+          max_results: number | null
+          progress: Json | null
+          query: string
+          results: Json | null
+          session_id: string
+          status: string
+          total_found: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          location?: string | null
+          max_results?: number | null
+          progress?: Json | null
+          query: string
+          results?: Json | null
+          session_id: string
+          status?: string
+          total_found?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          location?: string | null
+          max_results?: number | null
+          progress?: Json | null
+          query?: string
+          results?: Json | null
+          session_id?: string
+          status?: string
+          total_found?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       vw_Detalhes_Completo: {
@@ -591,6 +636,7 @@ export type Database = {
         Args: { algorithm: string; secret: string; signables: string }
         Returns: string
       }
+      cleanup_old_search_jobs: { Args: never; Returns: undefined }
       create_disparo: { Args: { p_payload: Json }; Returns: number }
       create_disparo_grupo: { Args: { p_payload: Json }; Returns: number }
       delete_disparo:
