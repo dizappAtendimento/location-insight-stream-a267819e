@@ -207,7 +207,6 @@ serve(async (req) => {
                   seenCids
                 );
                 
-                allPlaces.push(...places);
                 
                 if (places.length > 0) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -215,6 +214,7 @@ serve(async (req) => {
                     city,
                     newPlaces: places.length,
                     totalResults: allPlaces.length,
+                    places: places.slice(0, 10),
                   })}\n\n`));
                 }
                 

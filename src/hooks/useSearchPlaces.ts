@@ -34,6 +34,7 @@ export function useSearchPlaces() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<SearchResult | null>(null);
   const [progress, setProgress] = useState<SearchProgress | null>(null);
+  const [liveResults, setLiveResults] = useState<Place[]>([]);
   const { toast } = useToast();
 
   const searchPlaces = useCallback(async (query: string, location?: string, maxResults: number = 100) => {
@@ -49,6 +50,7 @@ export function useSearchPlaces() {
     setIsLoading(true);
     setResults(null);
     setProgress(null);
+    setLiveResults([]);
 
     const normalizedLocation = location?.toLowerCase().trim() || '';
     const isMultiCity = !normalizedLocation || 
@@ -121,6 +123,16 @@ export function useSearchPlaces() {
                     ...prev,
                     currentResults: data.totalResults,
                   } : null);
+                  // Add new places to live results
+                  if (data.newPlaces && data.places) {
+                    setLiveResults(prev => {
+                      const newPlaces = data.places.map((p: any, i: number) => ({
+                        ...p,
+                        position: prev.length + i + 1,
+                      }));
+                      return [...prev, ...newPlaces];
+                    });
+                  }
                 } else if (data.type === 'complete') {
                   setResults({
                     places: data.places,
@@ -128,8 +140,9 @@ export function useSearchPlaces() {
                     totalFound: data.totalFound,
                   });
                   setProgress(null);
+                  setLiveResults([]);
                   toast({
-                    title: "Sucesso",
+                    title: "Busca completa!",
                     description: `Encontrados ${data.places?.length || 0} lugares em ${data.citiesSearched} cidades`,
                   });
                 }
@@ -186,6 +199,7 @@ export function useSearchPlaces() {
   const clearResults = () => {
     setResults(null);
     setProgress(null);
+    setLiveResults([]);
   };
 
   const downloadCSV = () => {
@@ -264,6 +278,7 @@ export function useSearchPlaces() {
     isLoading,
     results,
     progress,
+    liveResults,
     searchPlaces,
     clearResults,
     downloadCSV,
