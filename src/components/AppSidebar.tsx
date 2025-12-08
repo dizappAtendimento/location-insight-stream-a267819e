@@ -86,9 +86,6 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup className="mt-2 py-0">
-          <SidebarGroupLabel className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3 mb-1", collapsed && "sr-only")}>
-            Extratores
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               {extractorItems.map((item) => (
