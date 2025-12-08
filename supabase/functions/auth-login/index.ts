@@ -32,7 +32,7 @@ serve(async (req) => {
     if (!email || !password) {
       return new Response(
         JSON.stringify({ error: 'Email e senha são obrigatórios' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -49,7 +49,7 @@ serve(async (req) => {
       console.error('[Login] Database error:', error);
       return new Response(
         JSON.stringify({ error: 'Erro ao conectar ao servidor' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -57,7 +57,7 @@ serve(async (req) => {
       console.log(`[Login] User not found: ${email}`);
       return new Response(
         JSON.stringify({ error: 'Email não encontrado' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -65,7 +65,7 @@ serve(async (req) => {
       console.log(`[Login] Invalid password for: ${email}`);
       return new Response(
         JSON.stringify({ error: 'Senha incorreta' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -76,8 +76,8 @@ serve(async (req) => {
     if (statusEx !== true) {
       console.log(`[Login] Account disabled or not activated: ${email}`);
       return new Response(
-        JSON.stringify({ error: 'Conta desativada. Entre em contato com o suporte.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Acesso negado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
