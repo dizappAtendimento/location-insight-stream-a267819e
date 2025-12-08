@@ -110,11 +110,11 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t border-border/20">
+      <SidebarFooter className="p-3 border-t border-border/10">
         {!collapsed && user && (
-          <div className="px-2 py-1.5 mb-1">
-            <p className="text-sm text-foreground truncate">{user.nome || 'Usuário'}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.Email}</p>
+          <div className="px-2 py-2 mb-2 rounded-lg bg-gradient-to-r from-muted/40 to-transparent border-l-2 border-primary/50">
+            <p className="text-sm font-medium text-foreground truncate">{user.nome || 'Usuário'}</p>
+            <p className="text-[11px] text-muted-foreground/70 truncate">{user.Email}</p>
           </div>
         )}
         <SidebarMenu className="gap-0.5">
@@ -123,22 +123,22 @@ export function AppSidebar() {
               asChild
               isActive={isActive('/configuracoes')}
               tooltip="Configurações" 
-              className="h-8"
+              className="h-9 rounded-md transition-all duration-200 hover:bg-muted/50"
             >
-              <Link to="/configuracoes" className="flex items-center gap-2">
-                <Settings className={cn("w-4 h-4", isActive('/configuracoes') && "text-primary")} strokeWidth={2} />
-                <span className="text-sm">Configurações</span>
+              <Link to="/configuracoes" className="flex items-center gap-2.5">
+                <Settings className={cn("w-[18px] h-[18px] transition-colors", isActive('/configuracoes') ? "text-primary" : "text-muted-foreground")} strokeWidth={1.5} />
+                <span className="text-[13px] font-medium">Configurações</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton 
               tooltip="Sair" 
-              className="h-8 hover:bg-destructive/10 hover:text-destructive"
+              className="h-9 rounded-md transition-all duration-200 hover:bg-destructive/10 group"
               onClick={handleLogout}
             >
-              <LogOut className="w-4 h-4" strokeWidth={2} />
-              <span className="text-sm">Sair</span>
+              <LogOut className="w-[18px] h-[18px] text-muted-foreground group-hover:text-destructive transition-colors" strokeWidth={1.5} />
+              <span className="text-[13px] font-medium group-hover:text-destructive transition-colors">Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
