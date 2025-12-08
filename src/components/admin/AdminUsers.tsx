@@ -502,88 +502,128 @@ export function AdminUsers() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Usuário</TableHead>
-                <TableHead>Disparador</TableHead>
-                <TableHead>Extrator</TableHead>
-                <TableHead>Uso</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+              <TableRow className="hover:bg-transparent border-border/50">
+                <TableHead className="w-[280px]">Usuário</TableHead>
+                <TableHead className="w-[200px] text-center">Plano Disparador</TableHead>
+                <TableHead className="w-[200px] text-center">Plano Extrator</TableHead>
+                <TableHead className="w-[160px] text-center">Estatísticas</TableHead>
+                <TableHead className="w-[140px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id} className="group">
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{user.nome || 'Sem nome'}</p>
-                      <p className="text-xs text-muted-foreground">{user.Email}</p>
+                <TableRow key={user.id} className="group border-border/30">
+                  {/* Coluna Usuário */}
+                  <TableCell className="py-3">
+                    <div className="space-y-0.5">
+                      <p className="font-medium text-foreground">{user.nome || 'Sem nome'}</p>
+                      <p className="text-sm text-muted-foreground">{user.Email}</p>
                       {user.telefone && (
-                        <p className="text-xs text-muted-foreground">{user.telefone}</p>
+                        <p className="text-sm text-muted-foreground/70">{user.telefone}</p>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-xs font-normal bg-blue-500/10 text-blue-400 border-blue-500/30">
+                  
+                  {/* Coluna Disparador */}
+                  <TableCell className="py-3">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs font-medium bg-blue-500/10 text-blue-400 border-blue-500/30 px-2.5"
+                        >
                           {user.plano_nome || 'Sem plano'}
                         </Badge>
                         <Badge 
                           variant="outline"
-                          className={`text-[10px] px-1 py-0 ${user.status ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}
+                          className={`text-[10px] font-semibold px-2 py-0.5 ${
+                            user.status 
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                              : 'bg-red-500/20 text-red-400 border-red-500/40'
+                          }`}
                         >
                           {user.status ? 'ON' : 'OFF'}
                         </Badge>
                       </div>
                       {user.dataValidade && (
-                        <p className={`text-xs ${new Date(user.dataValidade) < new Date() ? 'text-destructive' : 'text-muted-foreground'}`}>
-                          {format(new Date(user.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}
+                        <p className={`text-xs font-medium ${
+                          new Date(user.dataValidade) < new Date() 
+                            ? 'text-red-400' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          Válido até {format(new Date(user.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}
                         </p>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-xs font-normal bg-violet-500/10 text-violet-400 border-violet-500/30">
+                  
+                  {/* Coluna Extrator */}
+                  <TableCell className="py-3">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs font-medium bg-violet-500/10 text-violet-400 border-violet-500/30 px-2.5"
+                        >
                           {user.plano_extrator_nome || 'Sem plano'}
                         </Badge>
                         <Badge 
                           variant="outline"
-                          className={`text-[10px] px-1 py-0 ${user.status_ex ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}
+                          className={`text-[10px] font-semibold px-2 py-0.5 ${
+                            user.status_ex 
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                              : 'bg-red-500/20 text-red-400 border-red-500/40'
+                          }`}
                         >
                           {user.status_ex ? 'ON' : 'OFF'}
                         </Badge>
                       </div>
                       {user.dataValidade_extrator && (
-                        <p className={`text-xs ${new Date(user.dataValidade_extrator) < new Date() ? 'text-destructive' : 'text-muted-foreground'}`}>
-                          {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy', { locale: ptBR })}
+                        <p className={`text-xs font-medium ${
+                          new Date(user.dataValidade_extrator) < new Date() 
+                            ? 'text-red-400' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          Válido até {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy', { locale: ptBR })}
                         </p>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-xs space-y-0.5">
-                      <p><span className="text-muted-foreground">Conexões:</span> {user.total_conexoes || 0}</p>
-                      <p><span className="text-muted-foreground">Contatos:</span> {user.total_contatos || 0}</p>
-                      <p><span className="text-muted-foreground">Disparos:</span> {user.total_disparos || 0}</p>
+                  
+                  {/* Coluna Estatísticas */}
+                  <TableCell className="py-3">
+                    <div className="flex flex-col items-center gap-0.5 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Conexões:</span>
+                        <span className="font-medium text-foreground">{user.total_conexoes || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Contatos:</span>
+                        <span className="font-medium text-foreground">{user.total_contatos || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Disparos:</span>
+                        <span className="font-medium text-foreground">{user.total_disparos || 0}</span>
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  
+                  {/* Coluna Ações */}
+                  <TableCell className="py-3 text-right">
+                    <div className="flex items-center justify-end gap-0.5">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8"
+                        className="h-8 w-8 hover:bg-primary/10"
                         onClick={() => handleEditUser(user)}
-                        title="Editar"
+                        title="Editar usuário"
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 hover:bg-blue-500/10"
                         onClick={() => handleRenewUser(user, 'disparador')}
                         title="Renovar Disparador"
                       >
@@ -592,7 +632,7 @@ export function AdminUsers() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 hover:bg-violet-500/10"
                         onClick={() => handleRenewUser(user, 'extrator')}
                         title="Renovar Extrator"
                       >
@@ -601,9 +641,9 @@ export function AdminUsers() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 hover:bg-blue-500/10"
                         onClick={() => handleToggleStatus(user.id, 'disparador')}
-                        title={user.status ? 'Suspender Disparador' : 'Ativar Disparador'}
+                        title={user.status ? 'Desativar Disparador' : 'Ativar Disparador'}
                       >
                         {user.status ? (
                           <UserX className="w-4 h-4 text-blue-400" />
@@ -614,9 +654,9 @@ export function AdminUsers() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 hover:bg-violet-500/10"
                         onClick={() => handleToggleStatus(user.id, 'extrator')}
-                        title={user.status_ex ? 'Suspender Extrator' : 'Ativar Extrator'}
+                        title={user.status_ex ? 'Desativar Extrator' : 'Ativar Extrator'}
                       >
                         {user.status_ex ? (
                           <UserX className="w-4 h-4 text-violet-400" />
