@@ -72,11 +72,11 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className="group transition-all duration-200 h-8"
+                    className="group transition-all duration-200 h-9"
                   >
                     <Link to={item.url} className="flex items-center gap-3">
-                      <item.icon className={cn("w-4 h-4 transition-colors", isActive(item.url) && "text-primary")} />
-                      <span className="font-medium">{item.title}</span>
+                      <item.icon className={cn("w-5 h-5 transition-colors stroke-[2.5]", isActive(item.url) && "text-primary")} />
+                      <span className="font-semibold text-[15px]">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -87,11 +87,11 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className="group transition-all duration-200 h-8"
+                    className="group transition-all duration-200 h-9"
                   >
                     <Link to={item.url} className="flex items-center gap-3">
-                      <item.icon className={cn("w-4 h-4 transition-colors", item.color, isActive(item.url) && "text-primary")} />
-                      <span className="font-medium">{item.title}</span>
+                      <item.icon className={cn("w-5 h-5 transition-colors stroke-[2.5]", item.color, isActive(item.url) && "text-primary")} />
+                      <span className="font-semibold text-[15px]">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -111,8 +111,8 @@ export function AppSidebar() {
               className="transition-all duration-200"
             >
               <Link to="/configuracoes" className="flex items-center gap-3">
-                <Settings className={cn("w-4 h-4", isActive('/configuracoes') && "text-primary")} />
-                <span className="font-medium">Configurações</span>
+                <Settings className={cn("w-5 h-5 stroke-[2.5]", isActive('/configuracoes') && "text-primary")} />
+                <span className="font-semibold text-[15px]">Configurações</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
