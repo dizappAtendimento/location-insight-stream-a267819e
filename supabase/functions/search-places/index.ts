@@ -179,7 +179,7 @@ async function runBackgroundSearch(
     // Update status to running
     await supabase.from('search_jobs').update({ 
       status: 'running',
-      progress: { currentCity: 'Iniciando...', percentage: 0 }
+      progress: { currentCity: 'Iniciando...', percentage: 0, currentResults: 0, targetResults: maxResults }
     }).eq('id', jobId);
 
     const searchVariations = generateSearchVariations(query);
@@ -190,23 +190,29 @@ async function runBackgroundSearch(
     const seenCids = new Set<string>();
     const maxPerCity = locationContext.type === 'city' ? maxResults : Math.max(100, Math.ceil(maxResults / cities.length));
 
-    for (let i = 0; i < cities.length; i++) {
-      if (allPlaces.length >= maxResults) break;
-      
-      const city = cities[i];
-      const percentage = Math.round(((i + 1) / cities.length) * 100);
-      
-      // Update progress
+    // Helper to update progress frequently
+    const updateProgress = async (city: string, cityIndex: number) => {
+      const percentage = Math.min(99, Math.round((allPlaces.length / maxResults) * 100));
       await supabase.from('search_jobs').update({ 
         progress: { 
           currentCity: city, 
-          cityIndex: i + 1, 
+          cityIndex: cityIndex, 
           totalCities: cities.length,
           currentResults: allPlaces.length,
+          targetResults: maxResults,
           percentage 
         },
         total_found: allPlaces.length
       }).eq('id', jobId);
+    };
+
+    for (let i = 0; i < cities.length; i++) {
+      if (allPlaces.length >= maxResults) break;
+      
+      const city = cities[i];
+      
+      // Update progress at start of each city
+      await updateProgress(city, i + 1);
 
       let cityFoundCount = 0;
       
@@ -214,14 +220,57 @@ async function runBackgroundSearch(
         if (allPlaces.length >= maxResults || cityFoundCount >= maxPerCity) break;
         
         try {
-          const beforeCount = allPlaces.length;
-          await fetchAllPagesForQuery(apiKey, `${variation} em ${city}`, maxPerCity - cityFoundCount, seenCids, allPlaces);
-          cityFoundCount += (allPlaces.length - beforeCount);
-          
-          if (allPlaces.length < maxResults && cityFoundCount < maxPerCity) {
-            const beforeCount2 = allPlaces.length;
-            await fetchAllPagesForQuery(apiKey, `${variation} in ${city}`, maxPerCity - cityFoundCount, seenCids, allPlaces);
-            cityFoundCount += (allPlaces.length - beforeCount2);
+          // Fetch with inline progress updates
+          let page = 1;
+          let emptyPages = 0;
+          const maxResultsPerQuery = maxPerCity - cityFoundCount;
+
+          while (cityFoundCount < maxResultsPerQuery && page <= 10 && emptyPages < 2) {
+            const response = await fetch('https://google.serper.dev/places', {
+              method: 'POST',
+              headers: {
+                'X-API-KEY': apiKey,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ q: `${variation} em ${city}`, num: 100, page }),
+            });
+
+            if (!response.ok) break;
+            const data = await response.json();
+            
+            if (!data.places || data.places.length === 0) {
+              emptyPages++;
+              page++;
+              continue;
+            }
+
+            emptyPages = 0;
+
+            for (const place of data.places) {
+              const id = place.cid || `${place.title}-${place.address}`;
+              if (!seenCids.has(id)) {
+                seenCids.add(id);
+                allPlaces.push({
+                  name: place.title,
+                  address: place.address,
+                  phone: place.phoneNumber || null,
+                  rating: place.rating || null,
+                  reviewCount: place.ratingCount || null,
+                  category: place.category || null,
+                  website: place.website || null,
+                  cid: place.cid || null,
+                });
+                cityFoundCount++;
+                
+                // Update progress every 10 results
+                if (allPlaces.length % 10 === 0) {
+                  await updateProgress(city, i + 1);
+                }
+              }
+            }
+
+            page++;
+            await new Promise(resolve => setTimeout(resolve, 50));
           }
           
           await new Promise(resolve => setTimeout(resolve, 30));

@@ -123,12 +123,20 @@ export function JobsList({
             </div>
 
             {(job.status === 'running' || job.status === 'pending') && (
-              <div className="mt-3 space-y-1">
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-primary font-semibold">
+                    {job.progress?.currentResults || 0} resultados encontrados
+                  </span>
+                  <span className="text-muted-foreground">
+                    {job.progress?.percentage || 0}%
+                  </span>
+                </div>
                 <Progress value={job.progress?.percentage || 0} className="h-1.5" />
                 <p className="text-xs text-muted-foreground truncate">
                   {job.progress?.currentCity || 'Aguardando...'}
                   {job.progress?.cityIndex && job.progress?.totalCities && (
-                    <span> ({job.progress.cityIndex}/{job.progress.totalCities})</span>
+                    <span> • Cidade {job.progress.cityIndex}/{job.progress.totalCities}</span>
                   )}
                 </p>
               </div>
