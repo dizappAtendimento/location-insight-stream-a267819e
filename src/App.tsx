@@ -8,6 +8,7 @@ import InstagramExtractor from "./pages/InstagramExtractor";
 import LinkedInExtractor from "./pages/LinkedInExtractor";
 import Dashboard from "./pages/Dashboard";
 import HistoryPage from "./pages/HistoryPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/places" element={<Index />} />
           <Route path="/instagram" element={<InstagramExtractor />} />
           <Route path="/linkedin" element={<LinkedInExtractor />} />
+          <Route path="/configuracoes" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

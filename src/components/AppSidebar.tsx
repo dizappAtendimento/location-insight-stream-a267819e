@@ -104,9 +104,16 @@ export function AppSidebar() {
       <SidebarFooter className="p-3 border-t border-border/30">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Configurações" className="transition-all duration-200">
-              <Settings className="w-4 h-4" />
-              <span className="font-medium">Configurações</span>
+            <SidebarMenuButton 
+              asChild
+              isActive={isActive('/configuracoes')}
+              tooltip="Configurações" 
+              className="transition-all duration-200"
+            >
+              <Link to="/configuracoes" className="flex items-center gap-3">
+                <Settings className={cn("w-4 h-4", isActive('/configuracoes') && "text-primary")} />
+                <span className="font-medium">Configurações</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
