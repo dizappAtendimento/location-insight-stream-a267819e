@@ -433,10 +433,12 @@ export type Database = {
           apikey_gpt: string | null
           created_at: string
           dataValidade: string | null
+          dataValidade_extrator: string | null
           Email: string | null
           id: string
           nome: string | null
           plano: number | null
+          plano_extrator: number | null
           senha: string | null
           status: boolean | null
           "Status Ex": boolean | null
@@ -446,10 +448,12 @@ export type Database = {
           apikey_gpt?: string | null
           created_at?: string
           dataValidade?: string | null
+          dataValidade_extrator?: string | null
           Email?: string | null
           id?: string
           nome?: string | null
           plano?: number | null
+          plano_extrator?: number | null
           senha?: string | null
           status?: boolean | null
           "Status Ex"?: boolean | null
@@ -459,16 +463,32 @@ export type Database = {
           apikey_gpt?: string | null
           created_at?: string
           dataValidade?: string | null
+          dataValidade_extrator?: string | null
           Email?: string | null
           id?: string
           nome?: string | null
           plano?: number | null
+          plano_extrator?: number | null
           senha?: string | null
           status?: boolean | null
           "Status Ex"?: boolean | null
           telefone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "SAAS_Usuarios_plano_extrator_fkey"
+            columns: ["plano_extrator"]
+            isOneToOne: false
+            referencedRelation: "SAAS_Planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Usuarios_plano_extrator_fkey"
+            columns: ["plano_extrator"]
+            isOneToOne: false
+            referencedRelation: "vw_Planos_Usuarios_Count"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "SAAS_Usuarios_plano_fkey"
             columns: ["plano"]

@@ -100,10 +100,13 @@ serve(async (req) => {
       }
 
       case 'get-users': {
-        // Get users from the view
+        // Get users directly from SAAS_Usuarios with joins
         const { data: users, error } = await supabase
-          .from('vw_Usuarios_Com_Plano')
-          .select('*')
+          .from('SAAS_Usuarios')
+          .select(`
+            id, nome, Email, telefone, status, "Status Ex", dataValidade, "dataValidade_extrator", 
+            plano, plano_extrator, created_at
+          `)
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -114,21 +117,40 @@ serve(async (req) => {
           );
         }
 
-        // Get plan types
+        // Get all plans for mapping
         const { data: plans } = await supabase
           .from('SAAS_Planos')
-          .select('id, tipo');
+          .select('id, nome, tipo');
 
-        // Map users with plan type
-        const usersWithPlanType = users?.map(user => ({
-          ...user,
-          plano_tipo: plans?.find(p => p.id === user.plano_id)?.tipo || 'disparador'
-        }));
+        // Get usage stats from the view
+        const { data: usageStats } = await supabase
+          .from('vw_Usuarios_Com_Plano')
+          .select('id, total_conexoes, total_contatos, total_disparos, total_listas');
+
+        // Map users with plan info and usage
+        const usersWithDetails = users?.map(user => {
+          const planDisparador = plans?.find(p => p.id === user.plano);
+          const planExtrator = plans?.find(p => p.id === user.plano_extrator);
+          const usage = usageStats?.find(u => u.id === user.id);
+          
+          return {
+            ...user,
+            status_ex: user['Status Ex'],
+            plano_id: user.plano,
+            plano_nome: planDisparador?.nome || null,
+            plano_extrator_id: user.plano_extrator,
+            plano_extrator_nome: planExtrator?.nome || null,
+            total_conexoes: usage?.total_conexoes || 0,
+            total_contatos: usage?.total_contatos || 0,
+            total_disparos: usage?.total_disparos || 0,
+            total_listas: usage?.total_listas || 0,
+          };
+        });
 
         console.log(`[Admin API] Fetched ${users?.length || 0} users`);
 
         return new Response(
-          JSON.stringify({ users: usersWithPlanType }),
+          JSON.stringify({ users: usersWithDetails }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -184,35 +206,24 @@ serve(async (req) => {
       }
 
       case 'toggle-user-status': {
-        const { planType } = await req.json().catch(() => ({}));
+        const { statusType } = await req.json().catch(() => ({}));
         
-        // First get current status and plan type
+        // First get current status
         const { data: currentUser } = await supabase
           .from('SAAS_Usuarios')
-          .select('status, "Status Ex", plano')
+          .select('status, "Status Ex"')
           .eq('id', userId)
           .single();
-
-        // Get plan type if not provided
-        let userPlanType = planType;
-        if (!userPlanType && currentUser?.plano) {
-          const { data: plan } = await supabase
-            .from('SAAS_Planos')
-            .select('tipo')
-            .eq('id', currentUser.plano)
-            .single();
-          userPlanType = plan?.tipo || 'disparador';
-        }
 
         let updateData = {};
         let newStatus: boolean;
 
-        if (userPlanType === 'extrator') {
-          // Toggle Status Ex for Extrator plans
+        if (statusType === 'extrator') {
+          // Toggle Status Ex for Extrator
           newStatus = !currentUser?.['Status Ex'];
           updateData = { 'Status Ex': newStatus };
         } else {
-          // Toggle status for Disparador plans
+          // Toggle status for Disparador
           newStatus = !currentUser?.status;
           updateData = { status: newStatus };
         }
@@ -230,7 +241,7 @@ serve(async (req) => {
           );
         }
 
-        console.log(`[Admin API] User ${userId} ${userPlanType === 'extrator' ? 'Status Ex' : 'status'} toggled to ${newStatus}`);
+        console.log(`[Admin API] User ${userId} ${statusType === 'extrator' ? 'Status Ex' : 'status'} toggled to ${newStatus}`);
 
         return new Response(
           JSON.stringify({ success: true, newStatus }),
@@ -246,10 +257,12 @@ serve(async (req) => {
             Email: userData.Email,
             telefone: userData.telefone,
             senha: userData.senha,
-            dataValidade: userData.dataValidade,
-            plano: userData.plano,
-            status: userData.status ?? true,
-            'Status Ex': userData.status ?? true,
+            dataValidade: userData.dataValidade || null,
+            plano: userData.plano || null,
+            plano_extrator: userData.plano_extrator || null,
+            'dataValidade_extrator': userData['dataValidade_extrator'] || null,
+            status: userData.status ?? false,
+            'Status Ex': userData['Status Ex'] ?? false,
           });
 
         if (error) {

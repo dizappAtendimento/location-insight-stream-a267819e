@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Table, 
   TableBody, 
@@ -28,7 +29,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit2, UserX, UserCheck, RefreshCw, UserPlus, Calendar } from 'lucide-react';
+import { Search, Edit2, UserX, UserCheck, RefreshCw, UserPlus, Calendar, Zap, Database } from 'lucide-react';
 import { format, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -38,10 +39,13 @@ interface User {
   Email: string | null;
   telefone: string | null;
   status: boolean | null;
+  status_ex: boolean | null;
   plano_nome: string | null;
   plano_id: number | null;
-  plano_tipo: string | null;
+  plano_extrator_id: number | null;
+  plano_extrator_nome: string | null;
   dataValidade: string | null;
+  dataValidade_extrator: string | null;
   created_at: string | null;
   total_conexoes: number | null;
   total_contatos: number | null;
@@ -68,13 +72,18 @@ export function AdminUsers() {
   const [isRenewDialogOpen, setIsRenewDialogOpen] = useState(false);
   const [renewingUser, setRenewingUser] = useState<User | null>(null);
   const [renewDays, setRenewDays] = useState(30);
+  const [renewType, setRenewType] = useState<'disparador' | 'extrator'>('disparador');
   
   const [editForm, setEditForm] = useState({
     nome: '',
     Email: '',
     telefone: '',
-    dataValidade: '',
+    // Disparador
     plano: '',
+    dataValidade: '',
+    // Extrator
+    plano_extrator: '',
+    dataValidade_extrator: '',
   });
 
   const [addForm, setAddForm] = useState({
@@ -82,9 +91,16 @@ export function AdminUsers() {
     Email: '',
     telefone: '',
     senha: '',
-    dataValidade: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+    // Disparador
     plano: '',
+    dataValidade: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+    // Extrator
+    plano_extrator: '',
+    dataValidade_extrator: '',
   });
+
+  const disparadorPlans = plans.filter(p => p.tipo !== 'extrator');
+  const extratorPlans = plans.filter(p => p.tipo === 'extrator');
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -132,10 +148,10 @@ export function AdminUsers() {
     setFilteredUsers(filtered);
   }, [searchTerm, users]);
 
-  const handleToggleStatus = async (userId: string) => {
+  const handleToggleStatus = async (userId: string, type: 'disparador' | 'extrator') => {
     try {
       const { data, error } = await supabase.functions.invoke('admin-api', {
-        body: { action: 'toggle-user-status', userId }
+        body: { action: 'toggle-user-status', userId, statusType: type }
       });
 
       if (error) {
@@ -149,7 +165,7 @@ export function AdminUsers() {
 
       toast({
         title: 'Sucesso',
-        description: `Usuário ${data.newStatus ? 'ativado' : 'desativado'} com sucesso`,
+        description: `${type === 'extrator' ? 'Extrator' : 'Disparador'} ${data.newStatus ? 'ativado' : 'desativado'} com sucesso`,
       });
 
       fetchUsers();
@@ -164,8 +180,10 @@ export function AdminUsers() {
       nome: user.nome || '',
       Email: user.Email || '',
       telefone: user.telefone || '',
-      dataValidade: user.dataValidade || '',
       plano: user.plano_id?.toString() || '',
+      dataValidade: user.dataValidade || '',
+      plano_extrator: user.plano_extrator_id?.toString() || '',
+      dataValidade_extrator: user.dataValidade_extrator || '',
     });
     setIsEditDialogOpen(true);
   };
@@ -182,8 +200,10 @@ export function AdminUsers() {
             nome: editForm.nome,
             Email: editForm.Email,
             telefone: editForm.telefone,
-            dataValidade: editForm.dataValidade,
             plano: editForm.plano ? parseInt(editForm.plano) : null,
+            dataValidade: editForm.dataValidade || null,
+            plano_extrator: editForm.plano_extrator ? parseInt(editForm.plano_extrator) : null,
+            'dataValidade_extrator': editForm.dataValidade_extrator || null,
           }
         }
       });
@@ -229,9 +249,12 @@ export function AdminUsers() {
             Email: addForm.Email,
             telefone: addForm.telefone,
             senha: addForm.senha,
-            dataValidade: addForm.dataValidade,
             plano: addForm.plano ? parseInt(addForm.plano) : null,
-            status: true,
+            dataValidade: addForm.dataValidade || null,
+            plano_extrator: addForm.plano_extrator ? parseInt(addForm.plano_extrator) : null,
+            'dataValidade_extrator': addForm.dataValidade_extrator || null,
+            status: !!addForm.plano,
+            'Status Ex': !!addForm.plano_extrator,
           }
         }
       });
@@ -256,8 +279,10 @@ export function AdminUsers() {
         Email: '',
         telefone: '',
         senha: '',
-        dataValidade: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
         plano: '',
+        dataValidade: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+        plano_extrator: '',
+        dataValidade_extrator: '',
       });
       fetchUsers();
     } catch (err) {
@@ -265,8 +290,9 @@ export function AdminUsers() {
     }
   };
 
-  const handleRenewUser = (user: User) => {
+  const handleRenewUser = (user: User, type: 'disparador' | 'extrator') => {
     setRenewingUser(user);
+    setRenewType(type);
     setRenewDays(30);
     setIsRenewDialogOpen(true);
   };
@@ -274,21 +300,26 @@ export function AdminUsers() {
   const handleConfirmRenew = async () => {
     if (!renewingUser) return;
 
-    const baseDate = renewingUser.dataValidade && new Date(renewingUser.dataValidade) > new Date()
-      ? new Date(renewingUser.dataValidade)
+    const currentValidity = renewType === 'extrator' 
+      ? renewingUser.dataValidade_extrator 
+      : renewingUser.dataValidade;
+
+    const baseDate = currentValidity && new Date(currentValidity) > new Date()
+      ? new Date(currentValidity)
       : new Date();
     
     const newDate = addDays(baseDate, renewDays);
+
+    const updateData: Record<string, unknown> = renewType === 'extrator'
+      ? { 'dataValidade_extrator': format(newDate, 'yyyy-MM-dd'), 'Status Ex': true }
+      : { dataValidade: format(newDate, 'yyyy-MM-dd'), status: true };
 
     try {
       const { error } = await supabase.functions.invoke('admin-api', {
         body: { 
           action: 'update-user', 
           userId: renewingUser.id,
-          userData: {
-            dataValidade: format(newDate, 'yyyy-MM-dd'),
-            status: true,
-          }
+          userData: updateData
         }
       });
 
@@ -303,7 +334,7 @@ export function AdminUsers() {
 
       toast({
         title: 'Sucesso',
-        description: `Validade renovada para ${format(newDate, 'dd/MM/yyyy', { locale: ptBR })}`,
+        description: `${renewType === 'extrator' ? 'Extrator' : 'Disparador'} renovado para ${format(newDate, 'dd/MM/yyyy', { locale: ptBR })}`,
       });
 
       setIsRenewDialogOpen(false);
@@ -312,13 +343,6 @@ export function AdminUsers() {
     } catch (err) {
       console.error('Error renewing user:', err);
     }
-  };
-
-  const getPlanTypeBadge = (tipo: string | null) => {
-    if (tipo === 'extrator') {
-      return <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 bg-violet-500/20 text-violet-400 border-violet-500/30">EXT</Badge>;
-    }
-    return <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 bg-blue-500/20 text-blue-400 border-blue-500/30">DSP</Badge>;
   };
 
   if (isLoading) {
@@ -358,64 +382,109 @@ export function AdminUsers() {
                   Adicionar
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Adicionar Usuário</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Nome</Label>
-                    <Input
-                      value={addForm.nome}
-                      onChange={(e) => setAddForm({ ...addForm, nome: e.target.value })}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nome</Label>
+                      <Input
+                        value={addForm.nome}
+                        onChange={(e) => setAddForm({ ...addForm, nome: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telefone</Label>
+                      <Input
+                        value={addForm.telefone}
+                        onChange={(e) => setAddForm({ ...addForm, telefone: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Email *</Label>
-                    <Input
-                      type="email"
-                      value={addForm.Email}
-                      onChange={(e) => setAddForm({ ...addForm, Email: e.target.value })}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Email *</Label>
+                      <Input
+                        type="email"
+                        value={addForm.Email}
+                        onChange={(e) => setAddForm({ ...addForm, Email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Senha *</Label>
+                      <Input
+                        type="password"
+                        value={addForm.senha}
+                        onChange={(e) => setAddForm({ ...addForm, senha: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Senha *</Label>
-                    <Input
-                      type="password"
-                      value={addForm.senha}
-                      onChange={(e) => setAddForm({ ...addForm, senha: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Telefone</Label>
-                    <Input
-                      value={addForm.telefone}
-                      onChange={(e) => setAddForm({ ...addForm, telefone: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Plano</Label>
-                    <Select value={addForm.plano} onValueChange={(value) => setAddForm({ ...addForm, plano: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um plano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {plans.map((plan) => (
-                          <SelectItem key={plan.id} value={plan.id.toString()}>
-                            {plan.nome} ({plan.tipo === 'extrator' ? 'Extrator' : 'Disparador'})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Data de Validade</Label>
-                    <Input
-                      type="date"
-                      value={addForm.dataValidade}
-                      onChange={(e) => setAddForm({ ...addForm, dataValidade: e.target.value })}
-                    />
-                  </div>
+
+                  <Tabs defaultValue="disparador" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="disparador" className="gap-1.5">
+                        <Zap className="w-3 h-3" />
+                        Disparador
+                      </TabsTrigger>
+                      <TabsTrigger value="extrator" className="gap-1.5">
+                        <Database className="w-3 h-3" />
+                        Extrator
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="disparador" className="space-y-3 mt-3">
+                      <div className="space-y-2">
+                        <Label>Plano Disparador</Label>
+                        <Select value={addForm.plano} onValueChange={(value) => setAddForm({ ...addForm, plano: value })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um plano" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {disparadorPlans.map((plan) => (
+                              <SelectItem key={plan.id} value={plan.id.toString()}>
+                                {plan.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Validade Disparador</Label>
+                        <Input
+                          type="date"
+                          value={addForm.dataValidade}
+                          onChange={(e) => setAddForm({ ...addForm, dataValidade: e.target.value })}
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="extrator" className="space-y-3 mt-3">
+                      <div className="space-y-2">
+                        <Label>Plano Extrator</Label>
+                        <Select value={addForm.plano_extrator} onValueChange={(value) => setAddForm({ ...addForm, plano_extrator: value })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um plano" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {extratorPlans.map((plan) => (
+                              <SelectItem key={plan.id} value={plan.id.toString()}>
+                                {plan.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Validade Extrator</Label>
+                        <Input
+                          type="date"
+                          value={addForm.dataValidade_extrator}
+                          onChange={(e) => setAddForm({ ...addForm, dataValidade_extrator: e.target.value })}
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
                   <Button onClick={handleAddUser} className="w-full">
                     Criar Usuário
                   </Button>
@@ -431,9 +500,8 @@ export function AdminUsers() {
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead>Usuário</TableHead>
-                <TableHead>Plano</TableHead>
-                <TableHead>Validade</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Disparador</TableHead>
+                <TableHead>Extrator</TableHead>
                 <TableHead>Uso</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -451,29 +519,44 @@ export function AdminUsers() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center">
-                      <Badge variant="outline" className="font-normal">
-                        {user.plano_nome || 'Sem plano'}
-                      </Badge>
-                      {user.plano_tipo && getPlanTypeBadge(user.plano_tipo)}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="text-xs font-normal bg-blue-500/10 text-blue-400 border-blue-500/30">
+                          {user.plano_nome || 'Sem plano'}
+                        </Badge>
+                        <Badge 
+                          variant="outline"
+                          className={`text-[10px] px-1 py-0 ${user.status ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}
+                        >
+                          {user.status ? 'ON' : 'OFF'}
+                        </Badge>
+                      </div>
+                      {user.dataValidade && (
+                        <p className={`text-xs ${new Date(user.dataValidade) < new Date() ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          {format(new Date(user.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}
+                        </p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    {user.dataValidade ? (
-                      <span className={`text-sm ${new Date(user.dataValidade) < new Date() ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        {format(new Date(user.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={user.status ? 'default' : 'secondary'}
-                      className={user.status ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-destructive/20 text-destructive border-destructive/30'}
-                    >
-                      {user.status ? 'Ativo' : 'Inativo'}
-                    </Badge>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="text-xs font-normal bg-violet-500/10 text-violet-400 border-violet-500/30">
+                          {user.plano_extrator_nome || 'Sem plano'}
+                        </Badge>
+                        <Badge 
+                          variant="outline"
+                          className={`text-[10px] px-1 py-0 ${user.status_ex ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}
+                        >
+                          {user.status_ex ? 'ON' : 'OFF'}
+                        </Badge>
+                      </div>
+                      {user.dataValidade_extrator && (
+                        <p className={`text-xs ${new Date(user.dataValidade_extrator) < new Date() ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy', { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-xs space-y-0.5">
@@ -497,22 +580,44 @@ export function AdminUsers() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => handleRenewUser(user)}
-                        title="Renovar"
+                        onClick={() => handleRenewUser(user, 'disparador')}
+                        title="Renovar Disparador"
                       >
-                        <Calendar className="w-4 h-4 text-primary" />
+                        <Zap className="w-4 h-4 text-blue-400" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => handleToggleStatus(user.id)}
-                        title={user.status ? 'Suspender' : 'Ativar'}
+                        onClick={() => handleRenewUser(user, 'extrator')}
+                        title="Renovar Extrator"
+                      >
+                        <Database className="w-4 h-4 text-violet-400" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleToggleStatus(user.id, 'disparador')}
+                        title={user.status ? 'Suspender Disparador' : 'Ativar Disparador'}
                       >
                         {user.status ? (
-                          <UserX className="w-4 h-4 text-destructive" />
+                          <UserX className="w-4 h-4 text-blue-400" />
                         ) : (
-                          <UserCheck className="w-4 h-4 text-emerald-400" />
+                          <UserCheck className="w-4 h-4 text-blue-400" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleToggleStatus(user.id, 'extrator')}
+                        title={user.status_ex ? 'Suspender Extrator' : 'Ativar Extrator'}
+                      >
+                        {user.status_ex ? (
+                          <UserX className="w-4 h-4 text-violet-400" />
+                        ) : (
+                          <UserCheck className="w-4 h-4 text-violet-400" />
                         )}
                       </Button>
                     </div>
@@ -531,17 +636,26 @@ export function AdminUsers() {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Nome</Label>
-              <Input
-                value={editForm.nome}
-                onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input
+                  value={editForm.nome}
+                  onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input
+                  value={editForm.telefone}
+                  onChange={(e) => setEditForm({ ...editForm, telefone: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
@@ -550,36 +664,70 @@ export function AdminUsers() {
                 onChange={(e) => setEditForm({ ...editForm, Email: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input
-                value={editForm.telefone}
-                onChange={(e) => setEditForm({ ...editForm, telefone: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Plano</Label>
-              <Select value={editForm.plano} onValueChange={(value) => setEditForm({ ...editForm, plano: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um plano" />
-                </SelectTrigger>
-                <SelectContent>
-                  {plans.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id.toString()}>
-                      {plan.nome} ({plan.tipo === 'extrator' ? 'Extrator' : 'Disparador'})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Data de Validade</Label>
-              <Input
-                type="date"
-                value={editForm.dataValidade}
-                onChange={(e) => setEditForm({ ...editForm, dataValidade: e.target.value })}
-              />
-            </div>
+
+            <Tabs defaultValue="disparador" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="disparador" className="gap-1.5">
+                  <Zap className="w-3 h-3" />
+                  Disparador
+                </TabsTrigger>
+                <TabsTrigger value="extrator" className="gap-1.5">
+                  <Database className="w-3 h-3" />
+                  Extrator
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="disparador" className="space-y-3 mt-3">
+                <div className="space-y-2">
+                  <Label>Plano Disparador</Label>
+                  <Select value={editForm.plano} onValueChange={(value) => setEditForm({ ...editForm, plano: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um plano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {disparadorPlans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id.toString()}>
+                          {plan.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Validade Disparador</Label>
+                  <Input
+                    type="date"
+                    value={editForm.dataValidade}
+                    onChange={(e) => setEditForm({ ...editForm, dataValidade: e.target.value })}
+                  />
+                </div>
+              </TabsContent>
+              <TabsContent value="extrator" className="space-y-3 mt-3">
+                <div className="space-y-2">
+                  <Label>Plano Extrator</Label>
+                  <Select value={editForm.plano_extrator} onValueChange={(value) => setEditForm({ ...editForm, plano_extrator: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um plano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {extratorPlans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id.toString()}>
+                          {plan.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Validade Extrator</Label>
+                  <Input
+                    type="date"
+                    value={editForm.dataValidade_extrator}
+                    onChange={(e) => setEditForm({ ...editForm, dataValidade_extrator: e.target.value })}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
             <Button onClick={handleSaveUser} className="w-full">
               Salvar Alterações
             </Button>
@@ -591,7 +739,9 @@ export function AdminUsers() {
       <Dialog open={isRenewDialogOpen} onOpenChange={setIsRenewDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Renovar Validade</DialogTitle>
+            <DialogTitle>
+              Renovar {renewType === 'extrator' ? 'Extrator' : 'Disparador'}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
@@ -618,9 +768,14 @@ export function AdminUsers() {
             <p className="text-xs text-muted-foreground">
               Nova validade: {renewingUser && format(
                 addDays(
-                  renewingUser.dataValidade && new Date(renewingUser.dataValidade) > new Date()
-                    ? new Date(renewingUser.dataValidade)
-                    : new Date(),
+                  (() => {
+                    const currentVal = renewType === 'extrator' 
+                      ? renewingUser.dataValidade_extrator 
+                      : renewingUser.dataValidade;
+                    return currentVal && new Date(currentVal) > new Date()
+                      ? new Date(currentVal)
+                      : new Date();
+                  })(),
                   renewDays
                 ),
                 'dd/MM/yyyy',
