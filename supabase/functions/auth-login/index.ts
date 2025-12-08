@@ -72,9 +72,9 @@ serve(async (req) => {
     const statusEx = user['Status Ex'];
     console.log(`[Login] Status Ex value for ${email}:`, statusEx);
     
-    // Only block if Status Ex is explicitly false
-    if (statusEx === false) {
-      console.log(`[Login] Account disabled: ${email}`);
+    // Block if Status Ex is null or false (only allow if explicitly true)
+    if (statusEx !== true) {
+      console.log(`[Login] Account disabled or not activated: ${email}`);
       return new Response(
         JSON.stringify({ error: 'Conta desativada. Entre em contato com o suporte.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
