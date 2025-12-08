@@ -26,8 +26,9 @@ const Index = () => {
             </div>
             
             <nav className="flex gap-2">
-              <AppNavLink to="/" icon="MapPin">Buscador de Lugares</AppNavLink>
+              <AppNavLink to="/" icon="MapPin">Lugares</AppNavLink>
               <AppNavLink to="/instagram" icon="Instagram">Instagram</AppNavLink>
+              <AppNavLink to="/linkedin" icon="Linkedin">LinkedIn</AppNavLink>
             </nav>
           </div>
         </div>
