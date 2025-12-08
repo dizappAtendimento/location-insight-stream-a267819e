@@ -8,6 +8,7 @@ interface StatCardProps {
   trend?: string;
   trendPositive?: boolean;
   className?: string;
+  delay?: number;
 }
 
 export function StatCard({
@@ -17,12 +18,16 @@ export function StatCard({
   trend,
   trendPositive = true,
   className,
+  delay = 0,
 }: StatCardProps) {
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-xl bg-card border border-border/50 p-5 transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5",
-      className
-    )}>
+    <div 
+      className={cn(
+        "relative overflow-hidden rounded-xl bg-card border border-border/50 p-5 transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 opacity-0 animate-fade-in-up",
+        className
+      )}
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/80 to-primary/20" />
       <div className="flex items-start justify-between">
         <div className="space-y-2">
