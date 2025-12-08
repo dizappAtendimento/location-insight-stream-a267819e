@@ -2,25 +2,27 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MapPin, Loader2 } from 'lucide-react';
 
 interface SearchFormProps {
-  onSearch: (query: string, location?: string, num?: number) => void;
+  onSearch: (query: string, location?: string, maxResults?: number) => void;
   isLoading: boolean;
 }
 
 export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
+  const [maxResults, setMaxResults] = useState('100');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(query, location || undefined, 20);
+    onSearch(query, location || undefined, parseInt(maxResults));
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="query" className="text-sm font-medium">
             O que você procura?
@@ -30,7 +32,7 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             <Input
               id="query"
               type="text"
-              placeholder="Ex: restaurantes, dentistas, advogados..."
+              placeholder="Ex: restaurantes, dentistas..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-10"
@@ -48,12 +50,30 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             <Input
               id="location"
               type="text"
-              placeholder="Ex: São Paulo, Rio de Janeiro..."
+              placeholder="Ex: São Paulo, SP"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className="pl-10"
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="maxResults" className="text-sm font-medium">
+            Quantidade máxima
+          </Label>
+          <Select value={maxResults} onValueChange={setMaxResults}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="50">50 resultados</SelectItem>
+              <SelectItem value="100">100 resultados</SelectItem>
+              <SelectItem value="200">200 resultados</SelectItem>
+              <SelectItem value="500">500 resultados</SelectItem>
+              <SelectItem value="1000">1000 resultados</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -61,7 +81,7 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
         {isLoading ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Buscando...
+            Buscando lugares...
           </>
         ) : (
           <>
