@@ -70,7 +70,10 @@ serve(async (req) => {
     }
 
     const statusEx = user['Status Ex'];
-    if (!statusEx) {
+    console.log(`[Login] Status Ex value for ${email}:`, statusEx);
+    
+    // Only block if Status Ex is explicitly false
+    if (statusEx === false) {
       console.log(`[Login] Account disabled: ${email}`);
       return new Response(
         JSON.stringify({ error: 'Conta desativada. Entre em contato com o suporte.' }),
