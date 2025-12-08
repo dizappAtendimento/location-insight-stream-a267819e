@@ -50,34 +50,9 @@ const BR_STATES: Record<string, string[]> = {
 const ALL_BR_CITIES = Object.values(BR_STATES).flat();
 
 function generateSearchVariations(query: string): string[] {
-  const variations = [query];
-  const lowerQuery = query.toLowerCase();
-  
-  const serviceTerms: Record<string, string[]> = {
-    'clinica': ['clinica', 'consultório', 'centro médico'],
-    'clinicas': ['clinicas', 'clínicas', 'consultórios', 'centros médicos'],
-    'odontol': ['clínica odontológica', 'dentista', 'consultório odontológico', 'odontologia'],
-    'dentist': ['dentista', 'clínica odontológica', 'odontologia'],
-    'advogado': ['advogado', 'escritório de advocacia', 'advogados'],
-    'mecanic': ['mecânica', 'oficina mecânica', 'autocenter', 'auto center'],
-    'restaurante': ['restaurante', 'restaurantes', 'lanchonete'],
-    'pet': ['pet shop', 'veterinário', 'clínica veterinária'],
-    'salao': ['salão de beleza', 'barbearia', 'cabeleireiro'],
-    'academia': ['academia', 'fitness', 'crossfit'],
-    'hotel': ['hotel', 'pousada', 'hospedagem'],
-    'escola': ['escola', 'colégio', 'curso'],
-    'contab': ['contabilidade', 'contador', 'escritório contábil'],
-    'imobi': ['imobiliária', 'corretor de imóveis'],
-  };
-  
-  for (const [key, terms] of Object.entries(serviceTerms)) {
-    if (lowerQuery.includes(key)) {
-      variations.push(...terms);
-      break;
-    }
-  }
-  
-  return [...new Set(variations)];
+  // Only use the exact query - no variations that could return wrong results
+  // The user wants exactly what they searched for
+  return [query];
 }
 
 function detectLocationContext(location: string): { type: 'city' | 'state' | 'country', cities: string[], stateName?: string } {
