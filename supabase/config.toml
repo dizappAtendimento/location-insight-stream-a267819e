@@ -2,3 +2,6 @@ project_id = "egxwzmkdbymxooielidc"
 
 [functions.search-places]
 verify_jwt = false
+
+[functions.search-instagram]
+verify_jwt = false

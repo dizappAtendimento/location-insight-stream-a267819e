@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Instagram, Search, FileDown, Link2, Mail, User, Loader2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AppNavLink } from '@/components/AppNavLink';
+import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
 
 interface InstagramLead {
@@ -14,6 +15,7 @@ interface InstagramLead {
   profileId: string;
   profileLink: string;
   email: string;
+  bio?: string;
 }
 
 const InstagramExtractor = () => {
@@ -37,22 +39,38 @@ const InstagramExtractor = () => {
     setIsLoading(true);
     setExtractedFrom(targetUsername.replace('@', ''));
     
-    // Simula extração de seguidores - aqui você pode integrar com uma API real
-    const count = parseInt(maxResults);
-    const simulatedFollowers: InstagramLead[] = Array.from({ length: count }, (_, i) => ({
-      username: `seguidor_${i + 1}_${Math.random().toString(36).substring(7)}`,
-      profileId: `${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-      profileLink: `https://instagram.com/seguidor_${i + 1}`,
-      email: Math.random() > 0.7 ? `user${i + 1}@email.com` : '',
-    }));
+    try {
+      const { data, error } = await supabase.functions.invoke('search-instagram', {
+        body: { 
+          username: targetUsername.replace('@', ''),
+          maxResults: parseInt(maxResults)
+        }
+      });
 
-    setLeads(simulatedFollowers);
-    setIsLoading(false);
-    
-    toast({
-      title: "Extração concluída",
-      description: `${simulatedFollowers.length} seguidores extraídos de @${targetUsername.replace('@', '')}`,
-    });
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setLeads(data.profiles || []);
+      
+      toast({
+        title: "Extração concluída",
+        description: `${data.profiles?.length || 0} perfis encontrados relacionados a @${targetUsername.replace('@', '')}`,
+      });
+    } catch (error) {
+      console.error('Error extracting leads:', error);
+      toast({
+        title: "Erro na extração",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const downloadExcel = () => {
