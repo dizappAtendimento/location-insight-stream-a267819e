@@ -40,41 +40,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
-      const { data, error } = await supabase
-        .from('SAAS_Usuarios')
-        .select('id, nome, Email, telefone, status, senha')
-        .eq('Email', email)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke('auth-login', {
+        body: { email, password }
+      });
 
       if (error) {
         console.error('Login error:', error);
         return { error: 'Erro ao conectar ao servidor' };
       }
 
-      if (!data) {
-        return { error: 'Email não encontrado' };
+      if (data.error) {
+        return { error: data.error };
       }
 
-      if (data.senha !== password) {
-        return { error: 'Senha incorreta' };
+      if (data.user) {
+        setUser(data.user);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+        return { error: null };
       }
 
-      if (!data.status) {
-        return { error: 'Conta desativada. Entre em contato com o suporte.' };
-      }
-
-      const userData: User = {
-        id: data.id,
-        nome: data.nome,
-        Email: data.Email,
-        telefone: data.telefone,
-        status: data.status,
-      };
-
-      setUser(userData);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
-
-      return { error: null };
+      return { error: 'Resposta inválida do servidor' };
     } catch (err) {
       console.error('Login error:', err);
       return { error: 'Erro inesperado. Tente novamente.' };

@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.search-linkedin]
 verify_jwt = false
+
+[functions.auth-login]
+verify_jwt = false
