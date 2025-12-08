@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
@@ -21,12 +20,23 @@ export interface SearchResult {
   totalFound: number;
 }
 
+export interface SearchProgress {
+  currentCity: string;
+  cityIndex: number;
+  totalCities: number;
+  currentResults: number;
+  targetResults: number;
+  percentage: number;
+  isActive: boolean;
+}
+
 export function useSearchPlaces() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<SearchResult | null>(null);
+  const [progress, setProgress] = useState<SearchProgress | null>(null);
   const { toast } = useToast();
 
-  const searchPlaces = async (query: string, location?: string, maxResults: number = 100) => {
+  const searchPlaces = useCallback(async (query: string, location?: string, maxResults: number = 100) => {
     if (!query.trim()) {
       toast({
         title: "Erro",
@@ -38,25 +48,128 @@ export function useSearchPlaces() {
 
     setIsLoading(true);
     setResults(null);
+    setProgress(null);
+
+    const normalizedLocation = location?.toLowerCase().trim() || '';
+    const isMultiCity = !normalizedLocation || 
+                        normalizedLocation.includes('eua') || 
+                        normalizedLocation.includes('usa') || 
+                        normalizedLocation.includes('brasil') || 
+                        normalizedLocation.includes('brazil');
 
     try {
-      const { data, error } = await supabase.functions.invoke('search-places', {
-        body: { query, location, maxResults },
-      });
+      // Use streaming for multi-city searches
+      if (isMultiCity) {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        const response = await fetch(`${supabaseUrl}/functions/v1/search-places`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': supabaseKey,
+          },
+          body: JSON.stringify({ query, location, maxResults, stream: true }),
+        });
 
-      if (error) {
-        throw error;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error('No reader available');
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n\n').filter(Boolean);
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === 'start') {
+                  setProgress({
+                    currentCity: 'Iniciando...',
+                    cityIndex: 0,
+                    totalCities: data.totalCities,
+                    currentResults: 0,
+                    targetResults: maxResults,
+                    percentage: 0,
+                    isActive: true,
+                  });
+                } else if (data.type === 'progress') {
+                  setProgress({
+                    currentCity: data.currentCity,
+                    cityIndex: data.cityIndex,
+                    totalCities: data.totalCities,
+                    currentResults: data.currentResults,
+                    targetResults: data.targetResults,
+                    percentage: data.percentage,
+                    isActive: true,
+                  });
+                } else if (data.type === 'found') {
+                  setProgress(prev => prev ? {
+                    ...prev,
+                    currentResults: data.totalResults,
+                  } : null);
+                } else if (data.type === 'complete') {
+                  setResults({
+                    places: data.places,
+                    searchQuery: data.searchQuery,
+                    totalFound: data.totalFound,
+                  });
+                  setProgress(null);
+                  toast({
+                    title: "Sucesso",
+                    description: `Encontrados ${data.places?.length || 0} lugares em ${data.citiesSearched} cidades`,
+                  });
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e);
+              }
+            }
+          }
+        }
+      } else {
+        // Non-streaming for specific locations
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        const response = await fetch(`${supabaseUrl}/functions/v1/search-places`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': supabaseKey,
+          },
+          body: JSON.stringify({ query, location, maxResults }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        setResults(data);
+        toast({
+          title: "Sucesso",
+          description: `Encontrados ${data.places?.length || 0} lugares`,
+        });
       }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setResults(data);
-      toast({
-        title: "Sucesso",
-        description: `Encontrados ${data.places?.length || 0} lugares`,
-      });
     } catch (error) {
       console.error('Search error:', error);
       toast({
@@ -64,13 +177,15 @@ export function useSearchPlaces() {
         description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
+      setProgress(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   const clearResults = () => {
     setResults(null);
+    setProgress(null);
   };
 
   const downloadCSV = () => {
@@ -131,15 +246,14 @@ export function useSearchPlaces() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Lugares');
     
-    // Auto-size columns
     const colWidths = [
-      { wch: 30 }, // Nome
-      { wch: 50 }, // Endereço
-      { wch: 18 }, // Telefone
-      { wch: 8 },  // Rating
-      { wch: 12 }, // Avaliações
-      { wch: 20 }, // Categoria
-      { wch: 40 }, // Website
+      { wch: 30 },
+      { wch: 50 },
+      { wch: 18 },
+      { wch: 8 },
+      { wch: 12 },
+      { wch: 20 },
+      { wch: 40 },
     ];
     worksheet['!cols'] = colWidths;
 
@@ -149,6 +263,7 @@ export function useSearchPlaces() {
   return {
     isLoading,
     results,
+    progress,
     searchPlaces,
     clearResults,
     downloadCSV,

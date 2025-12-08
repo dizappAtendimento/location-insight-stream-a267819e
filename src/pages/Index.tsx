@@ -1,5 +1,6 @@
 import { SearchForm } from '@/components/SearchForm';
 import { PlaceCard } from '@/components/PlaceCard';
+import { SearchProgressBar } from '@/components/SearchProgressBar';
 import { useSearchPlaces } from '@/hooks/useSearchPlaces';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { useExtractionHistory } from '@/hooks/useExtractionHistory';
 import { useEffect, useRef } from 'react';
 
 const Index = () => {
-  const { isLoading, results, searchPlaces, downloadCSV, downloadJSON, downloadExcel } = useSearchPlaces();
+  const { isLoading, results, progress, searchPlaces, downloadCSV, downloadJSON, downloadExcel } = useSearchPlaces();
   const { addRecord } = useExtractionHistory();
   const lastResultsRef = useRef<string | null>(null);
 
@@ -61,6 +62,11 @@ const Index = () => {
             <SearchForm onSearch={searchPlaces} isLoading={isLoading} />
           </CardContent>
         </Card>
+
+        {/* Progress Bar */}
+        {progress && progress.isActive && (
+          <SearchProgressBar progress={progress} />
+        )}
 
         {/* Results */}
         {results && (
