@@ -12,6 +12,7 @@ interface SearchRequest {
   location?: string;
   maxResults?: number;
   sessionId?: string;
+  userId?: string;
   jobId?: string; // For checking status
 }
 
@@ -326,7 +327,7 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body: SearchRequest = await req.json();
-    const { query, location, maxResults = 1000, sessionId, jobId } = body;
+    const { query, location, maxResults = 1000, sessionId, userId, jobId } = body;
 
     // If jobId is provided, return the job status
     if (jobId) {
@@ -352,12 +353,14 @@ serve(async (req) => {
     // Create a new search job
     if (!query) throw new Error('Query is required');
     if (!sessionId) throw new Error('Session ID is required');
+    if (!userId) throw new Error('User ID is required');
 
     // Create job record
     const { data: newJob, error: insertError } = await supabase
       .from('search_jobs')
       .insert({
         session_id: sessionId,
+        user_id: userId,
         query,
         location: location || null,
         max_results: maxResults,

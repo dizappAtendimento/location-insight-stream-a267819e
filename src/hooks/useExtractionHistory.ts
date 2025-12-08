@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface ExtractionRecord {
   id: string;
@@ -11,19 +12,35 @@ export interface ExtractionRecord {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'extraction_history';
+const STORAGE_KEY_PREFIX = 'extraction_history_';
 
 export const useExtractionHistory = () => {
   const [history, setHistory] = useState<ExtractionRecord[]>([]);
+  const { user } = useAuth();
+  
+  const getStorageKey = () => {
+    return user?.id ? `${STORAGE_KEY_PREFIX}${user.id}` : null;
+  };
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const key = getStorageKey();
+    if (!key) {
+      setHistory([]);
+      return;
+    }
+    
+    const stored = localStorage.getItem(key);
     if (stored) {
       setHistory(JSON.parse(stored));
+    } else {
+      setHistory([]);
     }
-  }, []);
+  }, [user?.id]);
 
   const addRecord = (record: Omit<ExtractionRecord, 'id' | 'createdAt'>) => {
+    const key = getStorageKey();
+    if (!key) return null;
+    
     const newRecord: ExtractionRecord = {
       ...record,
       id: crypto.randomUUID(),
@@ -32,13 +49,16 @@ export const useExtractionHistory = () => {
     
     const updated = [newRecord, ...history].slice(0, 100); // Keep last 100
     setHistory(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(key, JSON.stringify(updated));
     return newRecord;
   };
 
   const clearHistory = () => {
+    const key = getStorageKey();
+    if (!key) return;
+    
     setHistory([]);
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(key);
   };
 
   const getStats = () => {

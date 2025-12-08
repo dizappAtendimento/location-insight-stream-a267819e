@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,6 +18,7 @@ export interface Place {
 
 export interface SearchJob {
   id: string;
+  user_id: string | null;
   session_id: string;
   query: string;
   location: string | null;
@@ -27,6 +29,7 @@ export interface SearchJob {
     cityIndex?: number;
     totalCities?: number;
     currentResults?: number;
+    targetResults?: number;
     percentage?: number;
   };
   results: Place[];
@@ -51,15 +54,18 @@ export function useSearchJobs() {
   const [jobs, setJobs] = useState<SearchJob[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
   const sessionId = getSessionId();
 
-  // Fetch all jobs for this session
+  // Fetch all jobs for this user
   const fetchJobs = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       const { data, error } = await supabase
         .from('search_jobs')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -67,6 +73,7 @@ export function useSearchJobs() {
       // Transform the data to match our interface
       const transformedJobs: SearchJob[] = (data || []).map(job => ({
         id: job.id,
+        user_id: job.user_id,
         session_id: job.session_id,
         query: job.query,
         location: job.location,
@@ -84,10 +91,12 @@ export function useSearchJobs() {
     } catch (error) {
       console.error('Error fetching jobs:', error);
     }
-  }, [sessionId]);
+  }, [user?.id]);
 
   // Poll for job status
   useEffect(() => {
+    if (!user?.id) return;
+    
     fetchJobs();
     
     // Poll every 2 seconds
@@ -96,7 +105,7 @@ export function useSearchJobs() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [fetchJobs]);
+  }, [fetchJobs, user?.id]);
 
   // Create a new search job
   const createJob = useCallback(async (query: string, location?: string, maxResults: number = 1000) => {
@@ -104,6 +113,15 @@ export function useSearchJobs() {
       toast({
         title: "Erro",
         description: "Digite uma busca válida",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user?.id) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para fazer buscas",
         variant: "destructive",
       });
       return;
@@ -119,7 +137,7 @@ export function useSearchJobs() {
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk`,
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk',
         },
-        body: JSON.stringify({ query, location, maxResults, sessionId }),
+        body: JSON.stringify({ query, location, maxResults, sessionId, userId: user.id }),
       });
 
       if (!response.ok) {
@@ -151,7 +169,7 @@ export function useSearchJobs() {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId, toast, fetchJobs]);
+  }, [sessionId, user?.id, toast, fetchJobs]);
 
   // Get active/selected job
   const activeJob = jobs.find(j => j.id === activeJobId) || jobs.find(j => j.status === 'running' || j.status === 'pending') || (jobs.length > 0 ? jobs[0] : null);

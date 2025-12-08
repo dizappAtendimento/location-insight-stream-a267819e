@@ -481,6 +481,7 @@ export type Database = {
           session_id: string
           status: string
           total_found: number | null
+          user_id: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -495,6 +496,7 @@ export type Database = {
           session_id: string
           status?: string
           total_found?: number | null
+          user_id?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -509,6 +511,7 @@ export type Database = {
           session_id?: string
           status?: string
           total_found?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
