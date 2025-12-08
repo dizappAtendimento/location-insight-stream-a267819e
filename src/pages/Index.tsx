@@ -1,37 +1,50 @@
 import { SearchForm } from '@/components/SearchForm';
 import { PlaceCard } from '@/components/PlaceCard';
-import { SearchProgressBar } from '@/components/SearchProgressBar';
-import { useSearchPlaces } from '@/hooks/useSearchPlaces';
+import { JobsList } from '@/components/JobsList';
+import { useSearchJobs } from '@/hooks/useSearchJobs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Search, Download, FileJson, FileSpreadsheet, FileDown, Sparkles } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { MapPin, Download, FileJson, FileSpreadsheet, FileDown, Sparkles, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useExtractionHistory } from '@/hooks/useExtractionHistory';
 import { useEffect, useRef } from 'react';
 
 const Index = () => {
-  const { isLoading, results, progress, liveResults, searchPlaces, downloadCSV, downloadJSON, downloadExcel } = useSearchPlaces();
+  const { 
+    isLoading, 
+    jobs, 
+    activeJob, 
+    activeJobId,
+    setActiveJobId,
+    createJob, 
+    deleteJob,
+    downloadCSV, 
+    downloadJSON, 
+    downloadExcel 
+  } = useSearchJobs();
+  
   const { addRecord } = useExtractionHistory();
   const lastResultsRef = useRef<string | null>(null);
 
-  // Determine which results to show
-  const displayResults = results?.places || liveResults;
-
+  // Track completed jobs in history
   useEffect(() => {
-    if (results && results.places.length > 0) {
-      const resultId = `${results.searchQuery}-${results.places.length}`;
+    if (activeJob && activeJob.status === 'completed' && activeJob.results.length > 0) {
+      const resultId = `${activeJob.id}-${activeJob.results.length}`;
       if (lastResultsRef.current !== resultId) {
         lastResultsRef.current = resultId;
         addRecord({
           type: 'places',
-          segment: results.searchQuery,
-          totalResults: results.places.length,
+          segment: activeJob.query,
+          totalResults: activeJob.results.length,
           emailsFound: 0,
-          phonesFound: results.places.filter(p => p.phone).length,
+          phonesFound: activeJob.results.filter(p => p.phone).length,
         });
       }
     }
-  }, [results, addRecord]);
+  }, [activeJob, addRecord]);
+
+  const isJobActive = activeJob && (activeJob.status === 'running' || activeJob.status === 'pending');
 
   return (
     <DashboardLayout>
@@ -58,96 +71,96 @@ const Index = () => {
               Buscar Lugares
             </CardTitle>
             <CardDescription>
-              Pesquise por tipo de negócio. Deixe localização vazia ou "EUA/Brasil" para buscar em 200+ cidades automaticamente. Até 10.000 resultados.
+              Pesquise por tipo de negócio. A busca roda em background - você pode sair da página e voltar depois para baixar os resultados.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <SearchForm onSearch={searchPlaces} isLoading={isLoading} />
+            <SearchForm onSearch={createJob} isLoading={isLoading} />
           </CardContent>
         </Card>
 
-        {/* Progress Bar */}
-        {progress && progress.isActive && (
-          <SearchProgressBar progress={progress} />
+        {/* Jobs List */}
+        {jobs.length > 0 && (
+          <div className="opacity-0 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+            <JobsList 
+              jobs={jobs}
+              activeJobId={activeJobId}
+              onSelectJob={setActiveJobId}
+              onDeleteJob={deleteJob}
+              onDownloadExcel={downloadExcel}
+              onDownloadCSV={downloadCSV}
+              onDownloadJSON={downloadJSON}
+            />
+          </div>
         )}
 
-        {/* Live Results During Search */}
-        {liveResults.length > 0 && !results && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between">
+        {/* Active Job Progress */}
+        {isJobActive && (
+          <Card className="animate-fade-in border-primary/30">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <div>
+                  <p className="font-medium">Buscando: {activeJob.query}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {activeJob.progress?.currentCity || 'Iniciando...'}
+                    {activeJob.progress?.cityIndex && activeJob.progress?.totalCities && (
+                      <span> • Cidade {activeJob.progress.cityIndex}/{activeJob.progress.totalCities}</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <Progress value={activeJob.progress?.percentage || 0} className="h-2" />
+              <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                <span>{activeJob.progress?.currentResults || 0} resultados encontrados</span>
+                <span>{activeJob.progress?.percentage || 0}%</span>
+              </div>
+              <p className="text-xs text-muted-foreground/70 mt-3 text-center">
+                Você pode sair da página. A busca continuará em background.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Results */}
+        {activeJob && activeJob.status === 'completed' && activeJob.results.length > 0 && (
+          <div className="space-y-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  Resultados em tempo real
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs font-medium animate-pulse">
-                    Buscando...
-                  </span>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Resultados para "{activeJob.query}"
                 </h2>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium">
-                  {liveResults.length} lugares encontrados até agora
+                  {activeJob.results.length} lugares encontrados
                 </span>
               </div>
+              
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => downloadExcel(activeJob)} className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20">
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Excel
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => downloadCSV(activeJob)}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => downloadJSON(activeJob)}>
+                  <FileJson className="w-4 h-4 mr-2" />
+                  JSON
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-2">
-              {liveResults.slice(-20).map((place, index) => (
-                <PlaceCard key={place.cid || `live-${index}`} place={place} index={index} />
+
+            <div className="flex flex-col gap-3">
+              {activeJob.results.map((place, index) => (
+                <PlaceCard key={place.cid || index} place={place} index={index} />
               ))}
             </div>
           </div>
         )}
 
-        {/* Final Results */}
-        {results && (
-          <div className="space-y-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">
-                  Resultados para "{results.searchQuery}"
-                </h2>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium">
-                  {results.places.length} lugares encontrados
-                </span>
-              </div>
-              
-              {results.places.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={downloadExcel} className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20">
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Excel
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={downloadCSV}>
-                    <FileSpreadsheet className="w-4 h-4 mr-2" />
-                    CSV
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={downloadJSON}>
-                    <FileJson className="w-4 h-4 mr-2" />
-                    JSON
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {results.places.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                {results.places.map((place, index) => (
-                  <PlaceCard key={place.cid || index} place={place} index={index} />
-                ))}
-              </div>
-            ) : (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                    <MapPin className="w-8 h-8 text-emerald-500/50" />
-                  </div>
-                  <p className="text-muted-foreground font-medium">Nenhum lugar encontrado</p>
-                  <p className="text-muted-foreground/70 text-sm mt-1">Tente buscar com outros termos</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
         {/* Empty State */}
-        {!results && !isLoading && (
+        {!activeJob && jobs.length === 0 && !isLoading && (
           <Card className="text-center py-16 opacity-0 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
             <CardContent>
               <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 flex items-center justify-center">
@@ -155,7 +168,7 @@ const Index = () => {
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Busque e exporte dados</h3>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Pesquise estabelecimentos e baixe os resultados em Excel, CSV ou JSON para usar em outras ferramentas
+                Pesquise estabelecimentos e baixe os resultados em Excel, CSV ou JSON. A busca roda em background - você pode sair e voltar depois!
               </p>
             </CardContent>
           </Card>
