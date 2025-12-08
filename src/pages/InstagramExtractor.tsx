@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Instagram, Search, FileDown, Link2, Mail, User, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Instagram, Search, FileDown, Link2, Mail, User, Loader2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AppNavLink } from '@/components/AppNavLink';
 import * as XLSX from 'xlsx';
@@ -18,38 +18,40 @@ interface InstagramLead {
 
 const InstagramExtractor = () => {
   const { toast } = useToast();
-  const [usernames, setUsernames] = useState('');
+  const [targetUsername, setTargetUsername] = useState('');
+  const [maxResults, setMaxResults] = useState('100');
   const [isLoading, setIsLoading] = useState(false);
   const [leads, setLeads] = useState<InstagramLead[]>([]);
+  const [extractedFrom, setExtractedFrom] = useState('');
 
   const extractLeads = async () => {
-    if (!usernames.trim()) {
+    if (!targetUsername.trim()) {
       toast({
         title: "Erro",
-        description: "Digite pelo menos um nome de usuário",
+        description: "Digite o username do perfil",
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
+    setExtractedFrom(targetUsername.replace('@', ''));
     
-    // Simula extração - aqui você pode integrar com uma API real
-    const usernameList = usernames.split('\n').filter(u => u.trim());
-    
-    const extractedLeads: InstagramLead[] = usernameList.map((username, index) => ({
-      username: username.trim().replace('@', ''),
+    // Simula extração de seguidores - aqui você pode integrar com uma API real
+    const count = parseInt(maxResults);
+    const simulatedFollowers: InstagramLead[] = Array.from({ length: count }, (_, i) => ({
+      username: `seguidor_${i + 1}_${Math.random().toString(36).substring(7)}`,
       profileId: `${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-      profileLink: `https://instagram.com/${username.trim().replace('@', '')}`,
-      email: '', // Email precisa ser extraído via API
+      profileLink: `https://instagram.com/seguidor_${i + 1}`,
+      email: Math.random() > 0.7 ? `user${i + 1}@email.com` : '',
     }));
 
-    setLeads(extractedLeads);
+    setLeads(simulatedFollowers);
     setIsLoading(false);
     
     toast({
       title: "Extração concluída",
-      description: `${extractedLeads.length} perfis processados`,
+      description: `${simulatedFollowers.length} seguidores extraídos de @${targetUsername.replace('@', '')}`,
     });
   };
 
@@ -74,7 +76,7 @@ const InstagramExtractor = () => {
       { wch: 35 },
     ];
 
-    XLSX.writeFile(workbook, `leads_instagram_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `leads_instagram_${extractedFrom}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   return (
@@ -89,7 +91,7 @@ const InstagramExtractor = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">Extrator de Leads Instagram</h1>
-                <p className="text-sm text-muted-foreground">Extraia IDs, links e emails de perfis</p>
+                <p className="text-sm text-muted-foreground">Extraia seguidores de um perfil</p>
               </div>
             </div>
             
@@ -108,23 +110,39 @@ const InstagramExtractor = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Search className="w-5 h-5" />
-                Extrair Leads
+                <Users className="w-5 h-5" />
+                Extrair Seguidores
               </CardTitle>
               <CardDescription>
-                Digite os usernames do Instagram (um por linha)
+                Digite o username do perfil para extrair seus seguidores
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="usernames">Usernames</Label>
-                <Textarea
-                  id="usernames"
-                  placeholder="@usuario1&#10;@usuario2&#10;@usuario3"
-                  className="min-h-[200px] font-mono text-sm"
-                  value={usernames}
-                  onChange={(e) => setUsernames(e.target.value)}
+                <Label htmlFor="targetUsername">Username do Perfil</Label>
+                <Input
+                  id="targetUsername"
+                  placeholder="@perfil_alvo"
+                  value={targetUsername}
+                  onChange={(e) => setTargetUsername(e.target.value)}
+                  className="font-mono"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maxResults">Quantidade de Seguidores</Label>
+                <Select value={maxResults} onValueChange={setMaxResults}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="50">50 seguidores</SelectItem>
+                    <SelectItem value="100">100 seguidores</SelectItem>
+                    <SelectItem value="200">200 seguidores</SelectItem>
+                    <SelectItem value="500">500 seguidores</SelectItem>
+                    <SelectItem value="1000">1000 seguidores</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               <Button 
@@ -135,12 +153,12 @@ const InstagramExtractor = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Extraindo...
+                    Extraindo seguidores...
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4 mr-2" />
-                    Extrair Leads
+                    Extrair Seguidores
                   </>
                 )}
               </Button>
@@ -154,7 +172,10 @@ const InstagramExtractor = () => {
                 <div>
                   <CardTitle>Resultados</CardTitle>
                   <CardDescription>
-                    {leads.length} leads extraídos
+                    {leads.length > 0 
+                      ? `${leads.length} seguidores de @${extractedFrom}`
+                      : '0 leads extraídos'
+                    }
                   </CardDescription>
                 </div>
                 {leads.length > 0 && (
@@ -214,7 +235,7 @@ const InstagramExtractor = () => {
                 <div className="text-center py-12">
                   <Instagram className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
                   <p className="text-muted-foreground">
-                    Digite usernames e clique em extrair
+                    Digite um perfil e clique em extrair
                   </p>
                 </div>
               )}
