@@ -2,10 +2,11 @@ import { SearchForm } from '@/components/SearchForm';
 import { PlaceCard } from '@/components/PlaceCard';
 import { useSearchPlaces } from '@/hooks/useSearchPlaces';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MapPin, Search, Download, FileJson, FileSpreadsheet } from 'lucide-react';
 
 const Index = () => {
-  const { isLoading, results, searchPlaces } = useSearchPlaces();
+  const { isLoading, results, searchPlaces, downloadCSV, downloadJSON } = useSearchPlaces();
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,7 +35,7 @@ const Index = () => {
               Buscar Lugares
             </CardTitle>
             <CardDescription>
-              Pesquise por tipo de negócio e localização para encontrar estabelecimentos
+              Pesquise por tipo de negócio e localização. Você pode buscar até 1000 resultados por vez.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -45,13 +46,28 @@ const Index = () => {
         {/* Results */}
         {results && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">
-                Resultados para "{results.searchQuery}"
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                {results.places.length} lugares encontrados
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Resultados para "{results.searchQuery}"
+                </h2>
+                <span className="text-sm text-muted-foreground">
+                  {results.places.length} lugares encontrados
+                </span>
+              </div>
+              
+              {results.places.length > 0 && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={downloadCSV}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Baixar CSV
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadJSON}>
+                    <FileJson className="w-4 h-4 mr-2" />
+                    Baixar JSON
+                  </Button>
+                </div>
+              )}
             </div>
 
             {results.places.length > 0 ? (
@@ -75,10 +91,10 @@ const Index = () => {
         {!results && !isLoading && (
           <Card className="text-center py-16">
             <CardContent>
-              <Search className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Comece sua busca</h3>
+              <Download className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Busque e exporte dados</h3>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Digite o tipo de estabelecimento que você procura e a localização para encontrar lugares
+                Pesquise estabelecimentos e baixe os resultados em CSV ou JSON para usar em outras ferramentas
               </p>
             </CardContent>
           </Card>

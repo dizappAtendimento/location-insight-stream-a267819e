@@ -8,7 +8,30 @@ const corsHeaders = {
 interface SearchRequest {
   query: string;
   location?: string;
-  num?: number;
+  maxResults?: number;
+}
+
+async function fetchPlaces(apiKey: string, searchQuery: string, page: number = 1): Promise<any> {
+  const response = await fetch('https://google.serper.dev/places', {
+    method: 'POST',
+    headers: {
+      'X-API-KEY': apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      q: searchQuery,
+      num: 100, // Max per request
+      page: page,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Serper API error:', response.status, errorText);
+    throw new Error(`Serper API error: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 serve(async (req) => {
@@ -24,51 +47,74 @@ serve(async (req) => {
       throw new Error('SERPER_API_KEY not configured');
     }
 
-    const { query, location, num = 10 }: SearchRequest = await req.json();
+    const { query, location, maxResults = 100 }: SearchRequest = await req.json();
 
     if (!query) {
       throw new Error('Query is required');
     }
 
-    console.log(`Searching for: "${query}" in location: "${location || 'default'}"`);
-
     const searchQuery = location ? `${query} in ${location}` : query;
+    console.log(`Searching for: "${searchQuery}" - Max results: ${maxResults}`);
 
-    const response = await fetch('https://google.serper.dev/places', {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': SERPER_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: searchQuery,
-        num: num,
-      }),
-    });
+    const allPlaces: any[] = [];
+    const seenCids = new Set<string>();
+    let page = 1;
+    const maxPages = Math.ceil(maxResults / 20); // Serper returns ~20 per page
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Serper API error:', response.status, errorText);
-      throw new Error(`Serper API error: ${response.status}`);
+    while (allPlaces.length < maxResults && page <= maxPages) {
+      console.log(`Fetching page ${page}...`);
+      
+      try {
+        const data = await fetchPlaces(SERPER_API_KEY, searchQuery, page);
+        
+        if (!data.places || data.places.length === 0) {
+          console.log(`No more results at page ${page}`);
+          break;
+        }
+
+        for (const place of data.places) {
+          // Deduplicate by cid
+          const id = place.cid || `${place.title}-${place.address}`;
+          if (!seenCids.has(id)) {
+            seenCids.add(id);
+            allPlaces.push({
+              name: place.title,
+              address: place.address,
+              phone: place.phoneNumber || null,
+              rating: place.rating || null,
+              reviewCount: place.ratingCount || null,
+              category: place.category || null,
+              website: place.website || null,
+              cid: place.cid || null,
+              position: allPlaces.length + 1,
+            });
+          }
+        }
+
+        console.log(`Total places so far: ${allPlaces.length}`);
+
+        // If we got less than expected, no more pages
+        if (data.places.length < 10) {
+          break;
+        }
+
+        page++;
+        
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (pageError) {
+        console.error(`Error fetching page ${page}:`, pageError);
+        break;
+      }
     }
 
-    const data = await response.json();
-    console.log(`Found ${data.places?.length || 0} places`);
+    console.log(`Final total: ${allPlaces.length} places`);
 
-    // Transform the data to a consistent format
-    const places = data.places?.map((place: any) => ({
-      name: place.title,
-      address: place.address,
-      phone: place.phoneNumber,
-      rating: place.rating,
-      reviewCount: place.ratingCount,
-      category: place.category,
-      website: place.website,
-      cid: place.cid,
-      position: place.position,
-    })) || [];
-
-    return new Response(JSON.stringify({ places, searchQuery }), {
+    return new Response(JSON.stringify({ 
+      places: allPlaces.slice(0, maxResults), 
+      searchQuery,
+      totalFound: allPlaces.length,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
