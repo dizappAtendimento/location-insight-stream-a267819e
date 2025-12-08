@@ -59,24 +59,33 @@ serve(async (req) => {
     const allPlaces: any[] = [];
     const seenCids = new Set<string>();
     let page = 1;
-    const maxPages = Math.ceil(maxResults / 20); // Serper returns ~20 per page
+    const maxPages = Math.ceil(maxResults / 10) + 5; // Serper returns ~10 per page, add buffer
+    let consecutiveEmptyPages = 0;
 
-    while (allPlaces.length < maxResults && page <= maxPages) {
-      console.log(`Fetching page ${page}...`);
+    while (allPlaces.length < maxResults && page <= maxPages && consecutiveEmptyPages < 3) {
+      console.log(`Fetching page ${page}... (target: ${maxResults}, current: ${allPlaces.length})`);
       
       try {
         const data = await fetchPlaces(SERPER_API_KEY, searchQuery, page);
         
         if (!data.places || data.places.length === 0) {
           console.log(`No more results at page ${page}`);
-          break;
+          consecutiveEmptyPages++;
+          page++;
+          continue;
         }
 
+        consecutiveEmptyPages = 0; // Reset on success
+        let newPlacesCount = 0;
+
         for (const place of data.places) {
+          if (allPlaces.length >= maxResults) break;
+          
           // Deduplicate by cid
           const id = place.cid || `${place.title}-${place.address}`;
           if (!seenCids.has(id)) {
             seenCids.add(id);
+            newPlacesCount++;
             allPlaces.push({
               name: place.title,
               address: place.address,
@@ -91,22 +100,25 @@ serve(async (req) => {
           }
         }
 
-        console.log(`Total places so far: ${allPlaces.length}`);
+        console.log(`Page ${page}: found ${data.places.length} results, ${newPlacesCount} new. Total: ${allPlaces.length}`);
 
-        // If we got less than expected, no more pages
-        if (data.places.length < 10) {
-          break;
+        // If we got very few new results for several pages, API might be exhausted
+        if (newPlacesCount === 0) {
+          consecutiveEmptyPages++;
         }
 
         page++;
         
         // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 150));
       } catch (pageError) {
         console.error(`Error fetching page ${page}:`, pageError);
-        break;
+        page++;
+        consecutiveEmptyPages++;
       }
     }
+
+    console.log(`Search complete. Pages fetched: ${page - 1}, Total unique places: ${allPlaces.length}`);
 
     console.log(`Final total: ${allPlaces.length} places`);
 
