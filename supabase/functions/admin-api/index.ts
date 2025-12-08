@@ -184,19 +184,42 @@ serve(async (req) => {
       }
 
       case 'toggle-user-status': {
-        // First get current status
+        const { planType } = await req.json().catch(() => ({}));
+        
+        // First get current status and plan type
         const { data: currentUser } = await supabase
           .from('SAAS_Usuarios')
-          .select('status, "Status Ex"')
+          .select('status, "Status Ex", plano')
           .eq('id', userId)
           .single();
 
-        const newStatus = !currentUser?.status;
-        const newStatusEx = !currentUser?.['Status Ex'];
+        // Get plan type if not provided
+        let userPlanType = planType;
+        if (!userPlanType && currentUser?.plano) {
+          const { data: plan } = await supabase
+            .from('SAAS_Planos')
+            .select('tipo')
+            .eq('id', currentUser.plano)
+            .single();
+          userPlanType = plan?.tipo || 'disparador';
+        }
+
+        let updateData = {};
+        let newStatus: boolean;
+
+        if (userPlanType === 'extrator') {
+          // Toggle Status Ex for Extrator plans
+          newStatus = !currentUser?.['Status Ex'];
+          updateData = { 'Status Ex': newStatus };
+        } else {
+          // Toggle status for Disparador plans
+          newStatus = !currentUser?.status;
+          updateData = { status: newStatus };
+        }
 
         const { error } = await supabase
           .from('SAAS_Usuarios')
-          .update({ status: newStatus, 'Status Ex': newStatusEx })
+          .update(updateData)
           .eq('id', userId);
 
         if (error) {
@@ -207,7 +230,7 @@ serve(async (req) => {
           );
         }
 
-        console.log(`[Admin API] User ${userId} status toggled to ${newStatus}`);
+        console.log(`[Admin API] User ${userId} ${userPlanType === 'extrator' ? 'Status Ex' : 'status'} toggled to ${newStatus}`);
 
         return new Response(
           JSON.stringify({ success: true, newStatus }),
