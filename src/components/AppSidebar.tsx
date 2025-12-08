@@ -53,8 +53,8 @@ export function AppSidebar() {
             alt="Logo" 
             className={cn(
               "object-contain transition-all duration-300", 
-              collapsed ? "w-8 h-8" : "w-28 h-8"
-            )} 
+              collapsed ? "w-10 h-10" : "w-36 h-10"
+            )}
           />
         </Link>
       </SidebarHeader>
