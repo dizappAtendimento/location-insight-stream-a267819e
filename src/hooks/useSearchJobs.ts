@@ -90,16 +90,13 @@ export function useSearchJobs() {
   useEffect(() => {
     fetchJobs();
     
-    // Poll every 2 seconds if there are running jobs
+    // Poll every 2 seconds
     const interval = setInterval(() => {
-      const hasRunningJobs = jobs.some(j => j.status === 'pending' || j.status === 'running');
-      if (hasRunningJobs) {
-        fetchJobs();
-      }
+      fetchJobs();
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [fetchJobs, jobs.length]);
+  }, [fetchJobs]);
 
   // Create a new search job
   const createJob = useCallback(async (query: string, location?: string, maxResults: number = 1000) => {
