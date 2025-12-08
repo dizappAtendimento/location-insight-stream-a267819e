@@ -9,11 +9,11 @@ interface SearchRequest {
   query: string;
   location?: string;
   maxResults?: number;
+  stream?: boolean;
 }
 
 // Comprehensive US cities list (top 200+)
 const US_CITIES = [
-  // Top 50 largest cities
   'New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ',
   'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'San Jose, CA',
   'Austin, TX', 'Jacksonville, FL', 'Fort Worth, TX', 'Columbus, OH', 'Charlotte, NC',
@@ -24,7 +24,6 @@ const US_CITIES = [
   'Atlanta, GA', 'Omaha, NE', 'Colorado Springs, CO', 'Raleigh, NC', 'Miami, FL',
   'Long Beach, CA', 'Virginia Beach, VA', 'Oakland, CA', 'Minneapolis, MN', 'Tampa, FL',
   'Tulsa, OK', 'Arlington, TX', 'New Orleans, LA', 'Wichita, KS', 'Cleveland, OH',
-  // Cities 51-100
   'Bakersfield, CA', 'Aurora, CO', 'Anaheim, CA', 'Honolulu, HI', 'Santa Ana, CA',
   'Riverside, CA', 'Corpus Christi, TX', 'Lexington, KY', 'Henderson, NV', 'Stockton, CA',
   'St. Paul, MN', 'Cincinnati, OH', 'St. Louis, MO', 'Pittsburgh, PA', 'Greensboro, NC',
@@ -35,59 +34,35 @@ const US_CITIES = [
   'Gilbert, AZ', 'Winston-Salem, NC', 'North Las Vegas, NV', 'Norfolk, VA', 'Chesapeake, VA',
   'Garland, TX', 'Irving, TX', 'Hialeah, FL', 'Fremont, CA', 'Boise, ID',
   'Richmond, VA', 'Baton Rouge, LA', 'Spokane, WA', 'Des Moines, IA', 'Tacoma, WA',
-  // Cities 101-150
   'San Bernardino, CA', 'Modesto, CA', 'Fontana, CA', 'Santa Clarita, CA', 'Moreno Valley, CA',
   'Birmingham, AL', 'Fayetteville, NC', 'Rochester, NY', 'Glendale, CA', 'Yonkers, NY',
-  'Huntington Beach, CA', 'Salt Lake City, UT', 'Grand Rapids, MI', 'Amarillo, TX', 'Montgomery, AL',
-  'Little Rock, AR', 'Akron, OH', 'Huntsville, AL', 'Augusta, GA', 'Port St. Lucie, FL',
-  'Grand Prairie, TX', 'Columbus, GA', 'Tallahassee, FL', 'Overland Park, KS', 'Tempe, AZ',
-  'McKinney, TX', 'Mobile, AL', 'Cape Coral, FL', 'Shreveport, LA', 'Frisco, TX',
-  'Knoxville, TN', 'Worcester, MA', 'Brownsville, TX', 'Vancouver, WA', 'Fort Lauderdale, FL',
-  'Sioux Falls, SD', 'Ontario, CA', 'Chattanooga, TN', 'Providence, RI', 'Newport News, VA',
-  'Rancho Cucamonga, CA', 'Santa Rosa, CA', 'Peoria, AZ', 'Oceanside, CA', 'Elk Grove, CA',
-  'Salem, OR', 'Pembroke Pines, FL', 'Eugene, OR', 'Garden Grove, CA', 'Cary, NC',
-  // Cities 151-200
-  'Fort Collins, CO', 'Corona, CA', 'Springfield, MO', 'Jackson, MS', 'Alexandria, VA',
-  'Hayward, CA', 'Lancaster, CA', 'Salinas, CA', 'Palmdale, CA', 'Hollywood, FL',
-  'Springfield, MA', 'Macon, GA', 'Kansas City, KS', 'Sunnyvale, CA', 'Pomona, CA',
-  'Killeen, TX', 'Escondido, CA', 'Pasadena, TX', 'Naperville, IL', 'Bellevue, WA',
-  'Joliet, IL', 'Murfreesboro, TN', 'Midland, TX', 'Rockford, IL', 'Paterson, NJ',
-  'Savannah, GA', 'Bridgeport, CT', 'Torrance, CA', 'McAllen, TX', 'Syracuse, NY',
-  'Surprise, AZ', 'Denton, TX', 'Roseville, CA', 'Thornton, CO', 'Miramar, FL',
-  'Pasadena, CA', 'Mesquite, TX', 'Olathe, KS', 'Dayton, OH', 'Carrollton, TX',
-  'Waco, TX', 'Orange, CA', 'Fullerton, CA', 'Charleston, SC', 'West Valley City, UT',
-  'Visalia, CA', 'Hampton, VA', 'Gainesville, FL', 'Warren, MI', 'Coral Springs, FL',
 ];
 
-// Brazilian cities
 const BR_CITIES = [
   'São Paulo, SP', 'Rio de Janeiro, RJ', 'Brasília, DF', 'Salvador, BA', 'Fortaleza, CE',
   'Belo Horizonte, MG', 'Manaus, AM', 'Curitiba, PR', 'Recife, PE', 'Porto Alegre, RS',
   'Belém, PA', 'Goiânia, GO', 'Guarulhos, SP', 'Campinas, SP', 'São Luís, MA',
   'São Gonçalo, RJ', 'Maceió, AL', 'Duque de Caxias, RJ', 'Natal, RN', 'Campo Grande, MS',
   'Teresina, PI', 'São Bernardo do Campo, SP', 'Nova Iguaçu, RJ', 'João Pessoa, PB', 'Santo André, SP',
-  'Osasco, SP', 'São José dos Campos, SP', 'Jaboatão dos Guararapes, PE', 'Ribeirão Preto, SP', 'Uberlândia, MG',
-  'Contagem, MG', 'Sorocaba, SP', 'Aracaju, SE', 'Feira de Santana, BA', 'Cuiabá, MT',
-  'Joinville, SC', 'Juiz de Fora, MG', 'Londrina, PR', 'Aparecida de Goiânia, GO', 'Ananindeua, PA',
-  'Niterói, RJ', 'Porto Velho, RO', 'Serra, ES', 'Caxias do Sul, RS', 'Macapá, AP',
-  'Florianópolis, SC', 'Vila Velha, ES', 'São João de Meriti, RJ', 'Mauá, SP', 'Betim, MG',
+  'Osasco, SP', 'São José dos Campos, SP', 'Ribeirão Preto, SP', 'Uberlândia, MG', 'Contagem, MG',
+  'Sorocaba, SP', 'Aracaju, SE', 'Feira de Santana, BA', 'Cuiabá, MT', 'Joinville, SC',
+  'Juiz de Fora, MG', 'Londrina, PR', 'Aparecida de Goiânia, GO', 'Niterói, RJ', 'Porto Velho, RO',
+  'Serra, ES', 'Caxias do Sul, RS', 'Macapá, AP', 'Florianópolis, SC', 'Vila Velha, ES',
 ];
 
-// Generate search term variations
 function generateSearchVariations(query: string): string[] {
   const variations = [query];
   const lowerQuery = query.toLowerCase();
   
-  // Common service-related variations
   const serviceTerms: Record<string, string[]> = {
-    'house cleaning': ['house cleaning service', 'home cleaning', 'residential cleaning', 'maid service', 'housekeeping'],
-    'cleaning': ['cleaning service', 'cleaners', 'janitorial'],
-    'plumber': ['plumbing', 'plumbing service', 'plumber service'],
-    'electrician': ['electrical service', 'electric', 'electrical contractor'],
-    'lawyer': ['law firm', 'attorney', 'legal services'],
-    'dentist': ['dental', 'dental clinic', 'dentistry'],
-    'restaurant': ['restaurants', 'dining', 'eatery'],
-    'mechanic': ['auto repair', 'car repair', 'automotive'],
+    'house cleaning': ['house cleaning service', 'home cleaning', 'maid service', 'housekeeping'],
+    'cleaning': ['cleaning service', 'cleaners'],
+    'plumber': ['plumbing', 'plumbing service'],
+    'electrician': ['electrical service', 'electrical contractor'],
+    'lawyer': ['law firm', 'attorney'],
+    'dentist': ['dental clinic', 'dentistry'],
+    'restaurant': ['restaurants', 'dining'],
+    'mechanic': ['auto repair', 'car repair'],
   };
   
   for (const [key, terms] of Object.entries(serviceTerms)) {
@@ -107,17 +82,10 @@ async function fetchPlaces(apiKey: string, searchQuery: string, page: number = 1
       'X-API-KEY': apiKey,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      q: searchQuery,
-      num: 100,
-      page: page,
-    }),
+    body: JSON.stringify({ q: searchQuery, num: 100, page }),
   });
 
-  if (!response.ok) {
-    throw new Error(`Serper API error: ${response.status}`);
-  }
-
+  if (!response.ok) throw new Error(`Serper API error: ${response.status}`);
   return response.json();
 }
 
@@ -129,10 +97,9 @@ async function fetchAllPagesForQuery(
 ): Promise<any[]> {
   const places: any[] = [];
   let page = 1;
-  const maxPages = 15;
   let emptyPages = 0;
 
-  while (places.length < maxResultsPerQuery && page <= maxPages && emptyPages < 2) {
+  while (places.length < maxResultsPerQuery && page <= 10 && emptyPages < 2) {
     try {
       const data = await fetchPlaces(apiKey, searchQuery, page);
       
@@ -163,7 +130,7 @@ async function fetchAllPagesForQuery(
 
       page++;
       await new Promise(resolve => setTimeout(resolve, 80));
-    } catch (error) {
+    } catch {
       break;
     }
   }
@@ -178,16 +145,10 @@ serve(async (req) => {
 
   try {
     const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
-    
-    if (!SERPER_API_KEY) {
-      throw new Error('SERPER_API_KEY not configured');
-    }
+    if (!SERPER_API_KEY) throw new Error('SERPER_API_KEY not configured');
 
-    const { query, location, maxResults = 100 }: SearchRequest = await req.json();
-
-    if (!query) {
-      throw new Error('Query is required');
-    }
+    const { query, location, maxResults = 100, stream = false }: SearchRequest = await req.json();
+    if (!query) throw new Error('Query is required');
 
     const normalizedLocation = location?.toLowerCase().trim() || '';
     const isUSA = !normalizedLocation || 
@@ -200,65 +161,134 @@ serve(async (req) => {
                      normalizedLocation.includes('brazil') ||
                      /\b(sp|rj|mg|ba|pr|rs|sc|df|pe|ce)\b/.test(normalizedLocation);
 
-    console.log(`=== SEARCH START ===`);
-    console.log(`Query: "${query}", Location: "${location || 'ALL'}", Max: ${maxResults}`);
-    console.log(`Region detected: ${isBrazil ? 'Brazil' : isUSA ? 'USA' : 'Specific location'}`);
+    // STREAMING MODE
+    if (stream && (isUSA || isBrazil || !location)) {
+      const encoder = new TextEncoder();
+      const cities = isBrazil ? BR_CITIES : US_CITIES;
+      const searchVariations = generateSearchVariations(query);
+      
+      const readable = new ReadableStream({
+        async start(controller) {
+          const allPlaces: any[] = [];
+          const seenCids = new Set<string>();
+          const targetPerCity = Math.max(15, Math.ceil(maxResults / cities.length));
+          
+          // Send initial progress
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'start',
+            totalCities: cities.length,
+            variations: searchVariations,
+          })}\n\n`));
 
+          for (let i = 0; i < cities.length; i++) {
+            if (allPlaces.length >= maxResults) break;
+            
+            const city = cities[i];
+            
+            // Send progress update
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'progress',
+              currentCity: city,
+              cityIndex: i + 1,
+              totalCities: cities.length,
+              currentResults: allPlaces.length,
+              targetResults: maxResults,
+              percentage: Math.round(((i + 1) / cities.length) * 100),
+            })}\n\n`));
+
+            for (const variation of searchVariations) {
+              if (allPlaces.length >= maxResults) break;
+              
+              try {
+                const places = await fetchAllPagesForQuery(
+                  SERPER_API_KEY, 
+                  `${variation} in ${city}`, 
+                  targetPerCity,
+                  seenCids
+                );
+                
+                allPlaces.push(...places);
+                
+                if (places.length > 0) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    type: 'found',
+                    city,
+                    newPlaces: places.length,
+                    totalResults: allPlaces.length,
+                  })}\n\n`));
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 30));
+              } catch (error) {
+                console.error(`Error in ${city}:`, error);
+              }
+            }
+          }
+
+          // Add position numbers
+          allPlaces.forEach((place, index) => {
+            place.position = index + 1;
+          });
+
+          // Send final results
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'complete',
+            places: allPlaces.slice(0, maxResults),
+            searchQuery: query,
+            totalFound: allPlaces.length,
+            citiesSearched: cities.length,
+          })}\n\n`));
+
+          controller.close();
+        }
+      });
+
+      return new Response(readable, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
+    // NON-STREAMING MODE (for specific locations)
     const allPlaces: any[] = [];
     const seenCids = new Set<string>();
     const searchVariations = generateSearchVariations(query);
-    
-    console.log(`Search variations: ${searchVariations.join(', ')}`);
 
     if (!isUSA && !isBrazil && location) {
-      // Specific location search
       for (const variation of searchVariations) {
         if (allPlaces.length >= maxResults) break;
         
-        const searchQuery = `${variation} in ${location}`;
-        console.log(`Searching: "${searchQuery}"`);
-        
         const places = await fetchAllPagesForQuery(
           SERPER_API_KEY, 
-          searchQuery, 
+          `${variation} in ${location}`, 
           maxResults - allPlaces.length,
           seenCids
         );
         allPlaces.push(...places);
-        console.log(`Found ${places.length} new. Total: ${allPlaces.length}`);
       }
     } else {
-      // Multi-city comprehensive search
       const cities = isBrazil ? BR_CITIES : US_CITIES;
-      const targetPerCity = Math.max(20, Math.ceil(maxResults / cities.length));
-      
-      console.log(`Searching across ${cities.length} cities with ${searchVariations.length} variations`);
+      const targetPerCity = Math.max(15, Math.ceil(maxResults / cities.length));
       
       for (const city of cities) {
-        if (allPlaces.length >= maxResults) {
-          console.log(`Reached target of ${maxResults} results`);
-          break;
-        }
+        if (allPlaces.length >= maxResults) break;
         
         for (const variation of searchVariations) {
           if (allPlaces.length >= maxResults) break;
           
-          const searchQuery = `${variation} in ${city}`;
-          
           try {
             const places = await fetchAllPagesForQuery(
               SERPER_API_KEY, 
-              searchQuery, 
+              `${variation} in ${city}`, 
               targetPerCity,
               seenCids
             );
-            
-            if (places.length > 0) {
-              allPlaces.push(...places);
-              console.log(`${city} [${variation}]: +${places.length} → Total: ${allPlaces.length}`);
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 50));
+            allPlaces.push(...places);
+            await new Promise(resolve => setTimeout(resolve, 30));
           } catch (error) {
             console.error(`Error in ${city}:`, error);
           }
@@ -266,20 +296,14 @@ serve(async (req) => {
       }
     }
 
-    // Add position numbers
     allPlaces.forEach((place, index) => {
       place.position = index + 1;
     });
-
-    console.log(`=== SEARCH COMPLETE ===`);
-    console.log(`Total unique places found: ${allPlaces.length}`);
 
     return new Response(JSON.stringify({ 
       places: allPlaces.slice(0, maxResults), 
       searchQuery: query,
       totalFound: allPlaces.length,
-      citiesSearched: isUSA ? US_CITIES.length : isBrazil ? BR_CITIES.length : 1,
-      variationsUsed: searchVariations.length,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
