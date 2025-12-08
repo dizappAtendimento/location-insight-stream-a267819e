@@ -52,136 +52,97 @@ export function useSearchPlaces() {
     setProgress(null);
     setLiveResults([]);
 
-    const normalizedLocation = location?.toLowerCase().trim() || '';
-    const isMultiCity = !normalizedLocation || 
-                        normalizedLocation.includes('eua') || 
-                        normalizedLocation.includes('usa') || 
-                        normalizedLocation.includes('brasil') || 
-                        normalizedLocation.includes('brazil');
-
     try {
-      // Use streaming for multi-city searches
-      if (isMultiCity) {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        
-        const response = await fetch(`${supabaseUrl}/functions/v1/search-places`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseKey}`,
-            'apikey': supabaseKey,
-          },
-          body: JSON.stringify({ query, location, maxResults, stream: true }),
-        });
+      // Always use streaming for progress bar
+      const supabaseUrl = 'https://egxwzmkdbymxooielidc.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk';
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/search-places`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({ query, location, maxResults, stream: true }),
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-        if (!reader) {
-          throw new Error('No reader available');
-        }
+      if (!reader) {
+        throw new Error('No reader available');
+      }
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n\n').filter(Boolean);
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n\n').filter(Boolean);
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
 
-                if (data.type === 'start') {
-                  setProgress({
-                    currentCity: 'Iniciando...',
-                    cityIndex: 0,
-                    totalCities: data.totalCities,
-                    currentResults: 0,
-                    targetResults: maxResults,
-                    percentage: 0,
-                    isActive: true,
-                  });
-                } else if (data.type === 'progress') {
-                  setProgress({
-                    currentCity: data.currentCity,
-                    cityIndex: data.cityIndex,
-                    totalCities: data.totalCities,
-                    currentResults: data.currentResults,
-                    targetResults: data.targetResults,
-                    percentage: data.percentage,
-                    isActive: true,
-                  });
-                } else if (data.type === 'found') {
-                  setProgress(prev => prev ? {
-                    ...prev,
-                    currentResults: data.totalResults,
-                  } : null);
-                  // Add new places to live results
-                  if (data.newPlaces && data.places) {
-                    setLiveResults(prev => {
-                      const newPlaces = data.places.map((p: any, i: number) => ({
-                        ...p,
-                        position: prev.length + i + 1,
-                      }));
-                      return [...prev, ...newPlaces];
-                    });
-                  }
-                } else if (data.type === 'complete') {
-                  setResults({
-                    places: data.places,
-                    searchQuery: data.searchQuery,
-                    totalFound: data.totalFound,
-                  });
-                  setProgress(null);
-                  setLiveResults([]);
-                  toast({
-                    title: "Busca completa!",
-                    description: `Encontrados ${data.places?.length || 0} lugares em ${data.citiesSearched} cidades`,
+              if (data.type === 'start') {
+                setProgress({
+                  currentCity: 'Iniciando...',
+                  cityIndex: 0,
+                  totalCities: data.totalCities,
+                  currentResults: 0,
+                  targetResults: maxResults,
+                  percentage: 0,
+                  isActive: true,
+                });
+              } else if (data.type === 'progress') {
+                setProgress({
+                  currentCity: data.currentCity,
+                  cityIndex: data.cityIndex,
+                  totalCities: data.totalCities,
+                  currentResults: data.currentResults,
+                  targetResults: data.targetResults,
+                  percentage: data.percentage,
+                  isActive: true,
+                });
+              } else if (data.type === 'found') {
+                setProgress(prev => prev ? {
+                  ...prev,
+                  currentResults: data.totalResults,
+                } : null);
+                // Add new places to live results
+                if (data.newPlaces && data.places) {
+                  setLiveResults(prev => {
+                    const newPlaces = data.places.map((p: any, i: number) => ({
+                      ...p,
+                      position: prev.length + i + 1,
+                    }));
+                    return [...prev, ...newPlaces];
                   });
                 }
-              } catch (e) {
-                console.error('Error parsing SSE data:', e);
+              } else if (data.type === 'complete') {
+                setResults({
+                  places: data.places,
+                  searchQuery: data.searchQuery,
+                  totalFound: data.totalFound,
+                });
+                setProgress(null);
+                setLiveResults([]);
+                toast({
+                  title: "Busca completa!",
+                  description: `Encontrados ${data.places?.length || 0} lugares`,
+                });
               }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
             }
           }
         }
-      } else {
-        // Non-streaming for specific locations
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        
-        const response = await fetch(`${supabaseUrl}/functions/v1/search-places`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseKey}`,
-            'apikey': supabaseKey,
-          },
-          body: JSON.stringify({ query, location, maxResults }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        setResults(data);
-        toast({
-          title: "Sucesso",
-          description: `Encontrados ${data.places?.length || 0} lugares`,
-        });
       }
     } catch (error) {
       console.error('Search error:', error);
