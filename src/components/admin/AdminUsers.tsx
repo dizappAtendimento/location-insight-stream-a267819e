@@ -506,7 +506,6 @@ export function AdminUsers() {
                 <TableHead className="w-[280px]">Usuário</TableHead>
                 <TableHead className="w-[200px] text-center">Plano Disparador</TableHead>
                 <TableHead className="w-[200px] text-center">Plano Extrator</TableHead>
-                <TableHead className="w-[160px] text-center">Estatísticas</TableHead>
                 <TableHead className="w-[140px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -587,24 +586,6 @@ export function AdminUsers() {
                           Válido até {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy', { locale: ptBR })}
                         </p>
                       )}
-                    </div>
-                  </TableCell>
-                  
-                  {/* Coluna Estatísticas */}
-                  <TableCell className="py-3">
-                    <div className="flex flex-col items-center gap-0.5 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground">Conexões:</span>
-                        <span className="font-medium text-foreground">{user.total_conexoes || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground">Contatos:</span>
-                        <span className="font-medium text-foreground">{user.total_contatos || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground">Disparos:</span>
-                        <span className="font-medium text-foreground">{user.total_disparos || 0}</span>
-                      </div>
                     </div>
                   </TableCell>
                   
