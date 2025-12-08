@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 export interface Place {
   name: string;
@@ -113,6 +114,38 @@ export function useSearchPlaces() {
     URL.revokeObjectURL(url);
   };
 
+  const downloadExcel = () => {
+    if (!results || results.places.length === 0) return;
+
+    const data = results.places.map(place => ({
+      'Nome': place.name || '',
+      'Endereço': place.address || '',
+      'Telefone': place.phone || '',
+      'Rating': place.rating || '',
+      'Avaliações': place.reviewCount || '',
+      'Categoria': place.category || '',
+      'Website': place.website || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Lugares');
+    
+    // Auto-size columns
+    const colWidths = [
+      { wch: 30 }, // Nome
+      { wch: 50 }, // Endereço
+      { wch: 18 }, // Telefone
+      { wch: 8 },  // Rating
+      { wch: 12 }, // Avaliações
+      { wch: 20 }, // Categoria
+      { wch: 40 }, // Website
+    ];
+    worksheet['!cols'] = colWidths;
+
+    XLSX.writeFile(workbook, `lugares_${results.searchQuery.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   return {
     isLoading,
     results,
@@ -120,5 +153,6 @@ export function useSearchPlaces() {
     clearResults,
     downloadCSV,
     downloadJSON,
+    downloadExcel,
   };
 }

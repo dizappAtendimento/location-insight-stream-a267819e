@@ -3,10 +3,10 @@ import { PlaceCard } from '@/components/PlaceCard';
 import { useSearchPlaces } from '@/hooks/useSearchPlaces';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Search, Download, FileJson, FileSpreadsheet } from 'lucide-react';
+import { MapPin, Search, Download, FileJson, FileSpreadsheet, FileDown } from 'lucide-react';
 
 const Index = () => {
-  const { isLoading, results, searchPlaces, downloadCSV, downloadJSON } = useSearchPlaces();
+  const { isLoading, results, searchPlaces, downloadCSV, downloadJSON, downloadExcel } = useSearchPlaces();
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,7 +57,11 @@ const Index = () => {
               </div>
               
               {results.places.length > 0 && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="default" size="sm" onClick={downloadExcel}>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Baixar Excel
+                  </Button>
                   <Button variant="outline" size="sm" onClick={downloadCSV}>
                     <FileSpreadsheet className="w-4 h-4 mr-2" />
                     Baixar CSV
