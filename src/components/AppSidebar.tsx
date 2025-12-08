@@ -59,20 +59,20 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="py-4">
-        <SidebarGroup>
-          <SidebarGroupLabel className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3 mb-2", collapsed && "sr-only")}>
+      <SidebarContent className="py-2">
+        <SidebarGroup className="py-0">
+          <SidebarGroupLabel className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3 mb-1", collapsed && "sr-only")}>
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className="group transition-all duration-200"
+                    className="group transition-all duration-200 h-9"
                   >
                     <Link to={item.url} className="flex items-center gap-3">
                       <item.icon className={cn("w-4 h-4 transition-colors", isActive(item.url) && "text-primary")} />
@@ -85,19 +85,19 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3 mb-2", collapsed && "sr-only")}>
+        <SidebarGroup className="mt-2 py-0">
+          <SidebarGroupLabel className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3 mb-1", collapsed && "sr-only")}>
             Extratores
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {extractorItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className="group transition-all duration-200"
+                    className="group transition-all duration-200 h-9"
                   >
                     <Link to={item.url} className="flex items-center gap-3">
                       <item.icon className={cn("w-4 h-4 transition-colors", item.color, isActive(item.url) && "text-primary")} />
