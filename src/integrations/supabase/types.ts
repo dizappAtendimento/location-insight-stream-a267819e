@@ -390,7 +390,10 @@ export type Database = {
           qntContatos: number | null
           qntDisparos: number | null
           qntExtracoes: number | null
+          qntInstagram: number | null
+          qntLinkedin: number | null
           qntListas: number | null
+          qntPlaces: number | null
           tipo: string | null
         }
         Insert: {
@@ -402,7 +405,10 @@ export type Database = {
           qntContatos?: number | null
           qntDisparos?: number | null
           qntExtracoes?: number | null
+          qntInstagram?: number | null
+          qntLinkedin?: number | null
           qntListas?: number | null
+          qntPlaces?: number | null
           tipo?: string | null
         }
         Update: {
@@ -414,7 +420,10 @@ export type Database = {
           qntContatos?: number | null
           qntDisparos?: number | null
           qntExtracoes?: number | null
+          qntInstagram?: number | null
+          qntLinkedin?: number | null
           qntListas?: number | null
+          qntPlaces?: number | null
           tipo?: string | null
         }
         Relationships: []

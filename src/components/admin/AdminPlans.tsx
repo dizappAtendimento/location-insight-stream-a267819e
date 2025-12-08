@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search as SearchIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Instagram, Linkedin, MapPin } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -43,6 +43,9 @@ interface Plan {
   qntDisparos: number | null;
   qntListas: number | null;
   qntExtracoes: number | null;
+  qntInstagram: number | null;
+  qntLinkedin: number | null;
+  qntPlaces: number | null;
   tipo: string | null;
   total_usuarios: number | null;
 }
@@ -54,7 +57,9 @@ const defaultPlanForm = {
   qntContatos: '',
   qntDisparos: '',
   qntListas: '',
-  qntExtracoes: '',
+  qntInstagram: '',
+  qntLinkedin: '',
+  qntPlaces: '',
   tipo: 'disparador',
 };
 
@@ -97,7 +102,9 @@ export function AdminPlans() {
       qntContatos: plan.qntContatos?.toString() || '',
       qntDisparos: plan.qntDisparos?.toString() || '',
       qntListas: plan.qntListas?.toString() || '',
-      qntExtracoes: plan.qntExtracoes?.toString() || '',
+      qntInstagram: plan.qntInstagram?.toString() || '',
+      qntLinkedin: plan.qntLinkedin?.toString() || '',
+      qntPlaces: plan.qntPlaces?.toString() || '',
       tipo: plan.tipo || 'disparador',
     });
     setIsDialogOpen(true);
@@ -117,7 +124,9 @@ export function AdminPlans() {
       qntContatos: parseInt(planForm.qntContatos) || 0,
       qntDisparos: parseInt(planForm.qntDisparos) || 0,
       qntListas: parseInt(planForm.qntListas) || 0,
-      qntExtracoes: parseInt(planForm.qntExtracoes) || 0,
+      qntInstagram: parseInt(planForm.qntInstagram) || 0,
+      qntLinkedin: parseInt(planForm.qntLinkedin) || 0,
+      qntPlaces: parseInt(planForm.qntPlaces) || 0,
       tipo: planForm.tipo,
     };
 
@@ -257,10 +266,21 @@ export function AdminPlans() {
         </div>
         
         {plan.tipo === 'extrator' ? (
-          <div className="pt-2 border-t border-border/50">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <SearchIcon className="w-4 h-4" />
-              <span>{plan.qntExtracoes?.toLocaleString('pt-BR') || 0} extrações/mês</span>
+          <div className="space-y-2 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-2 text-sm">
+              <Instagram className="w-4 h-4 text-pink-400" />
+              <span className="text-muted-foreground">Instagram:</span>
+              <span className="font-medium">{plan.qntInstagram?.toLocaleString('pt-BR') || 0}/mês</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Linkedin className="w-4 h-4 text-[#0A66C2]" />
+              <span className="text-muted-foreground">LinkedIn:</span>
+              <span className="font-medium">{plan.qntLinkedin?.toLocaleString('pt-BR') || 0}/mês</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-emerald-400" />
+              <span className="text-muted-foreground">Google Places:</span>
+              <span className="font-medium">{plan.qntPlaces?.toLocaleString('pt-BR') || 0}/mês</span>
             </div>
           </div>
         ) : (
@@ -315,7 +335,7 @@ export function AdminPlans() {
               Disparador ({disparadorPlans.length})
             </TabsTrigger>
             <TabsTrigger value="extrator" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <SearchIcon className="w-4 h-4" />
+              <MapPin className="w-4 h-4" />
               Extrator ({extratorPlans.length})
             </TabsTrigger>
           </TabsList>
@@ -331,7 +351,7 @@ export function AdminPlans() {
               <DialogHeader>
                 <DialogTitle>{editingPlan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
                 <div className="space-y-2">
                   <Label>Tipo do Plano</Label>
                   <Select 
@@ -367,14 +387,46 @@ export function AdminPlans() {
                 </div>
                 
                 {planForm.tipo === 'extrator' ? (
-                  <div className="space-y-2">
-                    <Label>Extrações por mês</Label>
-                    <Input
-                      type="number"
-                      value={planForm.qntExtracoes}
-                      onChange={(e) => setPlanForm({ ...planForm, qntExtracoes: e.target.value })}
-                      placeholder="0"
-                    />
+                  <div className="space-y-4">
+                    <p className="text-sm font-medium text-muted-foreground">Limites de Extração por Mês</p>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Instagram className="w-4 h-4 text-pink-400" />
+                          Instagram
+                        </Label>
+                        <Input
+                          type="number"
+                          value={planForm.qntInstagram}
+                          onChange={(e) => setPlanForm({ ...planForm, qntInstagram: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Linkedin className="w-4 h-4 text-[#0A66C2]" />
+                          LinkedIn
+                        </Label>
+                        <Input
+                          type="number"
+                          value={planForm.qntLinkedin}
+                          onChange={(e) => setPlanForm({ ...planForm, qntLinkedin: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-emerald-400" />
+                          Google Places
+                        </Label>
+                        <Input
+                          type="number"
+                          value={planForm.qntPlaces}
+                          onChange={(e) => setPlanForm({ ...planForm, qntPlaces: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <>
