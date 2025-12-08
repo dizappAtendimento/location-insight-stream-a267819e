@@ -75,7 +75,7 @@ export function AppSidebar() {
                     className="group transition-all duration-200 h-9"
                   >
                     <Link to={item.url} className="flex items-center gap-3">
-                      <item.icon className={cn("w-5 h-5 transition-colors stroke-[2.5]", isActive(item.url) && "text-primary")} />
+                      <item.icon className={cn("w-5 h-5 transition-colors", isActive(item.url) && "text-primary")} strokeWidth={3} />
                       <span className="font-semibold text-[15px]">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -90,7 +90,7 @@ export function AppSidebar() {
                     className="group transition-all duration-200 h-9"
                   >
                     <Link to={item.url} className="flex items-center gap-3">
-                      <item.icon className={cn("w-5 h-5 transition-colors stroke-[2.5]", item.color, isActive(item.url) && "text-primary")} />
+                      <item.icon className={cn("w-5 h-5 transition-colors", item.color, isActive(item.url) && "text-primary")} strokeWidth={3} />
                       <span className="font-semibold text-[15px]">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -111,7 +111,7 @@ export function AppSidebar() {
               className="transition-all duration-200"
             >
               <Link to="/configuracoes" className="flex items-center gap-3">
-                <Settings className={cn("w-5 h-5 stroke-[2.5]", isActive('/configuracoes') && "text-primary")} />
+                <Settings className={cn("w-5 h-5", isActive('/configuracoes') && "text-primary")} strokeWidth={3} />
                 <span className="font-semibold text-[15px]">Configurações</span>
               </Link>
             </SidebarMenuButton>
