@@ -55,6 +55,7 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
               onChange={(e) => setLocation(e.target.value)}
               className="pl-10"
             />
+            <p className="text-[10px] text-muted-foreground mt-1">Deixe vazio ou "EUA/Brasil" para buscar em todas as cidades</p>
           </div>
         </div>
 
@@ -67,11 +68,13 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="50">50 resultados</SelectItem>
               <SelectItem value="100">100 resultados</SelectItem>
-              <SelectItem value="200">200 resultados</SelectItem>
+              <SelectItem value="250">250 resultados</SelectItem>
               <SelectItem value="500">500 resultados</SelectItem>
               <SelectItem value="1000">1000 resultados</SelectItem>
+              <SelectItem value="2500">2500 resultados</SelectItem>
+              <SelectItem value="5000">5000 resultados</SelectItem>
+              <SelectItem value="10000">10000 resultados (máximo)</SelectItem>
             </SelectContent>
           </Select>
         </div>

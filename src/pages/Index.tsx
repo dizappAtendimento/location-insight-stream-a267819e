@@ -54,7 +54,7 @@ const Index = () => {
               Buscar Lugares
             </CardTitle>
             <CardDescription>
-              Pesquise por tipo de negócio e localização. Você pode buscar até 1000 resultados por vez.
+              Pesquise por tipo de negócio. Deixe localização vazia ou "EUA/Brasil" para buscar em 200+ cidades automaticamente. Até 10.000 resultados.
             </CardDescription>
           </CardHeader>
           <CardContent>
