@@ -29,9 +29,9 @@ const menuItems = [
 ];
 
 const extractorItems = [
-  { title: 'Instagram', url: '/instagram', icon: Instagram },
-  { title: 'LinkedIn', url: '/linkedin', icon: Linkedin },
-  { title: 'Google Places', url: '/places', icon: MapPin },
+  { title: 'Instagram', url: '/instagram', icon: Instagram, color: 'group-hover:text-pink-400' },
+  { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, color: 'group-hover:text-[#0A66C2]' },
+  { title: 'Google Places', url: '/places', icon: MapPin, color: 'group-hover:text-emerald-400' },
 ];
 
 export function AppSidebar() {
@@ -43,18 +43,25 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="border-r border-border/50 bg-sidebar-background"
+      className="border-r border-border/30 bg-sidebar-background"
       collapsible="icon"
     >
-      <SidebarHeader className="p-4 border-b border-border/50">
-        <Link to="/" className="flex items-center justify-center">
-          <img src={logo} alt="Logo" className={cn("object-contain transition-all", collapsed ? "w-8 h-8" : "w-32 h-10")} />
+      <SidebarHeader className="p-5 border-b border-border/30">
+        <Link to="/" className="flex items-center justify-center transition-transform hover:scale-105">
+          <img 
+            src={logo} 
+            alt="Logo" 
+            className={cn(
+              "object-contain transition-all duration-300", 
+              collapsed ? "w-8 h-8" : "w-28 h-8"
+            )} 
+          />
         </Link>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className={cn(collapsed && "sr-only")}>
+          <SidebarGroupLabel className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3 mb-2", collapsed && "sr-only")}>
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -65,10 +72,11 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
+                    className="group transition-all duration-200"
                   >
-                    <Link to={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                    <Link to={item.url} className="flex items-center gap-3">
+                      <item.icon className={cn("w-4 h-4 transition-colors", isActive(item.url) && "text-primary")} />
+                      <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -77,8 +85,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className={cn(collapsed && "sr-only")}>
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3 mb-2", collapsed && "sr-only")}>
             Extratores
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -89,10 +97,11 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
+                    className="group transition-all duration-200"
                   >
-                    <Link to={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                    <Link to={item.url} className="flex items-center gap-3">
+                      <item.icon className={cn("w-4 h-4 transition-colors", item.color, isActive(item.url) && "text-primary")} />
+                      <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -102,18 +111,18 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t border-border/50">
+      <SidebarFooter className="p-3 border-t border-border/30">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Configurações">
+            <SidebarMenuButton tooltip="Configurações" className="transition-all duration-200">
               <Settings className="w-4 h-4" />
-              <span>Configurações</span>
+              <span className="font-medium">Configurações</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         {!collapsed && (
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Versão 1.0
+          <p className="text-[10px] text-muted-foreground/50 text-center mt-3 font-medium tracking-wide">
+            v1.0.0
           </p>
         )}
       </SidebarFooter>

@@ -1,5 +1,4 @@
 import { LucideIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -20,29 +19,32 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn("relative overflow-hidden", className)}>
-      <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground uppercase tracking-wide font-medium">
-              {title}
+    <div className={cn(
+      "relative overflow-hidden rounded-xl bg-card border border-border/50 p-5 transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5",
+      className
+    )}>
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/80 to-primary/20" />
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            {title}
+          </p>
+          <p className="text-3xl font-bold tracking-tight text-primary">{value}</p>
+          {trend && (
+            <p
+              className={cn(
+                "text-xs font-medium",
+                trendPositive ? "text-emerald-400" : "text-muted-foreground"
+              )}
+            >
+              {trend}
             </p>
-            <p className="text-3xl font-bold text-primary mt-2">{value}</p>
-            {trend && (
-              <p
-                className={cn(
-                  "text-sm mt-1",
-                  trendPositive ? "text-green-500" : "text-muted-foreground"
-                )}
-              >
-                {trend}
-              </p>
-            )}
-          </div>
+          )}
+        </div>
+        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary/50">
           <Icon className="w-5 h-5 text-muted-foreground" />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
