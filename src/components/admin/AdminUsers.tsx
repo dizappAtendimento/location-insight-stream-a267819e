@@ -511,139 +511,54 @@ export function AdminUsers() {
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id} className="group border-border/30">
-                  {/* Coluna Usuário */}
-                  <TableCell className="py-3">
-                    <div className="space-y-0.5">
-                      <p className="font-medium text-foreground">{user.nome || 'Sem nome'}</p>
-                      <p className="text-sm text-muted-foreground">{user.Email}</p>
-                      {user.telefone && (
-                        <p className="text-sm text-muted-foreground/70">{user.telefone}</p>
-                      )}
-                    </div>
+                <TableRow key={user.id} className="group border-border/20 hover:bg-muted/30">
+                  {/* Usuário */}
+                  <TableCell className="py-2.5">
+                    <p className="font-medium">{user.nome || 'Sem nome'}</p>
+                    <p className="text-xs text-muted-foreground">{user.Email}</p>
                   </TableCell>
                   
-                  {/* Coluna Disparador */}
-                  <TableCell className="py-3">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs font-medium bg-blue-500/10 text-blue-400 border-blue-500/30 px-2.5"
-                        >
-                          {user.plano_nome || 'Sem plano'}
-                        </Badge>
-                        <Badge 
-                          variant="outline"
-                          className={`text-[10px] font-semibold px-2 py-0.5 ${
-                            user.status 
-                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
-                              : 'bg-red-500/20 text-red-400 border-red-500/40'
-                          }`}
-                        >
-                          {user.status ? 'ON' : 'OFF'}
-                        </Badge>
-                      </div>
-                      {user.dataValidade && (
-                        <p className={`text-xs font-medium ${
-                          new Date(user.dataValidade) < new Date() 
-                            ? 'text-red-400' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          Válido até {format(new Date(user.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}
-                        </p>
-                      )}
+                  {/* Disparador */}
+                  <TableCell className="py-2.5 text-center">
+                    <div className="inline-flex items-center gap-1.5">
+                      <span className="text-xs text-blue-400">{user.plano_nome || '—'}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${user.status ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {user.status ? 'ON' : 'OFF'}
+                      </span>
                     </div>
+                    {user.dataValidade && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {format(new Date(user.dataValidade), 'dd/MM/yyyy')}
+                      </p>
+                    )}
                   </TableCell>
                   
-                  {/* Coluna Extrator */}
-                  <TableCell className="py-3">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs font-medium bg-violet-500/10 text-violet-400 border-violet-500/30 px-2.5"
-                        >
-                          {user.plano_extrator_nome || 'Sem plano'}
-                        </Badge>
-                        <Badge 
-                          variant="outline"
-                          className={`text-[10px] font-semibold px-2 py-0.5 ${
-                            user.status_ex 
-                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
-                              : 'bg-red-500/20 text-red-400 border-red-500/40'
-                          }`}
-                        >
-                          {user.status_ex ? 'ON' : 'OFF'}
-                        </Badge>
-                      </div>
-                      {user.dataValidade_extrator && (
-                        <p className={`text-xs font-medium ${
-                          new Date(user.dataValidade_extrator) < new Date() 
-                            ? 'text-red-400' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          Válido até {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy', { locale: ptBR })}
-                        </p>
-                      )}
+                  {/* Extrator */}
+                  <TableCell className="py-2.5 text-center">
+                    <div className="inline-flex items-center gap-1.5">
+                      <span className="text-xs text-violet-400">{user.plano_extrator_nome || '—'}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${user.status_ex ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {user.status_ex ? 'ON' : 'OFF'}
+                      </span>
                     </div>
+                    {user.dataValidade_extrator && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy')}
+                      </p>
+                    )}
                   </TableCell>
                   
-                  {/* Coluna Ações */}
-                  <TableCell className="py-3 text-right">
+                  {/* Ações */}
+                  <TableCell className="py-2.5 text-right">
                     <div className="flex items-center justify-end gap-0.5">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 hover:bg-primary/10"
-                        onClick={() => handleEditUser(user)}
-                        title="Editar usuário"
-                      >
-                        <Edit2 className="w-4 h-4" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditUser(user)} title="Editar">
+                        <Edit2 className="w-3.5 h-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-blue-500/10"
-                        onClick={() => handleRenewUser(user, 'disparador')}
-                        title="Renovar Disparador"
-                      >
-                        <Zap className="w-4 h-4 text-blue-400" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleToggleStatus(user.id, 'disparador')} title={user.status ? 'Desativar Disparador' : 'Ativar Disparador'}>
+                        {user.status ? <UserX className="w-3.5 h-3.5 text-blue-400" /> : <UserCheck className="w-3.5 h-3.5 text-blue-400" />}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-violet-500/10"
-                        onClick={() => handleRenewUser(user, 'extrator')}
-                        title="Renovar Extrator"
-                      >
-                        <Database className="w-4 h-4 text-violet-400" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-blue-500/10"
-                        onClick={() => handleToggleStatus(user.id, 'disparador')}
-                        title={user.status ? 'Desativar Disparador' : 'Ativar Disparador'}
-                      >
-                        {user.status ? (
-                          <UserX className="w-4 h-4 text-blue-400" />
-                        ) : (
-                          <UserCheck className="w-4 h-4 text-blue-400" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-violet-500/10"
-                        onClick={() => handleToggleStatus(user.id, 'extrator')}
-                        title={user.status_ex ? 'Desativar Extrator' : 'Ativar Extrator'}
-                      >
-                        {user.status_ex ? (
-                          <UserX className="w-4 h-4 text-violet-400" />
-                        ) : (
-                          <UserCheck className="w-4 h-4 text-violet-400" />
-                        )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleToggleStatus(user.id, 'extrator')} title={user.status_ex ? 'Desativar Extrator' : 'Ativar Extrator'}>
+                        {user.status_ex ? <UserX className="w-3.5 h-3.5 text-violet-400" /> : <UserCheck className="w-3.5 h-3.5 text-violet-400" />}
                       </Button>
                     </div>
                   </TableCell>
