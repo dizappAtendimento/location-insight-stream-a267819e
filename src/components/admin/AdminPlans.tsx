@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -22,9 +23,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search as SearchIcon } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -34,6 +42,8 @@ interface Plan {
   qntContatos: number | null;
   qntDisparos: number | null;
   qntListas: number | null;
+  qntExtracoes: number | null;
+  tipo: string | null;
   total_usuarios: number | null;
 }
 
@@ -44,6 +54,8 @@ const defaultPlanForm = {
   qntContatos: '',
   qntDisparos: '',
   qntListas: '',
+  qntExtracoes: '',
+  tipo: 'disparador',
 };
 
 export function AdminPlans() {
@@ -53,6 +65,7 @@ export function AdminPlans() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [planForm, setPlanForm] = useState(defaultPlanForm);
+  const [activeTab, setActiveTab] = useState('disparador');
 
   const fetchPlans = async () => {
     setIsLoading(true);
@@ -84,13 +97,15 @@ export function AdminPlans() {
       qntContatos: plan.qntContatos?.toString() || '',
       qntDisparos: plan.qntDisparos?.toString() || '',
       qntListas: plan.qntListas?.toString() || '',
+      qntExtracoes: plan.qntExtracoes?.toString() || '',
+      tipo: plan.tipo || 'disparador',
     });
     setIsDialogOpen(true);
   };
 
-  const handleNewPlan = () => {
+  const handleNewPlan = (tipo: string) => {
     setEditingPlan(null);
-    setPlanForm(defaultPlanForm);
+    setPlanForm({ ...defaultPlanForm, tipo });
     setIsDialogOpen(true);
   };
 
@@ -102,6 +117,8 @@ export function AdminPlans() {
       qntContatos: parseInt(planForm.qntContatos) || 0,
       qntDisparos: parseInt(planForm.qntDisparos) || 0,
       qntListas: parseInt(planForm.qntListas) || 0,
+      qntExtracoes: parseInt(planForm.qntExtracoes) || 0,
+      tipo: planForm.tipo,
     };
 
     try {
@@ -179,6 +196,97 @@ export function AdminPlans() {
     }
   };
 
+  const disparadorPlans = plans.filter(p => p.tipo === 'disparador' || !p.tipo);
+  const extratorPlans = plans.filter(p => p.tipo === 'extrator');
+
+  const renderPlanCard = (plan: Plan) => (
+    <Card key={plan.id} className="bg-card/50 border-border/50 hover:border-primary/30 transition-all duration-300 group">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold">{plan.nome}</CardTitle>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleEditPlan(plan)}
+            >
+              <Edit2 className="w-4 h-4" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir Plano</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir o plano "{plan.nome}"? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => handleDeletePlan(plan.id)}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+        <p className="text-2xl font-bold text-primary">
+          R$ {plan.preco?.toFixed(2).replace('.', ',')}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Users className="w-4 h-4" />
+            <span>Usuários</span>
+          </div>
+          <Badge variant="secondary">{plan.total_usuarios || 0}</Badge>
+        </div>
+        
+        {plan.tipo === 'extrator' ? (
+          <div className="pt-2 border-t border-border/50">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <SearchIcon className="w-4 h-4" />
+              <span>{plan.qntExtracoes?.toLocaleString('pt-BR') || 0} extrações/mês</span>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Link2 className="w-3.5 h-3.5" />
+              <span>{plan.qntConexoes || 0} conexões</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <List className="w-3.5 h-3.5" />
+              <span>{plan.qntListas || 0} listas</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Contact className="w-3.5 h-3.5" />
+              <span>{plan.qntContatos?.toLocaleString('pt-BR') || 0} contatos</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Send className="w-3.5 h-3.5" />
+              <span>{plan.qntDisparos?.toLocaleString('pt-BR') || 0} disparos</span>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -199,172 +307,154 @@ export function AdminPlans() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleNewPlan} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Novo Plano
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{editingPlan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Nome do Plano</Label>
-                <Input
-                  value={planForm.nome}
-                  onChange={(e) => setPlanForm({ ...planForm, nome: e.target.value })}
-                  placeholder="Ex: Plano Básico"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Preço (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={planForm.preco}
-                  onChange={(e) => setPlanForm({ ...planForm, preco: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Conexões</Label>
-                  <Input
-                    type="number"
-                    value={planForm.qntConexoes}
-                    onChange={(e) => setPlanForm({ ...planForm, qntConexoes: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Listas</Label>
-                  <Input
-                    type="number"
-                    value={planForm.qntListas}
-                    onChange={(e) => setPlanForm({ ...planForm, qntListas: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Contatos</Label>
-                  <Input
-                    type="number"
-                    value={planForm.qntContatos}
-                    onChange={(e) => setPlanForm({ ...planForm, qntContatos: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Disparos</Label>
-                  <Input
-                    type="number"
-                    value={planForm.qntDisparos}
-                    onChange={(e) => setPlanForm({ ...planForm, qntDisparos: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              <Button onClick={handleSavePlan} className="w-full">
-                {editingPlan ? 'Salvar Alterações' : 'Criar Plano'}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <TabsList className="bg-card/50 border border-border/50">
+            <TabsTrigger value="disparador" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Send className="w-4 h-4" />
+              Disparador ({disparadorPlans.length})
+            </TabsTrigger>
+            <TabsTrigger value="extrator" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <SearchIcon className="w-4 h-4" />
+              Extrator ({extratorPlans.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => handleNewPlan(activeTab)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Novo Plano
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {plans.map((plan) => (
-          <Card key={plan.id} className="bg-card/50 border-border/50 hover:border-primary/30 transition-all duration-300 group">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold">{plan.nome}</CardTitle>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleEditPlan(plan)}
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>{editingPlan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Tipo do Plano</Label>
+                  <Select 
+                    value={planForm.tipo} 
+                    onValueChange={(value) => setPlanForm({ ...planForm, tipo: value })}
                   >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir Plano</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir o plano "{plan.nome}"? Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => handleDeletePlan(plan.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="disparador">Disparador</SelectItem>
+                      <SelectItem value="extrator">Extrator</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Nome do Plano</Label>
+                  <Input
+                    value={planForm.nome}
+                    onChange={(e) => setPlanForm({ ...planForm, nome: e.target.value })}
+                    placeholder="Ex: Plano Básico"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Preço (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={planForm.preco}
+                    onChange={(e) => setPlanForm({ ...planForm, preco: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                
+                {planForm.tipo === 'extrator' ? (
+                  <div className="space-y-2">
+                    <Label>Extrações por mês</Label>
+                    <Input
+                      type="number"
+                      value={planForm.qntExtracoes}
+                      onChange={(e) => setPlanForm({ ...planForm, qntExtracoes: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Conexões</Label>
+                        <Input
+                          type="number"
+                          value={planForm.qntConexoes}
+                          onChange={(e) => setPlanForm({ ...planForm, qntConexoes: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Listas</Label>
+                        <Input
+                          type="number"
+                          value={planForm.qntListas}
+                          onChange={(e) => setPlanForm({ ...planForm, qntListas: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Contatos</Label>
+                        <Input
+                          type="number"
+                          value={planForm.qntContatos}
+                          onChange={(e) => setPlanForm({ ...planForm, qntContatos: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Disparos</Label>
+                        <Input
+                          type="number"
+                          value={planForm.qntDisparos}
+                          onChange={(e) => setPlanForm({ ...planForm, qntDisparos: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                <Button onClick={handleSavePlan} className="w-full">
+                  {editingPlan ? 'Salvar Alterações' : 'Criar Plano'}
+                </Button>
               </div>
-              <p className="text-2xl font-bold text-primary">
-                R$ {plan.preco?.toFixed(2).replace('.', ',')}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Users className="w-4 h-4" />
-                  <span>Usuários</span>
-                </div>
-                <Badge variant="secondary">{plan.total_usuarios || 0}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Link2 className="w-3.5 h-3.5" />
-                  <span>{plan.qntConexoes || 0} conexões</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <List className="w-3.5 h-3.5" />
-                  <span>{plan.qntListas || 0} listas</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Contact className="w-3.5 h-3.5" />
-                  <span>{plan.qntContatos?.toLocaleString('pt-BR') || 0} contatos</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{plan.qntDisparos?.toLocaleString('pt-BR') || 0} disparos</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-      {plans.length === 0 && (
-        <Card className="bg-card/50 border-border/50">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Nenhum plano cadastrado
-          </CardContent>
-        </Card>
-      )}
+        <TabsContent value="disparador" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {disparadorPlans.map(renderPlanCard)}
+          </div>
+          {disparadorPlans.length === 0 && (
+            <Card className="bg-card/50 border-border/50">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Nenhum plano de disparador cadastrado
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="extrator" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {extratorPlans.map(renderPlanCard)}
+          </div>
+          {extratorPlans.length === 0 && (
+            <Card className="bg-card/50 border-border/50">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Nenhum plano de extrator cadastrado
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

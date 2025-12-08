@@ -389,7 +389,9 @@ export type Database = {
           qntConexoes: number | null
           qntContatos: number | null
           qntDisparos: number | null
+          qntExtracoes: number | null
           qntListas: number | null
+          tipo: string | null
         }
         Insert: {
           created_at?: string
@@ -399,7 +401,9 @@ export type Database = {
           qntConexoes?: number | null
           qntContatos?: number | null
           qntDisparos?: number | null
+          qntExtracoes?: number | null
           qntListas?: number | null
+          tipo?: string | null
         }
         Update: {
           created_at?: string
@@ -409,7 +413,9 @@ export type Database = {
           qntConexoes?: number | null
           qntContatos?: number | null
           qntDisparos?: number | null
+          qntExtracoes?: number | null
           qntListas?: number | null
+          tipo?: string | null
         }
         Relationships: []
       }

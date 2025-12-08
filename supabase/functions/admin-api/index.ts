@@ -123,8 +123,8 @@ serve(async (req) => {
 
       case 'get-plans': {
         const { data: plans, error } = await supabase
-          .from('vw_Planos_Usuarios_Count')
-          .select('*')
+          .from('SAAS_Planos')
+          .select('*, total_usuarios:SAAS_Usuarios(count)')
           .order('id', { ascending: true });
 
         if (error) {
@@ -135,10 +135,16 @@ serve(async (req) => {
           );
         }
 
+        // Transform the count
+        const transformedPlans = plans?.map(plan => ({
+          ...plan,
+          total_usuarios: plan.total_usuarios?.[0]?.count || 0
+        }));
+
         console.log(`[Admin API] Fetched ${plans?.length || 0} plans`);
 
         return new Response(
-          JSON.stringify({ plans }),
+          JSON.stringify({ plans: transformedPlans }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
