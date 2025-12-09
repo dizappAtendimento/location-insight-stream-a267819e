@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download, ExternalLink, Globe } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -64,6 +65,8 @@ const WhatsAppGroupsExtractor = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [publicGroups, setPublicGroups] = useState<PublicGroup[]>([]);
   const [isSearchingPublic, setIsSearchingPublic] = useState(false);
+  const [searchProgress, setSearchProgress] = useState(0);
+  const [searchStatus, setSearchStatus] = useState('');
   
   // Instance states
   const [instances, setInstances] = useState<UserInstance[]>([]);
@@ -390,26 +393,64 @@ const WhatsAppGroupsExtractor = () => {
     
     setIsSearchingPublic(true);
     setPublicGroups([]);
+    setSearchProgress(0);
+    setSearchStatus('Iniciando busca profunda...');
+    
+    // Simulate progress while waiting for API
+    const progressInterval = setInterval(() => {
+      setSearchProgress(prev => {
+        if (prev >= 90) return prev;
+        const increment = Math.random() * 15 + 5;
+        const newProgress = Math.min(prev + increment, 90);
+        
+        if (newProgress < 20) setSearchStatus('Preparando termos de busca...');
+        else if (newProgress < 40) setSearchStatus('Buscando em diretórios de grupos...');
+        else if (newProgress < 60) setSearchStatus('Pesquisando no Google...');
+        else if (newProgress < 75) setSearchStatus('Buscando no Facebook e Twitter...');
+        else setSearchStatus('Finalizando extração...');
+        
+        return newProgress;
+      });
+    }, 800);
     
     try {
       const { data, error } = await supabase.functions.invoke('search-whatsapp-groups', {
-        body: { segment: searchTerm, maxResults: 50 }
+        body: { segment: searchTerm, maxResults: 500 }
       });
+      
+      clearInterval(progressInterval);
       
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);
       
+      setSearchProgress(100);
+      setSearchStatus('Busca concluída!');
       setPublicGroups(data.groups || []);
       
       if (data.groups?.length === 0) {
         toast({ title: "Nenhum grupo encontrado", description: "Tente outro termo de busca" });
       } else {
         toast({ title: "Busca concluída", description: `${data.groups?.length || 0} grupos encontrados` });
+        
+        addRecord({
+          type: 'whatsapp-groups',
+          segment: `Busca: ${searchTerm}`,
+          totalResults: data.groups?.length || 0,
+          emailsFound: 0,
+          phonesFound: 0,
+        });
       }
     } catch (error) {
+      clearInterval(progressInterval);
+      setSearchProgress(0);
+      setSearchStatus('');
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar grupos", variant: "destructive" });
     } finally {
       setIsSearchingPublic(false);
+      setTimeout(() => {
+        setSearchProgress(0);
+        setSearchStatus('');
+      }, 2000);
     }
   };
 
@@ -692,7 +733,21 @@ const WhatsAppGroupsExtractor = () => {
                   </Button>
                 </div>
 
-                {publicGroups.length > 0 && (
+                {/* Progress Bar */}
+                {isSearchingPublic && (
+                  <div className="space-y-2 py-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{searchStatus}</span>
+                      <span className="font-medium text-[#25D366]">{Math.round(searchProgress)}%</span>
+                    </div>
+                    <Progress value={searchProgress} className="h-2 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-[#25D366] [&>div]:to-[#128C7E]" />
+                    <p className="text-xs text-center text-muted-foreground">
+                      Buscando até 500 grupos em múltiplas fontes...
+                    </p>
+                  </div>
+                )}
+
+                {publicGroups.length > 0 && !isSearchingPublic && (
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">{publicGroups.length} grupos encontrados</p>
                     <Button variant="outline" size="sm" onClick={exportPublicGroups}>
@@ -702,7 +757,7 @@ const WhatsAppGroupsExtractor = () => {
                   </div>
                 )}
 
-                {isSearchingPublic ? (
+                {isSearchingPublic && !searchProgress ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-[#25D366]" />
                   </div>
