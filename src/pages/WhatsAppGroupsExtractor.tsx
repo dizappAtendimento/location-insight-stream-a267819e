@@ -291,7 +291,7 @@ const WhatsAppGroupsExtractor = () => {
 
     setIsExtractingParticipants(true);
     try {
-      const allParticipants: { groupName: string; phone: string; isAdmin: boolean }[] = [];
+      const allParticipants: { groupName: string; telid: string; phone: string; isAdmin: boolean }[] = [];
       
       for (const groupId of selectedGroups) {
         const group = groups.find(g => g.id === groupId);
@@ -308,10 +308,13 @@ const WhatsAppGroupsExtractor = () => {
 
         const participants = data?.participants || [];
         for (const p of participants) {
-          const phone = p.id?.replace('@s.whatsapp.net', '') || '';
+          const rawId = p.id || '';
+          const phone = rawId.replace('@s.whatsapp.net', '') || '';
+          const telid = rawId.replace('@s.whatsapp.net', '@lid');
           if (phone) {
             allParticipants.push({
               groupName: group.subject,
+              telid,
               phone,
               isAdmin: p.admin === 'admin' || p.admin === 'superadmin'
             });
@@ -324,9 +327,12 @@ const WhatsAppGroupsExtractor = () => {
         return;
       }
 
-      // Download Excel - apenas telefone
+      // Download Excel com 4 colunas
       const worksheet = XLSX.utils.json_to_sheet(allParticipants.map(p => ({
-        'Telefone': p.phone
+        'Grupo': p.groupName,
+        'Telid': p.telid,
+        'telefone': p.phone,
+        'Admin': p.isAdmin ? 'Sim' : 'Não'
       })));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Participantes');
