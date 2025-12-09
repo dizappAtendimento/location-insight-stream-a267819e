@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MapPin, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Search, MapPin, Loader2, Phone } from 'lucide-react';
 
 interface SearchFormProps {
-  onSearch: (query: string, location?: string, maxResults?: number) => void;
+  onSearch: (query: string, location?: string, maxResults?: number, onlyWithPhone?: boolean) => void;
   isLoading: boolean;
 }
 
@@ -14,10 +15,11 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [maxResults, setMaxResults] = useState('100');
+  const [onlyWithPhone, setOnlyWithPhone] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(query, location || undefined, parseInt(maxResults));
+    onSearch(query, location || undefined, parseInt(maxResults), onlyWithPhone);
   };
 
   return (
@@ -80,19 +82,37 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
         </div>
       </div>
 
-      <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Buscando lugares...
-          </>
-        ) : (
-          <>
-            <Search className="w-4 h-4 mr-2" />
-            Buscar Lugares
-          </>
-        )}
-      </Button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="onlyWithPhone" 
+            checked={onlyWithPhone}
+            onCheckedChange={(checked) => setOnlyWithPhone(checked === true)}
+            className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+          />
+          <Label 
+            htmlFor="onlyWithPhone" 
+            className="text-sm font-medium cursor-pointer flex items-center gap-1.5"
+          >
+            <Phone className="w-3.5 h-3.5 text-emerald-500" />
+            Só com WhatsApp/Telefone
+          </Label>
+        </div>
+
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Buscando lugares...
+            </>
+          ) : (
+            <>
+              <Search className="w-4 h-4 mr-2" />
+              Buscar Lugares
+            </>
+          )}
+        </Button>
+      </div>
     </form>
   );
 }

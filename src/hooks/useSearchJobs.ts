@@ -53,6 +53,7 @@ export function useSearchJobs() {
   const [isLoading, setIsLoading] = useState(false);
   const [jobs, setJobs] = useState<SearchJob[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [filterOnlyWithPhone, setFilterOnlyWithPhone] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const sessionId = getSessionId();
@@ -108,7 +109,8 @@ export function useSearchJobs() {
   }, [fetchJobs, user?.id]);
 
   // Create a new search job
-  const createJob = useCallback(async (query: string, location?: string, maxResults: number = 1000) => {
+  const createJob = useCallback(async (query: string, location?: string, maxResults: number = 1000, onlyWithPhone: boolean = false) => {
+    setFilterOnlyWithPhone(onlyWithPhone);
     if (!query.trim()) {
       toast({
         title: "Erro",
@@ -198,11 +200,20 @@ export function useSearchJobs() {
   }, [activeJobId, fetchJobs, toast]);
 
   // Download functions
-  const downloadCSV = useCallback((job: SearchJob) => {
+  const downloadCSV = useCallback((job: SearchJob, onlyWithPhone: boolean = false) => {
     if (!job || job.results.length === 0) return;
 
+    const filteredResults = onlyWithPhone || filterOnlyWithPhone 
+      ? job.results.filter(p => p.phone && p.phone.trim() !== '') 
+      : job.results;
+
+    if (filteredResults.length === 0) {
+      toast({ title: "Aviso", description: "Nenhum resultado com telefone encontrado", variant: "destructive" });
+      return;
+    }
+
     const headers = ['Nome', 'Endereço', 'Telefone', 'Rating', 'Avaliações', 'Categoria', 'Website'];
-    const rows = job.results.map(place => [
+    const rows = filteredResults.map(place => [
       place.name || '',
       place.address || '',
       place.phone || '',
@@ -221,28 +232,48 @@ export function useSearchJobs() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `lugares_${job.query.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+    const suffix = onlyWithPhone || filterOnlyWithPhone ? '_com_telefone' : '';
+    link.download = `lugares_${job.query.replace(/\s+/g, '_')}${suffix}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-  }, []);
+  }, [filterOnlyWithPhone, toast]);
 
-  const downloadJSON = useCallback((job: SearchJob) => {
+  const downloadJSON = useCallback((job: SearchJob, onlyWithPhone: boolean = false) => {
     if (!job || job.results.length === 0) return;
 
-    const jsonContent = JSON.stringify(job.results, null, 2);
+    const filteredResults = onlyWithPhone || filterOnlyWithPhone 
+      ? job.results.filter(p => p.phone && p.phone.trim() !== '') 
+      : job.results;
+
+    if (filteredResults.length === 0) {
+      toast({ title: "Aviso", description: "Nenhum resultado com telefone encontrado", variant: "destructive" });
+      return;
+    }
+
+    const jsonContent = JSON.stringify(filteredResults, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `lugares_${job.query.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+    const suffix = onlyWithPhone || filterOnlyWithPhone ? '_com_telefone' : '';
+    link.download = `lugares_${job.query.replace(/\s+/g, '_')}${suffix}_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
-  }, []);
+  }, [filterOnlyWithPhone, toast]);
 
-  const downloadExcel = useCallback((job: SearchJob) => {
+  const downloadExcel = useCallback((job: SearchJob, onlyWithPhone: boolean = false) => {
     if (!job || job.results.length === 0) return;
 
-    const data = job.results.map(place => ({
+    const filteredResults = onlyWithPhone || filterOnlyWithPhone 
+      ? job.results.filter(p => p.phone && p.phone.trim() !== '') 
+      : job.results;
+
+    if (filteredResults.length === 0) {
+      toast({ title: "Aviso", description: "Nenhum resultado com telefone encontrado", variant: "destructive" });
+      return;
+    }
+
+    const data = filteredResults.map(place => ({
       'Nome': place.name || '',
       'Endereço': place.address || '',
       'Telefone': place.phone || '',
@@ -267,8 +298,9 @@ export function useSearchJobs() {
     ];
     worksheet['!cols'] = colWidths;
 
-    XLSX.writeFile(workbook, `lugares_${job.query.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
-  }, []);
+    const suffix = onlyWithPhone || filterOnlyWithPhone ? '_com_telefone' : '';
+    XLSX.writeFile(workbook, `lugares_${job.query.replace(/\s+/g, '_')}${suffix}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }, [filterOnlyWithPhone, toast]);
 
   return {
     isLoading,
@@ -276,6 +308,8 @@ export function useSearchJobs() {
     activeJob,
     activeJobId,
     setActiveJobId,
+    filterOnlyWithPhone,
+    setFilterOnlyWithPhone,
     createJob,
     deleteJob,
     fetchJobs,
