@@ -342,6 +342,54 @@ export function useSearchJobs() {
     URL.revokeObjectURL(url);
   }, [filterOnlyWithPhone, toast]);
 
+  // Extract country code from phone number
+  const extractCountryCode = (phone: string | null): string => {
+    if (!phone) return '';
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    // Common country codes mapping
+    if (cleanPhone.startsWith('55') && cleanPhone.length >= 12) return '+55'; // Brazil
+    if (cleanPhone.startsWith('1') && cleanPhone.length >= 11) return '+1'; // USA/Canada
+    if (cleanPhone.startsWith('44') && cleanPhone.length >= 11) return '+44'; // UK
+    if (cleanPhone.startsWith('351') && cleanPhone.length >= 12) return '+351'; // Portugal
+    if (cleanPhone.startsWith('34') && cleanPhone.length >= 11) return '+34'; // Spain
+    if (cleanPhone.startsWith('33') && cleanPhone.length >= 11) return '+33'; // France
+    if (cleanPhone.startsWith('49') && cleanPhone.length >= 11) return '+49'; // Germany
+    if (cleanPhone.startsWith('39') && cleanPhone.length >= 11) return '+39'; // Italy
+    if (cleanPhone.startsWith('54') && cleanPhone.length >= 11) return '+54'; // Argentina
+    if (cleanPhone.startsWith('56') && cleanPhone.length >= 11) return '+56'; // Chile
+    if (cleanPhone.startsWith('57') && cleanPhone.length >= 11) return '+57'; // Colombia
+    if (cleanPhone.startsWith('52') && cleanPhone.length >= 11) return '+52'; // Mexico
+    if (cleanPhone.startsWith('51') && cleanPhone.length >= 11) return '+51'; // Peru
+    if (cleanPhone.startsWith('598') && cleanPhone.length >= 11) return '+598'; // Uruguay
+    if (cleanPhone.startsWith('595') && cleanPhone.length >= 11) return '+595'; // Paraguay
+    if (cleanPhone.startsWith('591') && cleanPhone.length >= 11) return '+591'; // Bolivia
+    if (cleanPhone.startsWith('593') && cleanPhone.length >= 11) return '+593'; // Ecuador
+    if (cleanPhone.startsWith('58') && cleanPhone.length >= 11) return '+58'; // Venezuela
+    
+    // Default: assume Brazil if starts with common DDD patterns
+    if (cleanPhone.length >= 10 && cleanPhone.length <= 11) return '+55';
+    
+    return '';
+  };
+
+  // Format phone with country code
+  const formatPhoneWithCountryCode = (phone: string | null): string => {
+    if (!phone) return '';
+    const cleanPhone = phone.replace(/\D/g, '');
+    const countryCode = extractCountryCode(phone);
+    
+    if (countryCode === '+55') {
+      // Brazilian format: already has 55 or needs it
+      if (cleanPhone.startsWith('55')) {
+        return cleanPhone;
+      }
+      return '55' + cleanPhone;
+    }
+    
+    return cleanPhone;
+  };
+
   const downloadExcel = useCallback((job: SearchJob, onlyWithPhone: boolean = false) => {
     if (!job || job.results.length === 0) return;
 
@@ -354,29 +402,48 @@ export function useSearchJobs() {
       return;
     }
 
-    const data = filteredResults.map(place => ({
-      'Nome': place.name || '',
-      'Endereço': place.address || '',
-      'Telefone': place.phone || '',
-      'Rating': place.rating || '',
-      'Avaliações': place.reviewCount || '',
-      'Categoria': place.category || '',
-      'Website': place.website || '',
-    }));
+    // Check if WhatsApp validation was performed
+    const hasWhatsAppValidation = filteredResults.some(p => p.hasWhatsApp !== undefined);
+
+    const data = filteredResults.map(place => {
+      const baseData: Record<string, string | number> = {
+        'Nome': place.name || '',
+        'Endereço': place.address || '',
+        'Código País': extractCountryCode(place.phone),
+        'Telefone': formatPhoneWithCountryCode(place.phone),
+        'Rating': place.rating || '',
+        'Avaliações': place.reviewCount || '',
+        'Categoria': place.category || '',
+        'Website': place.website || '',
+      };
+
+      // Add WhatsApp column if validation was performed
+      if (hasWhatsAppValidation) {
+        baseData['WhatsApp'] = place.hasWhatsApp ? 'Sim' : 'Não';
+      }
+
+      return baseData;
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Lugares');
     
     const colWidths = [
-      { wch: 30 },
-      { wch: 50 },
-      { wch: 18 },
-      { wch: 8 },
-      { wch: 12 },
-      { wch: 20 },
-      { wch: 40 },
+      { wch: 30 }, // Nome
+      { wch: 50 }, // Endereço
+      { wch: 12 }, // Código País
+      { wch: 18 }, // Telefone
+      { wch: 8 },  // Rating
+      { wch: 12 }, // Avaliações
+      { wch: 20 }, // Categoria
+      { wch: 40 }, // Website
     ];
+    
+    if (hasWhatsAppValidation) {
+      colWidths.push({ wch: 12 }); // WhatsApp
+    }
+    
     worksheet['!cols'] = colWidths;
 
     const suffix = onlyWithPhone || filterOnlyWithPhone ? '_com_telefone' : '';
