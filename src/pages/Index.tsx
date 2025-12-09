@@ -13,6 +13,7 @@ import { useEffect, useRef } from 'react';
 const Index = () => {
   const { 
     isLoading, 
+    isValidatingWhatsApp,
     jobs, 
     activeJob, 
     activeJobId,
