@@ -9,6 +9,71 @@ interface WhatsAppGroup {
   name: string;
   link: string;
   description: string;
+  validated?: boolean;
+}
+
+// Validate if a WhatsApp group link is still active
+async function validateGroupLink(link: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(link, {
+      method: "HEAD",
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      },
+      redirect: "follow"
+    });
+    
+    clearTimeout(timeoutId);
+    
+    // If we get a 200 or redirect to WhatsApp, it's valid
+    // If we get 404 or redirect to error page, it's invalid
+    if (response.ok) {
+      return true;
+    }
+    
+    // Check if it redirected to the WhatsApp app page (valid group)
+    const finalUrl = response.url;
+    if (finalUrl && (finalUrl.includes("chat.whatsapp.com") || finalUrl.includes("web.whatsapp.com"))) {
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    // On timeout or network error, assume valid (don't penalize slow responses)
+    console.log(`Validation timeout/error for ${link}, assuming valid`);
+    return true;
+  }
+}
+
+// Batch validate multiple links concurrently
+async function validateGroupLinks(groups: WhatsAppGroup[], maxConcurrent: number = 10): Promise<WhatsAppGroup[]> {
+  const validatedGroups: WhatsAppGroup[] = [];
+  
+  // Process in batches
+  for (let i = 0; i < groups.length; i += maxConcurrent) {
+    const batch = groups.slice(i, i + maxConcurrent);
+    
+    const validationPromises = batch.map(async (group) => {
+      const isValid = await validateGroupLink(group.link);
+      return { ...group, validated: isValid };
+    });
+    
+    const results = await Promise.all(validationPromises);
+    
+    for (const result of results) {
+      if (result.validated) {
+        validatedGroups.push(result);
+      } else {
+        console.log(`Invalid/expired group removed: ${result.link}`);
+      }
+    }
+  }
+  
+  return validatedGroups;
 }
 
 serve(async (req) => {
@@ -17,7 +82,7 @@ serve(async (req) => {
   }
 
   try {
-    const { segment, maxResults = 500 } = await req.json();
+    const { segment, maxResults = 500, validateLinks = true } = await req.json();
 
     if (!segment) {
       return new Response(
@@ -34,7 +99,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Searching WhatsApp groups for: ${segment} (max: ${maxResults})`);
+    console.log(`Searching WhatsApp groups for: ${segment} (max: ${maxResults}, validate: ${validateLinks})`);
 
     const groups: WhatsAppGroup[] = [];
     const seenLinks = new Set<string>();
@@ -67,7 +132,6 @@ serve(async (req) => {
     const variations: string[] = [];
     for (const word of words) {
       const lowerWord = word.toLowerCase();
-      // Add common variations
       variations.push(`${lowerWord} brasil`);
       variations.push(`${lowerWord} grupo`);
       variations.push(`${lowerWord} zap`);
@@ -102,7 +166,6 @@ serve(async (req) => {
         const code = m.replace("chat.whatsapp.com/", "");
         return `https://chat.whatsapp.com/${code}`;
       }).filter(link => {
-        // Filter out invalid codes
         const code = link.replace("https://chat.whatsapp.com/", "");
         return code.length >= 18 && code.length <= 25 && /^[A-Za-z0-9]+$/.test(code);
       });
@@ -147,7 +210,6 @@ serve(async (req) => {
           const snippet = result.snippet || "";
           const fullText = `${link} ${title} ${snippet}`;
 
-          // Skip unwanted sources
           if (
             link.includes(".pdf") ||
             link.includes("scribd.com") ||
@@ -157,7 +219,6 @@ serve(async (req) => {
             continue;
           }
 
-          // Extract all WhatsApp links
           const whatsappLinks = extractWhatsAppLinks(fullText);
 
           for (const whatsappLink of whatsappLinks) {
@@ -166,7 +227,6 @@ serve(async (req) => {
 
             seenLinks.add(whatsappLink);
 
-            // Clean up group name
             let groupName = title
               .replace(/WhatsApp/gi, "")
               .replace(/Group Invite/gi, "")
@@ -204,8 +264,6 @@ serve(async (req) => {
         if (groups.length >= maxResults) break;
 
         await searchQuery(template(term), term);
-        
-        // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
@@ -388,15 +446,27 @@ serve(async (req) => {
       console.error("Error searching Twitter:", err);
     }
 
-    console.log(`Total groups found: ${groups.length}`);
+    console.log(`Total groups found before validation: ${groups.length}`);
+
+    // Validate links if enabled
+    let finalGroups = groups;
+    if (validateLinks && groups.length > 0) {
+      console.log(`Validating ${groups.length} group links...`);
+      finalGroups = await validateGroupLinks(groups, 15);
+      console.log(`Valid groups after validation: ${finalGroups.length}`);
+    }
+
+    // Remove the validated flag from response
+    const cleanGroups = finalGroups.map(({ validated, ...rest }) => rest);
 
     return new Response(
       JSON.stringify({ 
-        groups, 
-        total: groups.length,
+        groups: cleanGroups, 
+        total: cleanGroups.length,
+        totalBeforeValidation: groups.length,
         searchTermsUsed: searchTerms,
-        message: groups.length === 0 
-          ? "Nenhum grupo encontrado. Tente termos diferentes ou mais genéricos."
+        message: cleanGroups.length === 0 
+          ? "Nenhum grupo válido encontrado. Tente termos diferentes ou mais genéricos."
           : undefined
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

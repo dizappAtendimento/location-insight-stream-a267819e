@@ -403,11 +403,12 @@ const WhatsAppGroupsExtractor = () => {
         const increment = Math.random() * 15 + 5;
         const newProgress = Math.min(prev + increment, 90);
         
-        if (newProgress < 20) setSearchStatus('Preparando termos de busca...');
-        else if (newProgress < 40) setSearchStatus('Buscando em diretórios de grupos...');
-        else if (newProgress < 60) setSearchStatus('Pesquisando no Google...');
-        else if (newProgress < 75) setSearchStatus('Buscando no Facebook e Twitter...');
-        else setSearchStatus('Finalizando extração...');
+        if (newProgress < 15) setSearchStatus('Preparando termos de busca...');
+        else if (newProgress < 35) setSearchStatus('Buscando em diretórios de grupos...');
+        else if (newProgress < 55) setSearchStatus('Pesquisando no Google...');
+        else if (newProgress < 70) setSearchStatus('Buscando no Facebook e Twitter...');
+        else if (newProgress < 85) setSearchStatus('Validando links ativos...');
+        else setSearchStatus('Finalizando...');
         
         return newProgress;
       });
