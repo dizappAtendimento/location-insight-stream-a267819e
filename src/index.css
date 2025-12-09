@@ -4,75 +4,98 @@
 
 @layer base {
   :root {
-    /* Dark theme - refined color palette */
-    --background: 222 25% 7%;
-    --foreground: 210 20% 95%;
+    /* Dark theme - premium refined color palette */
+    --background: 225 25% 6%;
+    --foreground: 210 20% 96%;
 
-    --card: 222 20% 10%;
-    --card-foreground: 210 20% 95%;
+    --card: 225 22% 9%;
+    --card-foreground: 210 20% 96%;
 
-    --popover: 222 20% 12%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 225 22% 11%;
+    --popover-foreground: 210 20% 96%;
 
-    --primary: 250 85% 65%;
+    --primary: 252 85% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 15% 15%;
-    --secondary-foreground: 210 20% 90%;
+    --secondary: 225 18% 14%;
+    --secondary-foreground: 210 20% 92%;
 
-    --muted: 222 15% 18%;
-    --muted-foreground: 215 15% 55%;
+    --muted: 225 18% 16%;
+    --muted-foreground: 215 15% 50%;
 
-    --accent: 250 85% 65%;
+    --accent: 252 85% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 65% 55%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 222 15% 18%;
-    --input: 222 15% 15%;
-    --ring: 250 85% 65%;
+    --border: 225 18% 14%;
+    --input: 225 18% 12%;
+    --ring: 252 85% 60%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 222 25% 8%;
+    /* Platform colors */
+    --instagram: 328 85% 60%;
+    --instagram-glow: 328 100% 70%;
+    --linkedin: 201 100% 40%;
+    --linkedin-glow: 201 100% 55%;
+    --whatsapp: 142 70% 45%;
+    --whatsapp-glow: 142 100% 50%;
+    --places: 150 80% 45%;
+    --places-glow: 150 100% 55%;
+
+    /* Sidebar */
+    --sidebar-background: 225 28% 7%;
     --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 250 85% 65%;
+    --sidebar-primary: 252 85% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 15% 14%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 222 15% 15%;
-    --sidebar-ring: 250 85% 65%;
+    --sidebar-accent: 225 18% 12%;
+    --sidebar-accent-foreground: 210 20% 96%;
+    --sidebar-border: 225 18% 12%;
+    --sidebar-ring: 252 85% 60%;
+
+    /* Success / Info colors */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 201 90% 50%;
+    --info-foreground: 0 0% 100%;
   }
 
   .light {
     --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
+    --foreground: 224 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 224 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 250 85% 55%;
+    --popover-foreground: 224 47% 11%;
+    --primary: 252 85% 55%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 15% 95%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary-foreground: 224 47% 11%;
     --muted: 220 15% 95%;
     --muted-foreground: 215 15% 45%;
     --accent: 220 15% 95%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 224 47% 11%;
     --destructive: 0 85% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 220 15% 90%;
     --input: 220 15% 90%;
-    --ring: 250 85% 55%;
+    --ring: 252 85% 55%;
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 250 85% 55%;
+    --sidebar-foreground: 224 47% 11%;
+    --sidebar-primary: 252 85% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 15% 95%;
-    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-accent-foreground: 224 47% 11%;
     --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 250 85% 55%;
+    --sidebar-ring: 252 85% 55%;
+    --instagram: 328 85% 55%;
+    --linkedin: 201 100% 38%;
+    --whatsapp: 142 70% 40%;
+    --places: 150 80% 40%;
   }
 }
 
@@ -90,10 +113,10 @@
     @apply bg-background text-foreground font-sans;
   }
 
-  /* Improved scrollbar */
+  /* Premium scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -101,21 +124,112 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted rounded-full;
+    @apply bg-border rounded-full transition-colors;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/30;
+    @apply bg-muted-foreground/40;
   }
 }
 
 @layer components {
+  /* Glass card effect */
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50;
+    @apply bg-card/90 backdrop-blur-md border border-border/50 shadow-lg shadow-black/5;
+  }
+
+  /* Premium card with subtle glow */
+  .premium-card {
+    @apply bg-card border border-border/50 rounded-xl shadow-lg shadow-black/10;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card)) 0%,
+      hsl(225 22% 8%) 100%
+    );
+  }
+
+  /* Stat card styles */
+  .stat-card {
+    @apply relative overflow-hidden rounded-xl border border-border/40 bg-card/80 backdrop-blur-sm;
+    @apply transition-all duration-300 hover:border-border/60 hover:shadow-lg hover:shadow-primary/5;
+  }
+
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0;
+    @apply transition-opacity duration-300;
+  }
+
+  .stat-card:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Platform accent styles */
+  .accent-instagram {
+    --accent-color: var(--instagram);
+    --accent-glow: var(--instagram-glow);
+  }
+
+  .accent-linkedin {
+    --accent-color: var(--linkedin);
+    --accent-glow: var(--linkedin-glow);
+  }
+
+  .accent-whatsapp {
+    --accent-color: var(--whatsapp);
+    --accent-glow: var(--whatsapp-glow);
+  }
+
+  .accent-places {
+    --accent-color: var(--places);
+    --accent-glow: var(--places-glow);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(280 85% 65%) 100%);
+  }
+
+  /* Shimmer effect */
+  .shimmer {
+    @apply relative overflow-hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--foreground) / 0.05) 50%,
+      transparent 100%
+    );
+    animation: shimmer 2s infinite;
+  }
+
+  /* Glow button */
+  .glow-button {
+    @apply relative;
+  }
+
+  .glow-button::before {
+    content: '';
+    @apply absolute -inset-1 rounded-lg opacity-0 blur-lg transition-opacity duration-300;
+    background: hsl(var(--primary) / 0.5);
+  }
+
+  .glow-button:hover::before {
+    @apply opacity-70;
+  }
+
+  /* Input focus ring */
+  .input-focus-ring {
+    @apply focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 focus:border-primary/50;
   }
 }
 
-/* Animated gradient background for login */
+/* Animations */
 @keyframes gradient-shift {
   0%, 100% {
     background-position: 0% 50%;
@@ -128,36 +242,55 @@
 @keyframes float {
   0%, 100% {
     transform: translateY(0) rotate(0deg);
-    opacity: 0.5;
+    opacity: 0.4;
   }
   50% {
     transform: translateY(-20px) rotate(180deg);
-    opacity: 0.8;
+    opacity: 0.7;
   }
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    opacity: 0.3;
+    opacity: 0.2;
     transform: scale(1);
   }
   50% {
-    opacity: 0.6;
-    transform: scale(1.1);
+    opacity: 0.5;
+    transform: scale(1.05);
   }
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.5);
+  }
+}
+
+/* Login page background */
 .login-bg {
   background: linear-gradient(
     135deg,
     hsl(var(--background)) 0%,
-    hsl(222 25% 10%) 25%,
-    hsl(250 30% 12%) 50%,
-    hsl(222 25% 10%) 75%,
+    hsl(225 28% 9%) 25%,
+    hsl(252 25% 11%) 50%,
+    hsl(225 28% 9%) 75%,
     hsl(var(--background)) 100%
   );
   background-size: 400% 400%;
-  animation: gradient-shift 15s ease infinite;
+  animation: gradient-shift 20s ease infinite;
 }
 
 .login-bg::before,
@@ -165,24 +298,55 @@
   content: '';
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(100px);
   pointer-events: none;
 }
 
 .login-bg::before {
-  top: 10%;
-  left: 15%;
-  width: 400px;
-  height: 400px;
-  background: hsl(var(--primary) / 0.15);
-  animation: pulse-glow 8s ease-in-out infinite;
+  top: 5%;
+  left: 10%;
+  width: 500px;
+  height: 500px;
+  background: hsl(var(--primary) / 0.12);
+  animation: pulse-glow 10s ease-in-out infinite;
 }
 
 .login-bg::after {
-  bottom: 10%;
-  right: 15%;
-  width: 350px;
-  height: 350px;
-  background: hsl(250 85% 55% / 0.1);
-  animation: pulse-glow 10s ease-in-out infinite 2s;
+  bottom: 5%;
+  right: 10%;
+  width: 400px;
+  height: 400px;
+  background: hsl(280 85% 55% / 0.08);
+  animation: pulse-glow 12s ease-in-out infinite 3s;
+}
+
+/* Stagger animation delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* Hover lift effect */
+.hover-lift {
+  @apply transition-all duration-300;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px hsl(var(--primary) / 0.15);
+}
+
+/* Focus visible styles */
+:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+}
+
+/* Selection style */
+::selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
 }

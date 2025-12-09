@@ -110,34 +110,34 @@ const InstagramExtractor = () => {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Segmento / Nicho</Label>
-                <div className="relative">
-                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Label className="text-sm font-medium text-foreground/90">Segmento / Nicho</Label>
+                <div className="relative group">
+                  <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-instagram" />
                   <Input 
                     placeholder="Ex: mecanica, dentista, restaurante..." 
                     value={segment} 
                     onChange={(e) => setSegment(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-11 bg-secondary/50 border-border/50 focus:border-instagram/50 focus:bg-secondary/70 transition-all"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Localização (opcional)</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Label className="text-sm font-medium text-foreground/90">Localização (opcional)</Label>
+                <div className="relative group">
+                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-instagram" />
                   <Input 
                     placeholder="Ex: São Paulo, Rio de Janeiro..." 
                     value={location} 
                     onChange={(e) => setLocation(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-11 bg-secondary/50 border-border/50 focus:border-instagram/50 focus:bg-secondary/70 transition-all"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Quantidade de Resultados</Label>
+                <Label className="text-sm font-medium text-foreground/90">Quantidade de Resultados</Label>
                 <Select value={maxResults} onValueChange={setMaxResults}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="h-11 bg-secondary/50 border-border/50 focus:border-instagram/50"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-popover border-border">
                     <SelectItem value="50">50 perfis</SelectItem>
                     <SelectItem value="100">100 perfis</SelectItem>
                     <SelectItem value="200">200 perfis</SelectItem>
@@ -146,7 +146,7 @@ const InstagramExtractor = () => {
               </div>
               <Button 
                 onClick={extractLeads} 
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 shadow-lg shadow-pink-500/20 transition-all duration-300" 
+                className="w-full h-11 bg-gradient-instagram hover:opacity-90 shadow-lg shadow-pink-500/25 transition-all duration-300 hover:shadow-pink-500/40 hover:scale-[1.02]" 
                 disabled={isLoading}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
