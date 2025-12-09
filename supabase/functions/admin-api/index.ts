@@ -16,9 +16,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, userId, userData, planData } = await req.json();
+    const { action, userId, userData, planData, statusType } = await req.json();
 
-    console.log(`[Admin API] Action: ${action}, UserId: ${userId || 'N/A'}`);
+    console.log(`[Admin API] Action: ${action}, UserId: ${userId || 'N/A'}, StatusType: ${statusType || 'N/A'}`);
 
     // Check if the requesting user is admin
     const checkAdmin = async (requestingUserId: string) => {
@@ -216,8 +216,6 @@ serve(async (req) => {
       }
 
       case 'toggle-user-status': {
-        const { statusType } = await req.json().catch(() => ({}));
-        
         // First get current status
         const { data: currentUser } = await supabase
           .from('SAAS_Usuarios')
