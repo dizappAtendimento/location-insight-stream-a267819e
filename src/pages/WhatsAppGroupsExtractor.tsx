@@ -30,9 +30,17 @@ interface WhatsAppGroup {
 }
 
 interface EvolutionInstance {
-  instance: {
-    instanceName: string;
-    status: string;
+  instanceName?: string;
+  instanceId?: string;
+  status?: string;
+  state?: string;
+  name?: string;
+  owner?: string;
+  instance?: {
+    instanceName?: string;
+    instanceId?: string;
+    status?: string;
+    state?: string;
     owner?: string;
   };
 }
@@ -199,9 +207,13 @@ const WhatsAppGroupsExtractor = () => {
     XLSX.writeFile(workbook, `grupos_whatsapp_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const getInstanceStatus = (instance: EvolutionInstance) => {
-    const status = instance.instance?.status || 'close';
-    return status === 'open' ? 'connected' : 'disconnected';
+  const getInstanceName = (instance: EvolutionInstance): string => {
+    return instance.instanceName || instance.name || instance.instance?.instanceName || 'Unknown';
+  };
+
+  const getInstanceStatus = (instance: EvolutionInstance): 'connected' | 'disconnected' => {
+    const status = instance.status || instance.state || instance.instance?.status || instance.instance?.state || 'close';
+    return status === 'open' || status === 'connected' ? 'connected' : 'disconnected';
   };
 
   const connectedInstances = instances.filter(i => getInstanceStatus(i) === 'connected');
@@ -257,11 +269,12 @@ const WhatsAppGroupsExtractor = () => {
                   <p className="text-sm text-muted-foreground/70">Crie uma nova instância para começar</p>
                 </div>
               ) : (
-                instances.map((instance) => {
+                instances.map((instance, index) => {
                   const status = getInstanceStatus(instance);
-                  const name = instance.instance?.instanceName || 'Unknown';
+                  const name = getInstanceName(instance);
+                  const uniqueKey = `${name}-${index}`;
                   return (
-                    <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
+                    <div key={uniqueKey} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${status === 'connected' ? 'bg-[#25D366]' : 'bg-muted-foreground/30'}`} />
                         <div>
@@ -301,9 +314,9 @@ const WhatsAppGroupsExtractor = () => {
                     <Select value={selectedInstance} onValueChange={setSelectedInstance}>
                       <SelectTrigger><SelectValue placeholder="Selecione uma instância conectada" /></SelectTrigger>
                       <SelectContent>
-                        {connectedInstances.map((instance) => (
-                          <SelectItem key={instance.instance.instanceName} value={instance.instance.instanceName}>
-                            {instance.instance.instanceName}
+                        {connectedInstances.map((instance, index) => (
+                          <SelectItem key={`select-${getInstanceName(instance)}-${index}`} value={getInstanceName(instance)}>
+                            {getInstanceName(instance)}
                           </SelectItem>
                         ))}
                       </SelectContent>
