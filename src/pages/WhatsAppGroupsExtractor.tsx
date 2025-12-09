@@ -324,11 +324,9 @@ const WhatsAppGroupsExtractor = () => {
         return;
       }
 
-      // Download Excel
+      // Download Excel - apenas telefone
       const worksheet = XLSX.utils.json_to_sheet(allParticipants.map(p => ({
-        'Grupo': p.groupName,
-        'Telefone': p.phone,
-        'Admin': p.isAdmin ? 'Sim' : 'Não'
+        'Telefone': p.phone
       })));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Participantes');
