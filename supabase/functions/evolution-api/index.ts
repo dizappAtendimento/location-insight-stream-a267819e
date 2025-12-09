@@ -237,6 +237,68 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "check-whatsapp":
+        // Verifica se números têm WhatsApp
+        const { phones } = data || {};
+        if (!phones || !Array.isArray(phones) || phones.length === 0) {
+          return new Response(
+            JSON.stringify({ error: "Lista de telefones é obrigatória" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Formata números para o formato do WhatsApp
+        const formattedPhones = phones.map((phone: string) => {
+          // Remove tudo que não for número
+          const cleaned = phone.replace(/\D/g, '');
+          // Adiciona @s.whatsapp.net se não tiver
+          return cleaned.includes('@') ? cleaned : `${cleaned}@s.whatsapp.net`;
+        });
+
+        console.log(`[Evolution API] Checking ${formattedPhones.length} numbers on ${instanceName}`);
+
+        // Divide em lotes de 50 para não sobrecarregar
+        const batchSize = 50;
+        const allResults: any[] = [];
+
+        for (let i = 0; i < formattedPhones.length; i += batchSize) {
+          const batch = formattedPhones.slice(i, i + batchSize);
+          
+          try {
+            const checkResponse = await fetch(`${baseUrl}/chat/whatsappNumbers/${instanceName}`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ numbers: batch.map((p: string) => p.replace('@s.whatsapp.net', '')) }),
+            });
+
+            if (checkResponse.ok) {
+              const checkResult = await checkResponse.json();
+              // O resultado contém array com {exists: boolean, jid: string, number: string}
+              if (Array.isArray(checkResult)) {
+                allResults.push(...checkResult);
+              }
+            }
+          } catch (batchError) {
+            console.error(`[Evolution API] Batch error:`, batchError);
+          }
+
+          // Pequeno delay entre batches
+          if (i + batchSize < formattedPhones.length) {
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
+
+        console.log(`[Evolution API] WhatsApp check complete: ${allResults.filter((r: any) => r.exists).length}/${phones.length} have WhatsApp`);
+
+        return new Response(
+          JSON.stringify({ 
+            results: allResults,
+            total: phones.length,
+            withWhatsApp: allResults.filter((r: any) => r.exists).length
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       default:
         return new Response(
           JSON.stringify({ error: "Ação não reconhecida" }),
