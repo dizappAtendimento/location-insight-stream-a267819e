@@ -39,15 +39,12 @@ serve(async (req) => {
     const groups: WhatsAppGroup[] = [];
     const seenLinks = new Set<string>();
 
-    // Multiple search queries to maximize results
+    // Search queries focused on active group directories (exclude PDFs)
     const searchQueries = [
-      `site:chat.whatsapp.com ${segment}`,
-      `"chat.whatsapp.com" ${segment} grupo`,
-      `whatsapp grupo ${segment}`,
-      `"entrar no grupo" whatsapp ${segment}`,
-      `grupo whatsapp ${segment} link`,
-      `${segment} "chat.whatsapp.com"`,
-      `convite grupo whatsapp ${segment}`,
+      `${segment} grupo whatsapp link entrar -filetype:pdf`,
+      `${segment} whatsapp group invite -filetype:pdf`,
+      `grupo ${segment} whatsapp convite link -filetype:pdf`,
+      `${segment} "entrar no grupo" whatsapp -pdf -scribd`,
     ];
 
     for (const query of searchQueries) {
@@ -67,6 +64,7 @@ serve(async (req) => {
             gl: "br",
             hl: "pt-br",
             num: 100,
+            tbs: "qdr:m", // Results from last month only
           }),
         });
 
@@ -88,52 +86,71 @@ serve(async (req) => {
           const title = result.title || "";
           const snippet = result.snippet || "";
 
-          // Extract WhatsApp links from the result
-          const whatsappLinkMatch = link.match(/chat\.whatsapp\.com\/[A-Za-z0-9]+/);
+          // Skip PDF sources and old document repositories
+          if (
+            link.includes(".pdf") ||
+            link.includes("scribd.com") ||
+            link.includes("slideshare") ||
+            link.includes("academia.edu") ||
+            title.toLowerCase().includes("pdf")
+          ) {
+            continue;
+          }
+
+          // Extract WhatsApp links from the result URL
+          const whatsappLinkMatch = link.match(/chat\.whatsapp\.com\/([A-Za-z0-9]{20,24})/);
           
           if (whatsappLinkMatch) {
-            const fullLink = `https://${whatsappLinkMatch[0]}`;
+            const inviteCode = whatsappLinkMatch[1];
+            const fullLink = `https://chat.whatsapp.com/${inviteCode}`;
             
-            // Avoid duplicates
-            if (!seenLinks.has(fullLink)) {
-              seenLinks.add(fullLink);
-              
-              // Clean up the name
-              let groupName = title
-                .replace(/WhatsApp/gi, "")
-                .replace(/Group Invite/gi, "")
-                .replace(/Convite para grupo/gi, "")
-                .replace(/- Convite/gi, "")
-                .replace(/\|/g, "")
-                .trim();
-              
-              if (!groupName || groupName.length < 2) {
-                groupName = `Grupo ${segment}`;
+            // Validate invite code format (should be 22 characters alphanumeric)
+            if (inviteCode.length >= 20 && inviteCode.length <= 24) {
+              if (!seenLinks.has(fullLink)) {
+                seenLinks.add(fullLink);
+                
+                let groupName = title
+                  .replace(/WhatsApp/gi, "")
+                  .replace(/Group Invite/gi, "")
+                  .replace(/Convite para grupo/gi, "")
+                  .replace(/- Convite/gi, "")
+                  .replace(/\|/g, "")
+                  .replace(/PDF/gi, "")
+                  .trim();
+                
+                if (!groupName || groupName.length < 2) {
+                  groupName = `Grupo ${segment}`;
+                }
+
+                groups.push({
+                  name: groupName,
+                  link: fullLink,
+                  description: snippet.substring(0, 200) || "Grupo de WhatsApp",
+                });
+
+                console.log(`Found group: ${groupName}`);
               }
-
-              groups.push({
-                name: groupName,
-                link: fullLink,
-                description: snippet || "Grupo de WhatsApp",
-              });
-
-              console.log(`Found group: ${groupName} - ${fullLink}`);
             }
           }
 
-          // Also check snippet for WhatsApp links
-          const snippetMatches = snippet.match(/chat\.whatsapp\.com\/[A-Za-z0-9]+/g) || [];
+          // Also scan the snippet for WhatsApp links
+          const snippetMatches = snippet.match(/chat\.whatsapp\.com\/([A-Za-z0-9]{20,24})/g) || [];
           for (const match of snippetMatches) {
             if (groups.length >= maxResults) break;
             
-            const fullLink = `https://${match}`;
-            if (!seenLinks.has(fullLink)) {
-              seenLinks.add(fullLink);
-              groups.push({
-                name: title || `Grupo ${segment}`,
-                link: fullLink,
-                description: snippet || "Grupo de WhatsApp",
-              });
+            const codeMatch = match.match(/chat\.whatsapp\.com\/([A-Za-z0-9]{20,24})/);
+            if (codeMatch) {
+              const inviteCode = codeMatch[1];
+              const fullLink = `https://chat.whatsapp.com/${inviteCode}`;
+              
+              if (!seenLinks.has(fullLink)) {
+                seenLinks.add(fullLink);
+                groups.push({
+                  name: `Grupo ${segment}`,
+                  link: fullLink,
+                  description: snippet.substring(0, 200) || "Grupo de WhatsApp",
+                });
+              }
             }
           }
         }
@@ -141,15 +158,98 @@ serve(async (req) => {
         // Rate limiting between queries
         await new Promise(resolve => setTimeout(resolve, 300));
       } catch (queryError) {
-        console.error(`Error with query "${query}":`, queryError);
+        console.error(`Error with query:`, queryError);
         continue;
+      }
+    }
+
+    // Also search in group directory sites
+    const directorySites = [
+      "gruposwhatsapp.com.br",
+      "gruposdezap.com",
+      "linksdowhatsapp.com",
+    ];
+
+    for (const site of directorySites) {
+      if (groups.length >= maxResults) break;
+
+      try {
+        console.log(`Searching directory: ${site}`);
+
+        const response = await fetch("https://google.serper.dev/search", {
+          method: "POST",
+          headers: {
+            "X-API-KEY": SERPER_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            q: `site:${site} ${segment}`,
+            gl: "br",
+            hl: "pt-br",
+            num: 20,
+          }),
+        });
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        const organicResults = data.organic || [];
+
+        for (const result of organicResults) {
+          if (groups.length >= maxResults) break;
+
+          const link = result.link || "";
+          const title = result.title || "";
+          const snippet = result.snippet || "";
+
+          // Extract any WhatsApp links from snippets
+          const allMatches = (snippet + " " + link).match(/chat\.whatsapp\.com\/([A-Za-z0-9]{20,24})/g) || [];
+          
+          for (const match of allMatches) {
+            const codeMatch = match.match(/chat\.whatsapp\.com\/([A-Za-z0-9]{20,24})/);
+            if (codeMatch) {
+              const inviteCode = codeMatch[1];
+              const fullLink = `https://chat.whatsapp.com/${inviteCode}`;
+              
+              if (!seenLinks.has(fullLink)) {
+                seenLinks.add(fullLink);
+                
+                let groupName = title
+                  .replace(/Grupo de WhatsApp/gi, "")
+                  .replace(/Link para/gi, "")
+                  .replace(/-/g, " ")
+                  .trim();
+                
+                if (!groupName || groupName.length < 2) {
+                  groupName = `Grupo ${segment}`;
+                }
+
+                groups.push({
+                  name: groupName,
+                  link: fullLink,
+                  description: snippet.substring(0, 200) || `Grupo de ${segment}`,
+                });
+              }
+            }
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (err) {
+        console.error(`Error searching ${site}:`, err);
       }
     }
 
     console.log(`Total groups found: ${groups.length}`);
 
     return new Response(
-      JSON.stringify({ groups, total: groups.length }),
+      JSON.stringify({ 
+        groups, 
+        total: groups.length,
+        message: groups.length === 0 
+          ? "Nenhum grupo encontrado. Tente termos mais genéricos como 'vendas' ou 'negócios'."
+          : undefined
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
