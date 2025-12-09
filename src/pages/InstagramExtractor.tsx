@@ -49,6 +49,14 @@ const InstagramExtractor = () => {
         totalResults: profiles.length,
         emailsFound: profiles.filter((p: InstagramLead) => p.email).length,
         phonesFound: profiles.filter((p: InstagramLead) => p.phone).length,
+        results: profiles.map((p: InstagramLead) => ({
+          name: p.username,
+          username: p.username,
+          email: p.email || undefined,
+          phone: p.phone || undefined,
+          link: p.profileLink,
+          bio: p.bioLink || undefined,
+        })),
       });
       toast({ title: "Extração concluída", description: `${profiles.length} perfis encontrados` });
     } catch (error) {

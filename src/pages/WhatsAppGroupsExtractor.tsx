@@ -439,6 +439,11 @@ const WhatsAppGroupsExtractor = () => {
           totalResults: data.groups?.length || 0,
           emailsFound: 0,
           phonesFound: 0,
+          results: (data.groups || []).map((g: PublicGroup) => ({
+            name: g.name,
+            link: g.link,
+            description: g.description,
+          })),
         });
       }
     } catch (error) {
@@ -473,6 +478,11 @@ const WhatsAppGroupsExtractor = () => {
       totalResults: publicGroups.length,
       emailsFound: 0,
       phonesFound: 0,
+      results: publicGroups.map(g => ({
+        name: g.name,
+        link: g.link,
+        description: g.description,
+      })),
     });
     
     toast({ title: "Exportado", description: `${publicGroups.length} grupos exportados` });

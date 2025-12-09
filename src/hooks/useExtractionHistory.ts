@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Generic result type to store any extraction data
+export interface ExtractedResult {
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  rating?: number;
+  reviews?: number;
+  category?: string;
+  description?: string;
+  link?: string;
+  username?: string;
+  bio?: string;
+  followers?: number;
+  [key: string]: any; // Allow additional fields
+}
+
 export interface ExtractionRecord {
   id: string;
   type: 'instagram' | 'linkedin' | 'places' | 'whatsapp-groups';
@@ -10,9 +28,11 @@ export interface ExtractionRecord {
   emailsFound: number;
   phonesFound: number;
   createdAt: string;
+  results?: ExtractedResult[]; // Store the actual extracted data
 }
 
 const STORAGE_KEY_PREFIX = 'extraction_history_';
+const RESULTS_KEY_PREFIX = 'extraction_results_';
 
 export const useExtractionHistory = () => {
   const [history, setHistory] = useState<ExtractionRecord[]>([]);
@@ -20,6 +40,10 @@ export const useExtractionHistory = () => {
   
   const getStorageKey = () => {
     return user?.id ? `${STORAGE_KEY_PREFIX}${user.id}` : null;
+  };
+
+  const getResultsKey = (recordId: string) => {
+    return user?.id ? `${RESULTS_KEY_PREFIX}${user.id}_${recordId}` : null;
   };
 
   useEffect(() => {
@@ -41,10 +65,26 @@ export const useExtractionHistory = () => {
     const key = getStorageKey();
     if (!key) return null;
     
+    const recordId = crypto.randomUUID();
+    
+    // Store results separately to avoid localStorage limits
+    if (record.results && record.results.length > 0) {
+      const resultsKey = getResultsKey(recordId);
+      if (resultsKey) {
+        try {
+          localStorage.setItem(resultsKey, JSON.stringify(record.results));
+        } catch (e) {
+          console.warn('Failed to store results, might exceed localStorage limit');
+        }
+      }
+    }
+    
+    // Store record metadata without results to save space
     const newRecord: ExtractionRecord = {
       ...record,
-      id: crypto.randomUUID(),
+      id: recordId,
       createdAt: new Date().toISOString(),
+      results: undefined, // Don't store in main history
     };
     
     const updated = [newRecord, ...history].slice(0, 100); // Keep last 100
@@ -53,12 +93,50 @@ export const useExtractionHistory = () => {
     return newRecord;
   };
 
+  const getResults = (recordId: string): ExtractedResult[] | null => {
+    const resultsKey = getResultsKey(recordId);
+    if (!resultsKey) return null;
+    
+    const stored = localStorage.getItem(resultsKey);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
   const clearHistory = () => {
     const key = getStorageKey();
     if (!key) return;
     
+    // Also clear all results
+    history.forEach(record => {
+      const resultsKey = getResultsKey(record.id);
+      if (resultsKey) {
+        localStorage.removeItem(resultsKey);
+      }
+    });
+    
     setHistory([]);
     localStorage.removeItem(key);
+  };
+
+  const deleteRecord = (recordId: string) => {
+    const key = getStorageKey();
+    if (!key) return;
+    
+    // Delete results
+    const resultsKey = getResultsKey(recordId);
+    if (resultsKey) {
+      localStorage.removeItem(resultsKey);
+    }
+    
+    const updated = history.filter(r => r.id !== recordId);
+    setHistory(updated);
+    localStorage.setItem(key, JSON.stringify(updated));
   };
 
   const getStats = () => {
@@ -83,5 +161,5 @@ export const useExtractionHistory = () => {
     };
   };
 
-  return { history, addRecord, clearHistory, getStats };
+  return { history, addRecord, clearHistory, deleteRecord, getResults, getStats };
 };

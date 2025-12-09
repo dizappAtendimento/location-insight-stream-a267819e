@@ -36,9 +36,19 @@ const Index = () => {
         addRecord({
           type: 'places',
           segment: activeJob.query,
+          location: activeJob.location || undefined,
           totalResults: activeJob.results.length,
           emailsFound: 0,
           phonesFound: activeJob.results.filter(p => p.phone).length,
+          results: activeJob.results.map(p => ({
+            name: p.name,
+            address: p.address,
+            phone: p.phone || undefined,
+            website: p.website || undefined,
+            rating: p.rating || undefined,
+            reviews: p.reviewCount || undefined,
+            category: p.category || undefined,
+          })),
         });
       }
     }

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, Download, FileSpreadsheet, MessageCircle } from 'lucide-react';
+import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, Download, FileSpreadsheet, MessageCircle, FileDown, Database } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ type TypeFilter = 'all' | 'instagram' | 'linkedin' | 'places' | 'whatsapp-groups
 type PeriodFilter = '7' | '14' | '30' | 'all' | 'custom';
 
 const HistoryPage = () => {
-  const { history, clearHistory } = useExtractionHistory();
+  const { history, clearHistory, deleteRecord, getResults } = useExtractionHistory();
   const { toast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,6 +133,81 @@ const HistoryPage = () => {
     toast({
       title: "Exportado com sucesso",
       description: `${records.length} registros exportados para Excel`,
+    });
+  };
+
+  const exportResultsToExcel = (record: ExtractionRecord) => {
+    const results = getResults(record.id);
+    if (!results || results.length === 0) {
+      toast({
+        title: "Sem dados",
+        description: "Não há dados salvos para esta extração",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Determine columns based on extraction type
+    let data: any[] = [];
+    
+    if (record.type === 'places') {
+      data = results.map(r => ({
+        'Nome': r.name || '',
+        'Endereço': r.address || '',
+        'Telefone': r.phone || '',
+        'Email': r.email || '',
+        'Website': r.website || '',
+        'Avaliação': r.rating || '',
+        'Reviews': r.reviews || '',
+        'Categoria': r.category || '',
+      }));
+    } else if (record.type === 'instagram') {
+      data = results.map(r => ({
+        'Nome': r.name || '',
+        'Username': r.username || '',
+        'Bio': r.bio || '',
+        'Email': r.email || '',
+        'Telefone': r.phone || '',
+        'Seguidores': r.followers || '',
+        'Link': r.link || '',
+      }));
+    } else if (record.type === 'linkedin') {
+      data = results.map(r => ({
+        'Nome': r.name || '',
+        'Título': r.title || '',
+        'Empresa': r.company || '',
+        'Localização': r.location || '',
+        'Email': r.email || '',
+        'Telefone': r.phone || '',
+        'Link': r.link || '',
+      }));
+    } else if (record.type === 'whatsapp-groups') {
+      data = results.map(r => ({
+        'Nome do Grupo': r.name || '',
+        'Descrição': r.description || '',
+        'Link': r.link || '',
+      }));
+    } else {
+      // Generic export
+      data = results;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Resultados');
+    XLSX.writeFile(wb, `${record.segment.replace(/\s+/g, '_')}_${format(new Date(record.createdAt), 'yyyy-MM-dd')}.xlsx`);
+    
+    toast({
+      title: "Dados exportados",
+      description: `${results.length} leads exportados para Excel`,
+    });
+  };
+
+  const handleDeleteRecord = (recordId: string) => {
+    deleteRecord(recordId);
+    toast({
+      title: "Registro removido",
+      description: "A extração foi removida do histórico",
     });
   };
 
@@ -374,16 +449,16 @@ const HistoryPage = () => {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-6 text-sm">
-                        <div className="text-center">
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="text-center min-w-[50px]">
                           <p className="font-bold text-primary">{record.totalResults}</p>
                           <p className="text-xs text-muted-foreground">leads</p>
                         </div>
-                        <div className="text-center">
+                        <div className="text-center min-w-[40px]">
                           <p className="font-semibold text-foreground">{record.emailsFound}</p>
                           <p className="text-xs text-muted-foreground">emails</p>
                         </div>
-                        <div className="text-center">
+                        <div className="text-center min-w-[40px]">
                           <p className="font-semibold text-foreground">{record.phonesFound}</p>
                           <p className="text-xs text-muted-foreground">tel</p>
                         </div>
@@ -393,15 +468,26 @@ const HistoryPage = () => {
                             {format(new Date(record.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </span>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleExportSingle(record)}
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                          title="Baixar registro"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => exportResultsToExcel(record)}
+                            className="h-8 w-8 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+                            title="Baixar dados completos"
+                          >
+                            <FileDown className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteRecord(record.id)}
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            title="Remover extração"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
