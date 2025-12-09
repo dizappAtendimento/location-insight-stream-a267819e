@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2 } from 'lucide-react';
+import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Custom WhatsApp icon component
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -30,6 +31,11 @@ interface WhatsAppGroup {
   desc?: string;
 }
 
+interface GroupParticipant {
+  id: string;
+  admin?: string;
+}
+
 interface UserInstance {
   id: number;
   instanceName: string;
@@ -43,6 +49,8 @@ const WhatsAppGroupsExtractor = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [isExtractingParticipants, setIsExtractingParticipants] = useState(false);
   
   // Instance states
   const [instances, setInstances] = useState<UserInstance[]>([]);
@@ -251,6 +259,97 @@ const WhatsAppGroupsExtractor = () => {
     XLSX.writeFile(workbook, `grupos_whatsapp_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const toggleGroupSelection = (groupId: string) => {
+    setSelectedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedGroups.size === groups.length) {
+      setSelectedGroups(new Set());
+    } else {
+      setSelectedGroups(new Set(groups.map(g => g.id)));
+    }
+  };
+
+  const extractParticipants = async () => {
+    if (selectedGroups.size === 0) {
+      toast({ title: "Erro", description: "Selecione pelo menos um grupo", variant: "destructive" });
+      return;
+    }
+    if (!selectedInstance) {
+      toast({ title: "Erro", description: "Selecione uma instância conectada", variant: "destructive" });
+      return;
+    }
+
+    setIsExtractingParticipants(true);
+    try {
+      const allParticipants: { groupName: string; phone: string; isAdmin: boolean }[] = [];
+      
+      for (const groupId of selectedGroups) {
+        const group = groups.find(g => g.id === groupId);
+        if (!group) continue;
+
+        const { data, error } = await supabase.functions.invoke('evolution-api', {
+          body: { action: 'fetch-group-participants', instanceName: selectedInstance, groupId }
+        });
+        
+        if (error) {
+          console.error(`Error fetching participants for ${group.subject}:`, error);
+          continue;
+        }
+
+        const participants = data?.participants || [];
+        for (const p of participants) {
+          const phone = p.id?.replace('@s.whatsapp.net', '') || '';
+          if (phone) {
+            allParticipants.push({
+              groupName: group.subject,
+              phone,
+              isAdmin: p.admin === 'admin' || p.admin === 'superadmin'
+            });
+          }
+        }
+      }
+
+      if (allParticipants.length === 0) {
+        toast({ title: "Aviso", description: "Nenhum participante encontrado nos grupos selecionados", variant: "destructive" });
+        return;
+      }
+
+      // Download Excel
+      const worksheet = XLSX.utils.json_to_sheet(allParticipants.map(p => ({
+        'Grupo': p.groupName,
+        'Telefone': p.phone,
+        'Admin': p.isAdmin ? 'Sim' : 'Não'
+      })));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Participantes');
+      XLSX.writeFile(workbook, `participantes_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      addRecord({
+        type: 'whatsapp-groups',
+        segment: `Participantes de ${selectedGroups.size} grupos`,
+        totalResults: allParticipants.length,
+        emailsFound: 0,
+        phonesFound: allParticipants.length,
+      });
+
+      toast({ title: "Sucesso", description: `${allParticipants.length} participantes extraídos` });
+    } catch (error) {
+      toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao extrair participantes", variant: "destructive" });
+    } finally {
+      setIsExtractingParticipants(false);
+    }
+  };
+
   const connectedInstances = instances.filter(i => i.status === 'connected');
 
   return (
@@ -374,42 +473,80 @@ const WhatsAppGroupsExtractor = () => {
                   <CardDescription>
                     {groups.length > 0 ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#25D366]/10 text-[#25D366] text-xs font-medium mt-1">
-                        {groups.length} grupos encontrados
+                        {selectedGroups.size > 0 ? `${selectedGroups.size} de ${groups.length} selecionados` : `${groups.length} grupos encontrados`}
                       </span>
                     ) : '0 grupos encontrados'}
                   </CardDescription>
                 </div>
-                {groups.length > 0 && (
-                  <Button size="sm" onClick={downloadExcel} className="bg-emerald-600 hover:bg-emerald-700">
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Excel
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {groups.length > 0 && (
+                    <>
+                      <Button size="sm" variant="outline" onClick={toggleSelectAll}>
+                        {selectedGroups.size === groups.length ? 'Desmarcar' : 'Selecionar'} Todos
+                      </Button>
+                      <Button size="sm" onClick={downloadExcel} className="bg-emerald-600 hover:bg-emerald-700">
+                        <FileDown className="w-4 h-4 mr-2" />
+                        Excel
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               {groups.length > 0 ? (
-                <div className="space-y-2 max-h-[450px] overflow-y-auto pr-2">
-                  {groups.map((group, i) => (
-                    <div 
-                      key={group.id} 
-                      className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 border border-border/50 hover:border-[#25D366]/30 hover:bg-secondary/50 transition-all duration-200"
-                    >
-                      <span className="w-9 h-9 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] text-white text-sm font-bold flex items-center justify-center shadow-sm">
-                        {i + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{group.subject}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Users className="w-3 h-3" />
-                            {group.size || 0} participantes
-                          </span>
+                <>
+                  <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2 mb-4">
+                    {groups.map((group, i) => (
+                      <div 
+                        key={group.id} 
+                        onClick={() => toggleGroupSelection(group.id)}
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
+                          selectedGroups.has(group.id) 
+                            ? 'bg-[#25D366]/10 border-[#25D366]/50' 
+                            : 'bg-secondary/30 border-border/50 hover:border-[#25D366]/30 hover:bg-secondary/50'
+                        }`}
+                      >
+                        <Checkbox 
+                          checked={selectedGroups.has(group.id)}
+                          onCheckedChange={() => toggleGroupSelection(group.id)}
+                          className="data-[state=checked]:bg-[#25D366] data-[state=checked]:border-[#25D366]"
+                        />
+                        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] text-white text-sm font-bold flex items-center justify-center shadow-sm">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{group.subject}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {group.size || 0} participantes
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                  {selectedGroups.size > 0 && (
+                    <Button 
+                      onClick={extractParticipants}
+                      disabled={isExtractingParticipants}
+                      className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]"
+                    >
+                      {isExtractingParticipants ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Extraindo participantes...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 mr-2" />
+                          Baixar Lista de Participantes ({selectedGroups.size} grupo{selectedGroups.size > 1 ? 's' : ''})
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#25D366]/10 to-[#128C7E]/10 flex items-center justify-center">

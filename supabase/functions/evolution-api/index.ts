@@ -218,6 +218,25 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "fetch-group-participants":
+        const { groupId } = data || {};
+        if (!groupId) {
+          return new Response(
+            JSON.stringify({ error: "groupId é obrigatório" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        response = await fetch(`${baseUrl}/group/participants/${instanceName}?groupJid=${groupId}`, {
+          method: "GET",
+          headers,
+        });
+        result = await response.json();
+        console.log(`[Evolution API] Fetched participants for group ${groupId}: ${result?.participants?.length || 0}`);
+        return new Response(
+          JSON.stringify({ participants: result?.participants || result || [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       default:
         return new Response(
           JSON.stringify({ error: "Ação não reconhecida" }),
