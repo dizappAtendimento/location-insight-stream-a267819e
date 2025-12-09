@@ -168,6 +168,7 @@ const Dashboard = () => {
             icon={FileText}
             trend={`+${stats.todayExtractions} hoje`}
             trendPositive={stats.todayExtractions > 0}
+            accentColor="primary"
             delay={100}
           />
           <StatCard
@@ -176,18 +177,21 @@ const Dashboard = () => {
             icon={Users}
             trend={`+${stats.todayLeads} hoje`}
             trendPositive={stats.todayLeads > 0}
+            accentColor="success"
             delay={150}
           />
           <StatCard
             title="Emails Encontrados"
             value={stats.totalEmails}
             icon={Mail}
+            accentColor="info"
             delay={200}
           />
           <StatCard
             title="Telefones Encontrados"
             value={stats.totalPhones}
             icon={Phone}
+            accentColor="success"
             delay={250}
           />
         </div>
