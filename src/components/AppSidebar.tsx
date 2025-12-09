@@ -1,5 +1,4 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Instagram,
@@ -8,12 +7,10 @@ import {
   History,
   Settings,
   LogOut,
-  Shield,
   Headphones,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import {
   Sidebar,
   SidebarContent,
@@ -46,24 +43,8 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const collapsed = state === 'collapsed';
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user?.id) return;
-      try {
-        const { data } = await supabase.functions.invoke('admin-api', {
-          body: { action: 'check-admin', userId: user.id }
-        });
-        setIsAdmin(data?.isAdmin || false);
-      } catch (err) {
-        console.error('Error checking admin:', err);
-      }
-    };
-    checkAdmin();
-  }, [user?.id]);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -182,29 +163,6 @@ export function AppSidebar() {
         )}
 
         <SidebarMenu className="gap-0.5">
-          {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton 
-                asChild
-                isActive={isActive('/admin')}
-                tooltip="Admin" 
-                className={cn(
-                  "h-9 rounded-lg mx-1 transition-all duration-200",
-                  isActive('/admin') 
-                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" 
-                    : "hover:bg-muted/30 text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Link to="/admin" className="flex items-center gap-2.5 px-3">
-                  <Shield className={cn(
-                    "w-4 h-4 transition-colors",
-                    isActive('/admin') ? "text-amber-400" : "text-amber-500/70"
-                  )} strokeWidth={2} />
-                  <span className="text-[13px] font-medium">Painel Admin</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
           <SidebarMenuItem>
             <SidebarMenuButton 
               asChild
