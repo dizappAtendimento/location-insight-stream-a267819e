@@ -291,7 +291,7 @@ const WhatsAppGroupsExtractor = () => {
 
     setIsExtractingParticipants(true);
     try {
-      const allParticipants: { groupName: string; telid: string; phone: string; isAdmin: boolean }[] = [];
+      const allParticipants: { groupName: string; participantName: string; telid: string; phone: string; isAdmin: boolean }[] = [];
       
       for (const groupId of selectedGroups) {
         const group = groups.find(g => g.id === groupId);
@@ -311,9 +311,11 @@ const WhatsAppGroupsExtractor = () => {
           // id = "275350370173177@lid", phoneNumber = "556799600629@s.whatsapp.net"
           const telid = p.id || '';
           const phone = (p.phoneNumber || '').replace('@s.whatsapp.net', '');
+          const participantName = p.pushName || p.name || p.notify || '';
           if (phone) {
             allParticipants.push({
               groupName: group.subject,
+              participantName,
               telid,
               phone,
               isAdmin: p.admin === 'admin' || p.admin === 'superadmin'
@@ -327,9 +329,10 @@ const WhatsAppGroupsExtractor = () => {
         return;
       }
 
-      // Download Excel com 4 colunas
+      // Download Excel com 5 colunas
       const worksheet = XLSX.utils.json_to_sheet(allParticipants.map(p => ({
         'Grupo': p.groupName,
+        'Nome': p.participantName,
         'Telid': p.telid,
         'telefone': p.phone,
         'Admin': p.isAdmin ? 'Sim' : 'Não'
