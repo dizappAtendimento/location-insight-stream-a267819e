@@ -9,8 +9,8 @@ import {
   Settings,
   LogOut,
   Shield,
-  MessageCircle,
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -38,7 +38,7 @@ const extractorItems = [
   { title: 'Instagram', url: '/instagram', icon: Instagram, color: 'group-hover:text-pink-400' },
   { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, color: 'group-hover:text-[#0A66C2]' },
   { title: 'Google Places', url: '/places', icon: MapPin, color: 'group-hover:text-emerald-400' },
-  { title: 'WhatsApp', url: '/grupos', icon: MessageCircle, color: 'group-hover:text-[#25D366]' },
+  { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, color: 'group-hover:text-[#25D366]' },
 ];
 
 export function AppSidebar() {
