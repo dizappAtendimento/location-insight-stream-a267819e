@@ -866,7 +866,7 @@ const WhatsAppGroupsExtractor = () => {
                 </div>
 
                 {/* Search History */}
-                {searchHistory.length > 0 && !isSearchingPublic && publicGroups.length === 0 && (
+                {searchHistory.length > 0 && !isSearchingPublic && (
                   <div className="border border-border/50 rounded-lg p-4 bg-secondary/10">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
