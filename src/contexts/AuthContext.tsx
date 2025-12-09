@@ -7,6 +7,7 @@ interface User {
   Email: string | null;
   telefone: string | null;
   status: boolean | null;
+  avatar_url: string | null;
 }
 
 interface AuthContextType {

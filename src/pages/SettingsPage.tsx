@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Palette, Bell, Database, Shield, Moon, Sun, Monitor, 
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
-  Pencil, X, Save, Info
+  Pencil, X, Save, Info, Camera, Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
@@ -61,6 +61,9 @@ const SettingsPage = () => {
     telefone: '',
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -68,6 +71,7 @@ const SettingsPage = () => {
         nome: user.nome || '',
         telefone: user.telefone || '',
       });
+      setAvatarUrl(user.avatar_url || null);
     }
   }, [user]);
 
@@ -125,6 +129,80 @@ const SettingsPage = () => {
       description: "Todos os dados locais foram removidos",
       variant: "destructive",
     });
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Por favor, selecione uma imagem",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "A imagem deve ter no máximo 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update user record
+      const { error: updateError } = await supabase
+        .from('SAAS_Usuarios')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      if (user) {
+        user.avatar_url = publicUrl;
+      }
+
+      toast({
+        title: "Foto atualizada",
+        description: "Sua foto de perfil foi alterada com sucesso",
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: "Erro ao enviar",
+        description: "Não foi possível atualizar a foto",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -247,17 +325,55 @@ const SettingsPage = () => {
           </CardHeader>
           <CardContent className="space-y-5">
             {/* Avatar and Name */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <div className="relative group">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl shadow-blue-500/20 transition-transform group-hover:scale-105">
-                  <span className="text-3xl font-bold text-white">
-                    {(isEditingProfile ? profileData.nome : user?.nome)?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                {avatarUrl ? (
+                  <div 
+                    className="w-24 h-24 rounded-2xl overflow-hidden shadow-xl shadow-blue-500/20 transition-transform group-hover:scale-105 cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <img 
+                      src={avatarUrl} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div 
+                    className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl shadow-blue-500/20 transition-transform group-hover:scale-105 cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <span className="text-4xl font-bold text-white">
+                      {(isEditingProfile ? profileData.nome : user?.nome)?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Camera overlay */}
+                <div 
+                  className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploadingAvatar ? (
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-white" />
+                  )}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-background flex items-center justify-center">
-                  <Check className="w-3 h-3 text-white" />
+                
+                {/* Status badge */}
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 border-2 border-background flex items-center justify-center shadow-lg">
+                  <Check className="w-3.5 h-3.5 text-white" />
                 </div>
               </div>
+              
               <div className="flex-1">
                 {isEditingProfile ? (
                   <div className="space-y-2">
@@ -266,7 +382,7 @@ const SettingsPage = () => {
                       value={profileData.nome}
                       onChange={(e) => setProfileData(prev => ({ ...prev, nome: e.target.value }))}
                       placeholder="Seu nome"
-                      className="h-10 bg-secondary/50 border-border/50"
+                      className="h-11 bg-secondary/50 border-border/50"
                     />
                   </div>
                 ) : (
@@ -278,6 +394,9 @@ const SettingsPage = () => {
                         user?.status ? "bg-emerald-500" : "bg-red-500"
                       )}></span>
                       {user?.status ? 'Conta ativa' : 'Conta inativa'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Clique na foto para alterar
                     </p>
                   </>
                 )}
