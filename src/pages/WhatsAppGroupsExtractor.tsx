@@ -53,12 +53,40 @@ const WhatsAppGroupsExtractor = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [pollingInstance, setPollingInstance] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.id) {
       loadUserInstances();
     }
   }, [user?.id]);
+
+  // Polling para verificar status da conexão
+  useEffect(() => {
+    if (!pollingInstance || !showQrDialog) return;
+
+    const checkConnectionStatus = async () => {
+      try {
+        const { data } = await supabase.functions.invoke('evolution-api', {
+          body: { action: 'get-instance', instanceName: pollingInstance }
+        });
+        
+        const state = data?.instance?.instance?.state || data?.instance?.state || data?.instance?.status;
+        if (state === 'open') {
+          toast({ title: "Conectado!", description: "WhatsApp conectado com sucesso" });
+          setShowQrDialog(false);
+          setQrCode('');
+          setPollingInstance(null);
+          await loadUserInstances();
+        }
+      } catch (error) {
+        console.error('Error checking connection status:', error);
+      }
+    };
+
+    const interval = setInterval(checkConnectionStatus, 3000);
+    return () => clearInterval(interval);
+  }, [pollingInstance, showQrDialog]);
 
   const loadUserInstances = async () => {
     if (!user?.id) return;
@@ -108,10 +136,10 @@ const WhatsAppGroupsExtractor = () => {
       setNewInstanceName('');
       await loadUserInstances();
       
-      // Get QR code for new instance
       if (data.qrcode?.base64) {
         setQrCode(data.qrcode.base64);
         setSelectedInstance(newInstanceName.trim());
+        setPollingInstance(newInstanceName.trim());
         setShowQrDialog(true);
       }
     } catch (error) {
@@ -132,6 +160,7 @@ const WhatsAppGroupsExtractor = () => {
       
       if (data.base64) {
         setQrCode(data.base64);
+        setPollingInstance(instanceName);
         setShowQrDialog(true);
       } else if (data.instance?.state === 'open') {
         toast({ title: "Conectado", description: "Instância já está conectada" });
@@ -412,10 +441,13 @@ const WhatsAppGroupsExtractor = () => {
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowQrDialog(false)}>Fechar</Button>
-            <Button onClick={() => { loadUserInstances(); setShowQrDialog(false); }} className="bg-[#25D366] hover:bg-[#20BD5A]">
-              Verificar Conexão
+          <div className="text-center text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 inline-block mr-2 animate-spin" />
+            Aguardando conexão...
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => { setShowQrDialog(false); setPollingInstance(null); }}>
+              Cancelar
             </Button>
           </div>
         </DialogContent>
