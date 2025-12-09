@@ -1,4 +1,4 @@
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   Instagram,
@@ -6,12 +6,7 @@ import {
   MapPin,
   History,
   Settings,
-  LogOut,
-  Headphones,
-  Moon,
-  Sun,
 } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -45,22 +40,11 @@ const extractorItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { state, setOpen } = useSidebar();
-  const { logout, user } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const collapsed = state === 'collapsed';
 
   const isActive = (path: string) => location.pathname === path;
-
-  const handleLogout = () => {
-    logout();
-    navigate('/auth');
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
 
   return (
     <Sidebar
@@ -154,26 +138,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              
-              {/* Theme Toggle */}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'} 
-                  className="group transition-all duration-200 h-10 rounded-lg mx-1 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
-                  onClick={toggleTheme}
-                >
-                  <div className="flex items-center gap-3 px-3">
-                    {theme === 'dark' ? (
-                      <Moon className="w-[18px] h-[18px]" strokeWidth={2} />
-                    ) : (
-                      <Sun className="w-[18px] h-[18px]" strokeWidth={2} />
-                    )}
-                    <span className="text-sm font-medium">
-                      {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
-                    </span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
 
               {/* Configurações */}
               <SidebarMenuItem>
@@ -192,20 +156,6 @@ export function AppSidebar() {
                     <Settings className="w-[18px] h-[18px]" strokeWidth={2} />
                     <span className="text-sm font-medium">Configurações</span>
                   </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              {/* Sair */}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip="Sair" 
-                  className="group transition-all duration-200 h-10 rounded-lg mx-1 hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
-                  onClick={handleLogout}
-                >
-                  <div className="flex items-center gap-3 px-3">
-                    <LogOut className="w-[18px] h-[18px]" strokeWidth={2} />
-                    <span className="text-sm font-medium">Sair</span>
-                  </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
