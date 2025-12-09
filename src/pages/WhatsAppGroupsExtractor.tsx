@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download } from 'lucide-react';
+import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download, ExternalLink, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -14,6 +14,7 @@ import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Custom WhatsApp icon component
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -36,6 +37,12 @@ interface GroupParticipant {
   admin?: string;
 }
 
+interface PublicGroup {
+  name: string;
+  link: string;
+  description: string;
+}
+
 interface UserInstance {
   id: number;
   instanceName: string;
@@ -51,6 +58,12 @@ const WhatsAppGroupsExtractor = () => {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [isExtractingParticipants, setIsExtractingParticipants] = useState(false);
+  
+  // Public groups search states
+  const [activeTab, setActiveTab] = useState('my-groups');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [publicGroups, setPublicGroups] = useState<PublicGroup[]>([]);
+  const [isSearchingPublic, setIsSearchingPublic] = useState(false);
   
   // Instance states
   const [instances, setInstances] = useState<UserInstance[]>([]);
@@ -369,6 +382,60 @@ const WhatsAppGroupsExtractor = () => {
     }
   };
 
+  const searchPublicGroups = async () => {
+    if (!searchTerm.trim()) {
+      toast({ title: "Erro", description: "Digite um tema para buscar", variant: "destructive" });
+      return;
+    }
+    
+    setIsSearchingPublic(true);
+    setPublicGroups([]);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('search-whatsapp-groups', {
+        body: { segment: searchTerm, maxResults: 50 }
+      });
+      
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
+      
+      setPublicGroups(data.groups || []);
+      
+      if (data.groups?.length === 0) {
+        toast({ title: "Nenhum grupo encontrado", description: "Tente outro termo de busca" });
+      } else {
+        toast({ title: "Busca concluída", description: `${data.groups?.length || 0} grupos encontrados` });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar grupos", variant: "destructive" });
+    } finally {
+      setIsSearchingPublic(false);
+    }
+  };
+
+  const exportPublicGroups = () => {
+    if (publicGroups.length === 0) return;
+    
+    const worksheet = XLSX.utils.json_to_sheet(publicGroups.map(g => ({
+      'Nome': g.name,
+      'Link': g.link,
+      'Descrição': g.description
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Grupos');
+    XLSX.writeFile(workbook, `grupos_whatsapp_${searchTerm}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    addRecord({
+      type: 'whatsapp-groups',
+      segment: `Busca: ${searchTerm}`,
+      totalResults: publicGroups.length,
+      emailsFound: 0,
+      phonesFound: 0,
+    });
+    
+    toast({ title: "Exportado", description: `${publicGroups.length} grupos exportados` });
+  };
+
   const connectedInstances = instances.filter(i => i.status === 'connected');
 
   return (
@@ -382,12 +449,25 @@ const WhatsAppGroupsExtractor = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Grupos de WhatsApp</h1>
-              <p className="text-muted-foreground text-sm">Extraia grupos da sua conta via Evolution API</p>
+              <p className="text-muted-foreground text-sm">Extraia grupos ou busque novos para entrar</p>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+            <TabsTrigger value="my-groups" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Meus Grupos
+            </TabsTrigger>
+            <TabsTrigger value="search-groups" className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              Buscar Grupos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="my-groups">
+            <div className="grid gap-6 lg:grid-cols-2">
           {/* Instances Card */}
           <Card className="opacity-0 animate-fade-in-up overflow-hidden" style={{ animationDelay: '100ms' }}>
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#25D366] to-[#128C7E]" />
@@ -577,7 +657,89 @@ const WhatsAppGroupsExtractor = () => {
               )}
             </CardContent>
           </Card>
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="search-groups">
+            <Card className="opacity-0 animate-fade-in-up overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#25D366] to-[#128C7E]" />
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-[#25D366]" />
+                  Buscar Grupos Públicos
+                </CardTitle>
+                <CardDescription>Encontre grupos de WhatsApp por tema para entrar</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Ex: marketing digital, empreendedorismo, vendas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchPublicGroups()}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={searchPublicGroups} 
+                    disabled={isSearchingPublic}
+                    className="bg-[#25D366] hover:bg-[#20BD5A]"
+                  >
+                    {isSearchingPublic ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {publicGroups.length > 0 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">{publicGroups.length} grupos encontrados</p>
+                    <Button variant="outline" size="sm" onClick={exportPublicGroups}>
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Exportar Excel
+                    </Button>
+                  </div>
+                )}
+
+                {isSearchingPublic ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#25D366]" />
+                  </div>
+                ) : publicGroups.length > 0 ? (
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {publicGroups.map((group, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50 hover:border-[#25D366]/30 transition-all"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{group.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{group.description}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-[#25D366] hover:text-[#25D366] hover:bg-[#25D366]/10"
+                          onClick={() => window.open(group.link, '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          Entrar
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Globe className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="text-muted-foreground">Busque grupos por tema</p>
+                    <p className="text-sm text-muted-foreground/70">Ex: vendas, marketing, finanças</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* QR Code Dialog */}
