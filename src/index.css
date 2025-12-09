@@ -4,6 +4,58 @@
 
 @layer base {
   :root {
+    /* Light theme as base */
+    --background: 0 0% 98%;
+    --foreground: 224 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 47% 11%;
+    --primary: 252 85% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 95%;
+    --secondary-foreground: 224 47% 11%;
+    --muted: 220 15% 95%;
+    --muted-foreground: 215 15% 45%;
+    --accent: 220 15% 95%;
+    --accent-foreground: 224 47% 11%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 252 85% 55%;
+    --radius: 0.75rem;
+    
+    /* Platform colors - Light */
+    --instagram: 328 85% 55%;
+    --instagram-glow: 328 100% 65%;
+    --linkedin: 201 100% 38%;
+    --linkedin-glow: 201 100% 50%;
+    --whatsapp: 142 70% 40%;
+    --whatsapp-glow: 142 100% 45%;
+    --places: 150 80% 40%;
+    --places-glow: 150 100% 50%;
+    
+    /* Sidebar - Light */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 224 47% 11%;
+    --sidebar-primary: 252 85% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 95%;
+    --sidebar-accent-foreground: 224 47% 11%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 252 85% 55%;
+
+    /* Success / Info colors - Light */
+    --success: 142 70% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 201 90% 45%;
+    --info-foreground: 0 0% 100%;
+  }
+
+  .dark {
     /* Dark theme - premium refined color palette */
     --background: 225 25% 6%;
     --foreground: 210 20% 96%;
@@ -33,9 +85,7 @@
     --input: 225 18% 12%;
     --ring: 252 85% 60%;
 
-    --radius: 0.75rem;
-
-    /* Platform colors */
+    /* Platform colors - Dark */
     --instagram: 328 85% 60%;
     --instagram-glow: 328 100% 70%;
     --linkedin: 201 100% 40%;
@@ -45,7 +95,7 @@
     --places: 150 80% 45%;
     --places-glow: 150 100% 55%;
 
-    /* Sidebar */
+    /* Sidebar - Dark */
     --sidebar-background: 225 28% 7%;
     --sidebar-foreground: 210 15% 85%;
     --sidebar-primary: 252 85% 60%;
@@ -55,47 +105,13 @@
     --sidebar-border: 225 18% 12%;
     --sidebar-ring: 252 85% 60%;
 
-    /* Success / Info colors */
+    /* Success / Info colors - Dark */
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
     --info: 201 90% 50%;
     --info-foreground: 0 0% 100%;
-  }
-
-  .light {
-    --background: 0 0% 98%;
-    --foreground: 224 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 47% 11%;
-    --primary: 252 85% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 95%;
-    --secondary-foreground: 224 47% 11%;
-    --muted: 220 15% 95%;
-    --muted-foreground: 215 15% 45%;
-    --accent: 220 15% 95%;
-    --accent-foreground: 224 47% 11%;
-    --destructive: 0 85% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 15% 90%;
-    --input: 220 15% 90%;
-    --ring: 252 85% 55%;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 224 47% 11%;
-    --sidebar-primary: 252 85% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 95%;
-    --sidebar-accent-foreground: 224 47% 11%;
-    --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 252 85% 55%;
-    --instagram: 328 85% 55%;
-    --linkedin: 201 100% 38%;
-    --whatsapp: 142 70% 40%;
-    --places: 150 80% 40%;
   }
 }
 
