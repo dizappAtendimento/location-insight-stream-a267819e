@@ -98,8 +98,11 @@ serve(async (req) => {
           headers,
         });
         result = await response.json();
+        const instanceData = Array.isArray(result) ? result[0] : result;
+        const connectionState = instanceData?.instance?.state || instanceData?.state || instanceData?.instance?.status || 'unknown';
+        console.log(`[Evolution API] Instance ${instanceName} state: ${connectionState}`, JSON.stringify(instanceData));
         return new Response(
-          JSON.stringify({ instance: Array.isArray(result) ? result[0] : result }),
+          JSON.stringify({ instance: instanceData, connectionState }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
