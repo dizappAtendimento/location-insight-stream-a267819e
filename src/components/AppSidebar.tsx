@@ -8,7 +8,10 @@ import {
   Settings,
   LogOut,
   Headphones,
+  Moon,
+  Sun,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -42,8 +45,9 @@ const extractorItems = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { state } = useSidebar();
+  const { state, setOpen } = useSidebar();
   const { logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const collapsed = state === 'collapsed';
 
   const isActive = (path: string) => location.pathname === path;
@@ -53,10 +57,16 @@ export function AppSidebar() {
     navigate('/auth');
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   return (
     <Sidebar
-      className="dark border-r border-white/5 bg-gradient-to-b from-[hsl(225,28%,7%)] to-[hsl(225,25%,6%)]"
+      className="border-r border-border/10 bg-gradient-to-b from-sidebar to-sidebar/95"
       collapsible="icon"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
     >
       <SidebarHeader className="p-5 border-b border-border/20">
         <Link to="/" className="flex items-center justify-center transition-all duration-300 hover:opacity-90">
@@ -163,6 +173,26 @@ export function AppSidebar() {
         )}
 
         <SidebarMenu className="gap-0.5">
+          {/* Theme Toggle */}
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              tooltip={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'} 
+              className="h-9 rounded-lg mx-1 transition-all duration-200 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
+              onClick={toggleTheme}
+            >
+              <div className="flex items-center gap-2.5 px-3">
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4" strokeWidth={2} />
+                ) : (
+                  <Moon className="w-4 h-4" strokeWidth={2} />
+                )}
+                <span className="text-[13px] font-medium">
+                  {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+                </span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton 
               asChild
