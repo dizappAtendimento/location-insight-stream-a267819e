@@ -63,7 +63,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="border-r border-border/10 bg-gradient-to-b from-sidebar to-sidebar/95"
+      className="dark border-r border-white/5 bg-gradient-to-b from-[hsl(225,28%,7%)] to-[hsl(225,25%,6%)]"
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
