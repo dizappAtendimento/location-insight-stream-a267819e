@@ -79,6 +79,10 @@ const WhatsAppGroupsExtractor = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [pollingInstance, setPollingInstance] = useState<string | null>(null);
 
+  // Filters for extracted groups
+  const [groupFilter, setGroupFilter] = useState('');
+  const [groupTypeFilter, setGroupTypeFilter] = useState<'all' | 'group' | 'community'>('all');
+
   useEffect(() => {
     if (user?.id) {
       loadUserInstances();
@@ -647,8 +651,39 @@ const WhatsAppGroupsExtractor = () => {
             <CardContent>
               {groups.length > 0 ? (
                 <>
+                  {/* Search and Filter */}
+                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar grupo..."
+                        value={groupFilter}
+                        onChange={(e) => setGroupFilter(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <Select value={groupTypeFilter} onValueChange={(v) => setGroupTypeFilter(v as 'all' | 'group' | 'community')}>
+                      <SelectTrigger className="w-full sm:w-40">
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="group">Grupos</SelectItem>
+                        <SelectItem value="community">Comunidades</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2 mb-4">
-                    {groups.map((group, i) => (
+                    {groups
+                      .filter(group => {
+                        const matchesSearch = groupFilter === '' || group.subject.toLowerCase().includes(groupFilter.toLowerCase());
+                        const isCommunity = group.id?.includes('@g.us') === false || group.size > 256;
+                        const matchesType = groupTypeFilter === 'all' || 
+                          (groupTypeFilter === 'community' && isCommunity) ||
+                          (groupTypeFilter === 'group' && !isCommunity);
+                        return matchesSearch && matchesType;
+                      })
+                      .map((group, i) => (
                       <div 
                         key={group.id} 
                         onClick={() => toggleGroupSelection(group.id)}
