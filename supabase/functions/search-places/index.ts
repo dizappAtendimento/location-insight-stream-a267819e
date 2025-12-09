@@ -56,48 +56,108 @@ function generateSearchVariations(query: string): string[] {
   return [query];
 }
 
-function detectLocationContext(location: string): { type: 'city' | 'state' | 'country', cities: string[], stateName?: string } {
-  const normalized = location.toLowerCase().trim();
+// Countries with major cities
+const COUNTRIES: Record<string, string[]> = {
+  'eua': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville', 'Fort Worth', 'Columbus', 'Charlotte', 'San Francisco', 'Indianapolis', 'Seattle', 'Denver', 'Washington DC', 'Boston', 'El Paso', 'Nashville', 'Detroit', 'Oklahoma City', 'Portland', 'Las Vegas', 'Memphis', 'Louisville', 'Baltimore', 'Milwaukee', 'Albuquerque', 'Tucson', 'Fresno', 'Mesa', 'Sacramento', 'Atlanta', 'Miami', 'Orlando', 'Tampa'],
+  'usa': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville', 'Fort Worth', 'Columbus', 'Charlotte', 'San Francisco', 'Indianapolis', 'Seattle', 'Denver', 'Washington DC', 'Boston', 'El Paso', 'Nashville', 'Detroit', 'Oklahoma City', 'Portland', 'Las Vegas', 'Memphis', 'Louisville', 'Baltimore', 'Milwaukee', 'Albuquerque', 'Tucson', 'Fresno', 'Mesa', 'Sacramento', 'Atlanta', 'Miami', 'Orlando', 'Tampa'],
+  'estados unidos': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville', 'Fort Worth', 'Columbus', 'Charlotte', 'San Francisco', 'Indianapolis', 'Seattle', 'Denver', 'Washington DC', 'Boston', 'El Paso', 'Nashville', 'Detroit', 'Oklahoma City', 'Portland', 'Las Vegas', 'Memphis', 'Louisville', 'Baltimore', 'Milwaukee', 'Albuquerque', 'Tucson', 'Fresno', 'Mesa', 'Sacramento', 'Atlanta', 'Miami', 'Orlando', 'Tampa'],
+  'portugal': ['Lisboa', 'Porto', 'Vila Nova de Gaia', 'Amadora', 'Braga', 'Funchal', 'Coimbra', 'Setúbal', 'Almada', 'Agualva-Cacém', 'Queluz', 'Aveiro', 'Évora', 'Faro', 'Viseu', 'Leiria', 'Guimarães', 'Barreiro', 'Maia', 'Matosinhos'],
+  'argentina': ['Buenos Aires', 'Córdoba', 'Rosario', 'Mendoza', 'San Miguel de Tucumán', 'La Plata', 'Mar del Plata', 'Salta', 'Santa Fe', 'San Juan', 'Resistencia', 'Santiago del Estero', 'Corrientes', 'Bahía Blanca', 'Posadas', 'San Salvador de Jujuy', 'Paraná', 'Neuquén', 'Formosa', 'San Luis'],
+  'mexico': ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'León', 'Juárez', 'Zapopan', 'Mérida', 'San Luis Potosí', 'Aguascalientes', 'Hermosillo', 'Saltillo', 'Mexicali', 'Culiacán', 'Querétaro', 'Morelia', 'Cancún', 'Acapulco', 'Veracruz'],
+  'espanha': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia', 'Palma', 'Las Palmas', 'Bilbao', 'Alicante', 'Córdoba', 'Valladolid', 'Vigo', 'Gijón', 'Granada', 'Hospitalet', 'Vitoria', 'La Coruña', 'Elche'],
+  'espana': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia', 'Palma', 'Las Palmas', 'Bilbao', 'Alicante', 'Córdoba', 'Valladolid', 'Vigo', 'Gijón', 'Granada', 'Hospitalet', 'Vitoria', 'La Coruña', 'Elche'],
+  'italia': ['Roma', 'Milão', 'Nápoles', 'Turim', 'Palermo', 'Génova', 'Bolonha', 'Florença', 'Bari', 'Catânia', 'Veneza', 'Verona', 'Messina', 'Pádua', 'Trieste', 'Brescia', 'Parma', 'Taranto', 'Modena', 'Reggio Calabria'],
+  'alemanha': ['Berlim', 'Hamburgo', 'Munique', 'Colônia', 'Frankfurt', 'Stuttgart', 'Düsseldorf', 'Leipzig', 'Dortmund', 'Essen', 'Bremen', 'Dresden', 'Hanover', 'Nuremberg', 'Duisburg', 'Bochum', 'Wuppertal', 'Bielefeld', 'Bonn', 'Münster'],
+  'franca': ['Paris', 'Marselha', 'Lyon', 'Toulouse', 'Nice', 'Nantes', 'Estrasburgo', 'Montpellier', 'Bordeaux', 'Lille', 'Rennes', 'Reims', 'Le Havre', 'Saint-Étienne', 'Toulon', 'Grenoble', 'Dijon', 'Angers', 'Nîmes', 'Villeurbanne'],
+  'reino unido': ['Londres', 'Birmingham', 'Leeds', 'Glasgow', 'Sheffield', 'Bradford', 'Manchester', 'Edinburgh', 'Liverpool', 'Bristol', 'Cardiff', 'Belfast', 'Leicester', 'Wakefield', 'Coventry', 'Nottingham', 'Newcastle', 'Sunderland', 'Brighton', 'Plymouth'],
+  'uk': ['London', 'Birmingham', 'Leeds', 'Glasgow', 'Sheffield', 'Bradford', 'Manchester', 'Edinburgh', 'Liverpool', 'Bristol', 'Cardiff', 'Belfast', 'Leicester', 'Wakefield', 'Coventry', 'Nottingham', 'Newcastle', 'Sunderland', 'Brighton', 'Plymouth'],
+  'canada': ['Toronto', 'Montreal', 'Vancouver', 'Calgary', 'Edmonton', 'Ottawa', 'Winnipeg', 'Quebec City', 'Hamilton', 'Kitchener', 'London', 'Victoria', 'Halifax', 'Oshawa', 'Windsor', 'Saskatoon', 'Regina', 'St. Johns', 'Barrie', 'Kelowna'],
+  'australia': ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Gold Coast', 'Canberra', 'Newcastle', 'Wollongong', 'Sunshine Coast', 'Hobart', 'Geelong', 'Townsville', 'Cairns', 'Darwin', 'Toowoomba', 'Ballarat', 'Bendigo', 'Launceston', 'Mackay'],
+  'japao': ['Tóquio', 'Yokohama', 'Osaka', 'Nagoya', 'Sapporo', 'Kobe', 'Fukuoka', 'Kawasaki', 'Kyoto', 'Saitama', 'Hiroshima', 'Sendai', 'Chiba', 'Kitakyushu', 'Sakai', 'Niigata', 'Hamamatsu', 'Shizuoka', 'Okayama', 'Kumamoto'],
+  'china': ['Shanghai', 'Beijing', 'Guangzhou', 'Shenzhen', 'Tianjin', 'Wuhan', 'Chengdu', 'Chongqing', 'Nanjing', 'Xian', 'Hangzhou', 'Shenyang', 'Harbin', 'Suzhou', 'Qingdao', 'Dalian', 'Jinan', 'Zhengzhou', 'Changsha', 'Dongguan'],
+  'india': ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Ahmedabad', 'Pune', 'Surat', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Patna', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Vadodara', 'Firozabad'],
+};
+
+// State name mappings for better detection
+const STATE_NAME_MAPPINGS: Record<string, string> = {
+  'goiás': 'go', 'goias': 'go',
+  'são paulo': 'sp', 'sao paulo': 'sp',
+  'rio de janeiro': 'rj',
+  'minas gerais': 'mg',
+  'bahia': 'ba',
+  'paraná': 'pr', 'parana': 'pr',
+  'rio grande do sul': 'rs',
+  'santa catarina': 'sc',
+  'pernambuco': 'pe',
+  'ceará': 'ce', 'ceara': 'ce',
+  'pará': 'pa', 'para': 'pa',
+  'amazonas': 'am',
+  'maranhão': 'ma', 'maranhao': 'ma',
+  'paraíba': 'pb', 'paraiba': 'pb',
+  'mato grosso': 'mt',
+  'mato grosso do sul': 'ms',
+  'piauí': 'pi', 'piaui': 'pi',
+  'rio grande do norte': 'rn',
+  'alagoas': 'al',
+  'sergipe': 'se',
+  'espírito santo': 'es', 'espirito santo': 'es',
+  'rondônia': 'ro', 'rondonia': 'ro',
+  'tocantins': 'to',
+  'acre': 'ac',
+  'amapá': 'ap', 'amapa': 'ap',
+  'roraima': 'rr',
+  'distrito federal': 'df', 'brasília': 'df', 'brasilia': 'df',
+};
+
+function detectLocationContext(location: string): { type: 'city' | 'state' | 'country', cities: string[], locationName: string } {
+  const normalized = location.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const originalNormalized = location.toLowerCase().trim();
   
-  for (const [stateCode, cities] of Object.entries(BR_STATES)) {
-    if (normalized === stateCode || 
-        normalized.includes(stateCode) ||
-        (stateCode === 'goias' && normalized.includes('goiás')) ||
-        (stateCode === 'sp' && (normalized === 'são paulo' || normalized === 'sao paulo')) ||
-        (stateCode === 'rj' && normalized === 'rio de janeiro') ||
-        (stateCode === 'mg' && normalized === 'minas gerais') ||
-        (stateCode === 'ba' && normalized === 'bahia') ||
-        (stateCode === 'pr' && normalized === 'paraná') ||
-        (stateCode === 'rs' && normalized === 'rio grande do sul') ||
-        (stateCode === 'sc' && normalized === 'santa catarina') ||
-        (stateCode === 'pe' && normalized === 'pernambuco') ||
-        (stateCode === 'ce' && normalized === 'ceará') ||
-        (stateCode === 'pa' && normalized === 'pará') ||
-        (stateCode === 'am' && normalized === 'amazonas') ||
-        (stateCode === 'ma' && normalized === 'maranhão') ||
-        (stateCode === 'pb' && normalized === 'paraíba') ||
-        (stateCode === 'mt' && normalized === 'mato grosso') ||
-        (stateCode === 'ms' && normalized === 'mato grosso do sul') ||
-        (stateCode === 'pi' && normalized === 'piauí') ||
-        (stateCode === 'rn' && normalized === 'rio grande do norte') ||
-        (stateCode === 'al' && normalized === 'alagoas') ||
-        (stateCode === 'se' && normalized === 'sergipe') ||
-        (stateCode === 'es' && normalized === 'espírito santo') ||
-        (stateCode === 'ro' && normalized === 'rondônia') ||
-        (stateCode === 'to' && normalized === 'tocantins') ||
-        (stateCode === 'ac' && normalized === 'acre') ||
-        (stateCode === 'ap' && normalized === 'amapá') ||
-        (stateCode === 'rr' && normalized === 'roraima') ||
-        (stateCode === 'df' && (normalized === 'distrito federal' || normalized === 'brasília' || normalized === 'brasilia'))) {
-      return { type: 'state', cities: cities.map(c => `${c}, ${stateCode.toUpperCase()}`), stateName: stateCode.toUpperCase() };
+  // Check if it's a country
+  for (const [countryKey, cities] of Object.entries(COUNTRIES)) {
+    const countryNorm = countryKey.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (normalized === countryNorm || normalized.includes(countryNorm)) {
+      console.log(`Detected country: ${countryKey} with ${cities.length} cities`);
+      return { type: 'country', cities: cities.map(c => `${c}, ${countryKey}`), locationName: countryKey };
     }
   }
   
-  if (normalized.includes('brasil') || normalized.includes('brazil')) {
-    return { type: 'country', cities: ALL_BR_CITIES.map(c => `${c}, Brasil`) };
+  // Check if it's Brazil (special handling)
+  if (normalized.includes('brasil') || normalized.includes('brazil') || normalized === 'br') {
+    console.log('Detected country: Brasil with all cities');
+    return { type: 'country', cities: ALL_BR_CITIES.map(c => `${c}, Brasil`), locationName: 'Brasil' };
   }
   
-  return { type: 'city', cities: [location] };
+  // Check if it's a Brazilian state by full name
+  for (const [stateName, stateCode] of Object.entries(STATE_NAME_MAPPINGS)) {
+    const stateNorm = stateName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (normalized === stateNorm || normalized.includes(stateNorm)) {
+      const cities = BR_STATES[stateCode] || [];
+      console.log(`Detected state by name: ${stateName} (${stateCode}) with ${cities.length} cities`);
+      return { type: 'state', cities: cities.map(c => `${c}, ${stateCode.toUpperCase()}`), locationName: stateCode.toUpperCase() };
+    }
+  }
+  
+  // Check if it's a Brazilian state by code
+  for (const [stateCode, cities] of Object.entries(BR_STATES)) {
+    if (normalized === stateCode || normalized === stateCode.toLowerCase()) {
+      console.log(`Detected state by code: ${stateCode} with ${cities.length} cities`);
+      return { type: 'state', cities: cities.map(c => `${c}, ${stateCode.toUpperCase()}`), locationName: stateCode.toUpperCase() };
+    }
+  }
+  
+  // Check if it matches any city directly (single city search)
+  const allCitiesLower = ALL_BR_CITIES.map(c => c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+  const cityIndex = allCitiesLower.findIndex(c => c === normalized || normalized.includes(c) || c.includes(normalized));
+  
+  if (cityIndex !== -1) {
+    console.log(`Detected city: ${ALL_BR_CITIES[cityIndex]}`);
+    return { type: 'city', cities: [location], locationName: location };
+  }
+  
+  // Default: treat as a specific location (city)
+  console.log(`Treating as specific location: ${location}`);
+  return { type: 'city', cities: [location], locationName: location };
 }
 
 async function fetchPlaces(apiKey: string, searchQuery: string, page: number = 1): Promise<any> {
