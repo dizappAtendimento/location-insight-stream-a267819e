@@ -104,7 +104,7 @@ serve(async (req) => {
         const { data: users, error } = await supabase
           .from('SAAS_Usuarios')
           .select(`
-            id, nome, Email, telefone, status, "Status Ex", dataValidade, "dataValidade_extrator", 
+            id, nome, Email, telefone, senha, status, "Status Ex", dataValidade, "dataValidade_extrator", 
             plano, plano_extrator, created_at
           `)
           .order('created_at', { ascending: false });
