@@ -125,6 +125,15 @@ const WhatsAppGroupsExtractor = () => {
     }
   };
 
+  const generateRandomSuffix = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
   const createInstance = async () => {
     if (!newInstanceName.trim() || !user?.id) {
       toast({ title: "Erro", description: "Digite um nome para a instância", variant: "destructive" });
@@ -132,10 +141,13 @@ const WhatsAppGroupsExtractor = () => {
     }
     setIsConnecting(true);
     try {
+      const suffix = generateRandomSuffix();
+      const instanceNameWithSuffix = `${newInstanceName.trim()}-${suffix}`;
+      
       const { data, error } = await supabase.functions.invoke('evolution-api', {
         body: { 
           action: 'create-instance', 
-          instanceName: newInstanceName.trim(),
+          instanceName: instanceNameWithSuffix,
           userId: user.id,
           data: { displayName: newInstanceName.trim() }
         }
@@ -143,15 +155,15 @@ const WhatsAppGroupsExtractor = () => {
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);
       
-      toast({ title: "Sucesso", description: "Instância criada com sucesso" });
+      toast({ title: "Sucesso", description: `Instância ${instanceNameWithSuffix} criada` });
       setShowCreateDialog(false);
       setNewInstanceName('');
       await loadUserInstances();
       
       if (data.qrcode?.base64) {
         setQrCode(data.qrcode.base64);
-        setSelectedInstance(newInstanceName.trim());
-        setPollingInstance(newInstanceName.trim());
+        setSelectedInstance(instanceNameWithSuffix);
+        setPollingInstance(instanceNameWithSuffix);
         setShowQrDialog(true);
       }
     } catch (error) {
