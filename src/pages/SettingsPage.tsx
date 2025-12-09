@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Settings, Palette, Bell, Database, Shield, Moon, Sun, Monitor, Check, Trash2, Download, ChevronRight } from 'lucide-react';
+import { Settings, Palette, Bell, Database, Shield, Moon, Sun, Monitor, Check, Trash2, Download, ChevronRight, User, Mail, Phone, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useTheme } from 'next-themes';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -134,6 +136,63 @@ const SettingsPage = () => {
             )}
           </div>
         </div>
+
+        {/* User Profile */}
+        <Card className="opacity-0 animate-fade-in-up overflow-hidden relative" style={{ animationDelay: '50ms' }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-500/50" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5 text-blue-500" />
+              Meu Perfil
+            </CardTitle>
+            <CardDescription>Informações da sua conta</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+                <span className="text-2xl font-bold text-white">
+                  {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-foreground">{user?.nome || 'Usuário'}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {user?.status ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Conta ativa
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                      Conta inativa
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="text-sm font-medium text-foreground">{user?.Email || '-'}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+                <Phone className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Telefone</p>
+                  <p className="text-sm font-medium text-foreground">{user?.telefone || '-'}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Appearance */}
         <Card className="opacity-0 animate-fade-in-up overflow-hidden relative" style={{ animationDelay: '100ms' }}>
