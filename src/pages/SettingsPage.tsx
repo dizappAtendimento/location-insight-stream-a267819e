@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Palette, Bell, Database, Shield, Moon, Sun, Monitor, Check, Trash2, Download, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ const ACCENT_COLORS = [
 const SettingsPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [hasChanges, setHasChanges] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -151,9 +153,9 @@ const SettingsPage = () => {
                 {themeOptions.map((option) => (
                   <Button
                     key={option.value}
-                    variant={settings.theme === option.value ? 'default' : 'outline'}
+                    variant={theme === option.value ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => updateSetting('theme', option.value as AppSettings['theme'])}
+                    onClick={() => setTheme(option.value)}
                     className="flex-1"
                   >
                     <option.icon className="w-4 h-4 mr-2" />
