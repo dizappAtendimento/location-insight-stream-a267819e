@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import InstagramExtractor from "./pages/InstagramExtractor";
 import LinkedInExtractor from "./pages/LinkedInExtractor";
+import WhatsAppGroupsExtractor from "./pages/WhatsAppGroupsExtractor";
 import Dashboard from "./pages/Dashboard";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/places" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/instagram" element={<ProtectedRoute><InstagramExtractor /></ProtectedRoute>} />
             <Route path="/linkedin" element={<ProtectedRoute><LinkedInExtractor /></ProtectedRoute>} />
+            <Route path="/grupos" element={<ProtectedRoute><WhatsAppGroupsExtractor /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />

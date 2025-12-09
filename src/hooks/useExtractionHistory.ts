@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export interface ExtractionRecord {
   id: string;
-  type: 'instagram' | 'linkedin' | 'places';
+  type: 'instagram' | 'linkedin' | 'places' | 'whatsapp-groups';
   segment: string;
   location?: string;
   totalResults: number;
