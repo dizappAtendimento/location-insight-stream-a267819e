@@ -147,10 +147,14 @@ const SettingsPage = () => {
         .from('avatars')
         .getPublicUrl(filePath);
 
-      const { error: updateError } = await supabase
-        .from('SAAS_Usuarios')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
+      // Use edge function to update profile (bypasses RLS)
+      const { error: updateError } = await supabase.functions.invoke('admin-api', {
+        body: { 
+          action: 'update-profile', 
+          userId: user.id,
+          userData: { avatar_url: publicUrl }
+        }
+      });
 
       if (updateError) throw updateError;
 
@@ -183,13 +187,17 @@ const SettingsPage = () => {
     
     setIsSavingProfile(true);
     try {
-      const { error } = await supabase
-        .from('SAAS_Usuarios')
-        .update({
-          nome: profileData.nome.trim(),
-          telefone: profileData.telefone.trim(),
-        })
-        .eq('id', user.id);
+      // Use edge function to update profile (bypasses RLS)
+      const { error } = await supabase.functions.invoke('admin-api', {
+        body: { 
+          action: 'update-profile', 
+          userId: user.id,
+          userData: {
+            nome: profileData.nome.trim(),
+            telefone: profileData.telefone.trim(),
+          }
+        }
+      });
 
       if (error) throw error;
 
