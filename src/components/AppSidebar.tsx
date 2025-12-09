@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   Shield,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +38,7 @@ const extractorItems = [
   { title: 'Instagram', url: '/instagram', icon: Instagram, color: 'group-hover:text-pink-400' },
   { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, color: 'group-hover:text-[#0A66C2]' },
   { title: 'Google Places', url: '/places', icon: MapPin, color: 'group-hover:text-emerald-400' },
+  { title: 'Grupos de WhatsApp', url: '/whatsapp-groups', icon: MessageCircle, color: 'group-hover:text-[#25D366]' },
 ];
 
 export function AppSidebar() {

@@ -702,11 +702,11 @@ export type Database = {
       create_disparo: { Args: { p_payload: Json }; Returns: number }
       create_disparo_grupo: { Args: { p_payload: Json }; Returns: number }
       delete_disparo:
+        | { Args: { p_disparo_id: number }; Returns: undefined }
         | {
             Args: { p_disparo_id: number; p_user_id: string }
             Returns: undefined
           }
-        | { Args: { p_disparo_id: number }; Returns: undefined }
       f_next_valid_time: {
         Args: { p_days: number[]; p_end: string; p_start: string; p_ts: string }
         Returns: string
