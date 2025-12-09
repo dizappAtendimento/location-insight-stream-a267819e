@@ -58,6 +58,15 @@ const LinkedInExtractor = () => {
         totalResults: profiles.length,
         emailsFound: profiles.filter((p: LinkedInLead) => p.email).length,
         phonesFound: profiles.filter((p: LinkedInLead) => p.phone).length,
+        results: profiles.map((p: LinkedInLead) => ({
+          name: p.name,
+          title: p.headline,
+          company: p.company,
+          location: p.location,
+          email: p.email || undefined,
+          phone: p.phone || undefined,
+          link: p.profileLink,
+        })),
       });
       
       toast({ title: "Extração concluída", description: `${profiles.length} perfis encontrados` });
