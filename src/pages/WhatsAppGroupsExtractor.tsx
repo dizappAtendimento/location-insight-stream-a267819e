@@ -780,6 +780,22 @@ const WhatsAppGroupsExtractor = () => {
                   </Button>
                 </div>
 
+                {/* Quick Search Tags */}
+                <div className="flex flex-wrap gap-2">
+                  {['Vendas', 'Marketing Digital', 'Empreendedorismo', 'Afiliados', 'Dropshipping', 'Finanças', 'Investimentos', 'Imobiliário', 'Ecommerce', 'Network'].map((tag) => (
+                    <Badge 
+                      key={tag}
+                      variant="outline" 
+                      className="cursor-pointer hover:bg-[#25D366]/10 hover:border-[#25D366]/50 hover:text-[#25D366] transition-colors"
+                      onClick={() => {
+                        setSearchTerm(tag);
+                      }}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+
                 {/* Progress Bar */}
                 {isSearchingPublic && (
                   <div className="space-y-2 py-4">
