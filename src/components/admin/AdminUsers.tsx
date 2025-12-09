@@ -30,15 +30,21 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit2, UserX, UserCheck, RefreshCw, UserPlus, Calendar, Zap, Database } from 'lucide-react';
+import { Search, Edit2, UserX, UserCheck, RefreshCw, UserPlus, Calendar, Zap, Database, Eye, EyeOff, Copy } from 'lucide-react';
 import { format, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface User {
   id: string;
   nome: string | null;
   Email: string | null;
   telefone: string | null;
+  senha: string | null;
   status: boolean | null;
   status_ex: boolean | null;
   plano_nome: string | null;
@@ -517,6 +523,32 @@ export function AdminUsers() {
                   <TableCell className="py-2.5">
                     <p className="font-medium">{user.nome || 'Sem nome'}</p>
                     <p className="text-xs text-muted-foreground">{user.Email}</p>
+                    {user.senha && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 mt-0.5">
+                            <Eye className="w-3 h-3" />
+                            Ver senha
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-2" align="start">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-mono">{user.senha}</span>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6"
+                              onClick={() => {
+                                navigator.clipboard.writeText(user.senha || '');
+                                toast({ title: 'Copiado!', description: 'Senha copiada para a área de transferência' });
+                              }}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
                   </TableCell>
                   
                   {/* Disparador */}
