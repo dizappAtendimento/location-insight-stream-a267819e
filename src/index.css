@@ -4,16 +4,16 @@
 
 @layer base {
   :root {
-    /* Light theme as base */
-    --background: 0 0% 98%;
+    /* Light theme - slightly darker off-white */
+    --background: 220 14% 92%;
     --foreground: 224 47% 11%;
-    --card: 0 0% 100%;
+    --card: 220 14% 96%;
     --card-foreground: 224 47% 11%;
-    --popover: 0 0% 100%;
+    --popover: 220 14% 96%;
     --popover-foreground: 224 47% 11%;
     --primary: 252 85% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 95%;
+    --secondary: 220 14% 88%;
     --secondary-foreground: 224 47% 11%;
     --muted: 220 15% 95%;
     --muted-foreground: 215 15% 45%;
