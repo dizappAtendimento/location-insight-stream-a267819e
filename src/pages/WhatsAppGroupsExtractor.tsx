@@ -676,8 +676,9 @@ const WhatsAppGroupsExtractor = () => {
                   <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2 mb-4">
                     {groups
                       .filter(group => {
-                        const matchesSearch = groupFilter === '' || group.subject.toLowerCase().includes(groupFilter.toLowerCase());
-                        const isCommunity = group.id?.includes('@g.us') === false || group.size > 256;
+                        const subjectLower = (group.subject || '').toLowerCase();
+                        const matchesSearch = groupFilter === '' || subjectLower.includes(groupFilter.toLowerCase());
+                        const isCommunity = group.id?.includes('@g.us') === false || (group.size || 0) > 256;
                         const matchesType = groupTypeFilter === 'all' || 
                           (groupTypeFilter === 'community' && isCommunity) ||
                           (groupTypeFilter === 'group' && !isCommunity);
