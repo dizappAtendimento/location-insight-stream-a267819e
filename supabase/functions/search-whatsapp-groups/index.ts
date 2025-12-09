@@ -104,8 +104,47 @@ serve(async (req) => {
     const seenLinks = new Set<string>();
 
     // Build comprehensive search terms
-    const words = segment.trim().split(/\s+/).filter((w: string) => w.length > 1);
+    const words = segment.trim().split(/\s+/).filter((w: string) => w.length > 2);
     const searchTerms: string[] = [segment];
+
+    // Normalize function for matching
+    const normalizeText = (text: string): string => {
+      return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    // Check if text matches search terms
+    const matchesSearchTerms = (text: string): boolean => {
+      const normalizedText = normalizeText(text);
+      const normalizedSegment = normalizeText(segment);
+      
+      // Check if full segment is present
+      if (normalizedText.includes(normalizedSegment)) {
+        return true;
+      }
+      
+      // Check if ALL significant words are present (for location-based searches)
+      const significantWords = words.filter((w: string) => w.length >= 3);
+      if (significantWords.length >= 2) {
+        const allWordsMatch = significantWords.every((word: string) => {
+          const normalizedWord = normalizeText(word);
+          return normalizedText.includes(normalizedWord);
+        });
+        if (allWordsMatch) return true;
+      }
+      
+      // For single words or short terms, just check if any word matches
+      if (significantWords.length === 1) {
+        return normalizedText.includes(normalizeText(significantWords[0]));
+      }
+      
+      return false;
+    };
 
     // Add individual words
     words.forEach((word: string) => {
@@ -223,10 +262,19 @@ serve(async (req) => {
               name = `Grupo ${segment}`;
             }
 
+            const description = (result.snippet || "").substring(0, 250);
+            const combinedText = `${name} ${description}`;
+            
+            // Only add if matches search terms
+            if (!matchesSearchTerms(combinedText)) {
+              console.log(`Skipped (no match): ${name.substring(0, 40)}`);
+              continue;
+            }
+
             groups.push({
               name: name.substring(0, 80),
               link,
-              description: (result.snippet || "").substring(0, 250),
+              description,
             });
 
             console.log(`Found #${groups.length}: ${link}`);
@@ -286,12 +334,20 @@ serve(async (req) => {
 
             for (const link of links) {
               if (seenLinks.has(link)) continue;
+              
+              const name = (result.title || `Grupo ${term}`).substring(0, 80);
+              const description = (result.snippet || "").substring(0, 250);
+              const combinedText = `${name} ${description}`;
+              
+              // Only add if matches search terms
+              if (!matchesSearchTerms(combinedText)) continue;
+              
               seenLinks.add(link);
 
               groups.push({
-                name: (result.title || `Grupo ${term}`).substring(0, 80),
+                name,
                 link,
-                description: (result.snippet || "").substring(0, 250),
+                description,
               });
             }
           }
@@ -335,12 +391,20 @@ serve(async (req) => {
 
             for (const link of links) {
               if (seenLinks.has(link)) continue;
+              
+              const name = `Grupo ${segment}`;
+              const description = (result.snippet || "").substring(0, 250);
+              const combinedText = `${name} ${description}`;
+              
+              // Only add if matches search terms
+              if (!matchesSearchTerms(combinedText)) continue;
+              
               seenLinks.add(link);
 
               groups.push({
-                name: `Grupo ${segment}`,
+                name,
                 link,
-                description: (result.snippet || "").substring(0, 250),
+                description,
               });
 
               if (groups.length >= maxResults) break;
