@@ -77,9 +77,12 @@ serve(async (req) => {
               });
               const statusData = await statusRes.json();
               const instanceData = Array.isArray(statusData) ? statusData[0] : statusData;
+              // Evolution API uses connectionStatus field
+              const connStatus = instanceData?.connectionStatus || instanceData?.instance?.state || instanceData?.state;
+              console.log(`[Evolution API] Instance ${conn.instanceName} status:`, connStatus);
               return {
                 ...conn,
-                status: instanceData?.instance?.state || instanceData?.state || "close",
+                status: connStatus === "open" ? "open" : "close",
               };
             } catch {
               return { ...conn, status: "close" };

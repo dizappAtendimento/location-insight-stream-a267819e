@@ -72,10 +72,11 @@ const WhatsAppGroupsExtractor = () => {
         });
         
         console.log('Polling response:', data);
-        const state = data?.connectionState || data?.instance?.instance?.state || data?.instance?.state || data?.instance?.status;
+        // Evolution API returns connectionStatus for connection state
+        const state = data?.instance?.connectionStatus || data?.connectionState || data?.instance?.state;
         console.log('Connection state:', state);
         
-        if (state === 'open' || state === 'connected') {
+        if (state === 'open') {
           toast({ title: "Conectado!", description: "WhatsApp conectado com sucesso" });
           setShowQrDialog(false);
           setQrCode('');
