@@ -118,7 +118,7 @@ serve(async (req) => {
         .trim();
     };
 
-    // Check if text matches search terms
+    // Check if text matches search terms - RELAXED for more results
     const matchesSearchTerms = (text: string): boolean => {
       const normalizedText = normalizeText(text);
       const normalizedSegment = normalizeText(segment);
@@ -128,19 +128,16 @@ serve(async (req) => {
         return true;
       }
       
-      // Check if ALL significant words are present (for location-based searches)
+      // Check if ANY significant word is present (more relaxed)
       const significantWords = words.filter((w: string) => w.length >= 3);
-      if (significantWords.length >= 2) {
-        const allWordsMatch = significantWords.every((word: string) => {
+      
+      // For multi-word searches, require at least ONE significant word
+      if (significantWords.length >= 1) {
+        const anyWordMatch = significantWords.some((word: string) => {
           const normalizedWord = normalizeText(word);
           return normalizedText.includes(normalizedWord);
         });
-        if (allWordsMatch) return true;
-      }
-      
-      // For single words or short terms, just check if any word matches
-      if (significantWords.length === 1) {
-        return normalizedText.includes(normalizeText(significantWords[0]));
+        if (anyWordMatch) return true;
       }
       
       return false;
@@ -178,10 +175,11 @@ serve(async (req) => {
       });
     };
 
-    // Main search queries - more aggressive
+    // Main search queries - SUPER AGGRESSIVE for maximum results
     const queries = [
       // Direct WhatsApp link searches
       `${segment} chat.whatsapp.com`,
+      `"${segment}" chat.whatsapp.com`,
       `${segment} "chat.whatsapp.com"`,
       `grupo ${segment} link whatsapp`,
       `${segment} whatsapp grupo convite`,
@@ -193,16 +191,36 @@ serve(async (req) => {
       `${segment} entre no grupo`,
       `${segment} grupo zap link`,
       `${segment} participe do grupo`,
+      `${segment} link convite whatsapp`,
+      `${segment} grupo de whatsapp`,
+      `${segment} grupo whatsapp brasil`,
+      `${segment} whats grupo`,
       // English variations  
       `${segment} join whatsapp group`,
       `${segment} whatsapp community`,
+      // Location-specific
+      `grupo ${segment} link`,
+      `${segment} whatsapp grupo link convite`,
+      `"grupo de ${segment}"`,
+      `${segment} comunidade whatsapp`,
+      // Extended patterns
+      `${segment} inurl:chat.whatsapp.com`,
+      `${segment} link de grupo`,
     ];
 
-    // Add word-based queries
-    for (const word of words.slice(0, 3)) {
+    // Add word-based queries for each significant word
+    for (const word of words) {
       queries.push(`${word} chat.whatsapp.com`);
       queries.push(`grupo ${word} whatsapp link`);
       queries.push(`${word} whatsapp grupo brasil`);
+      queries.push(`${word} grupo zap`);
+      queries.push(`${word} link convite whatsapp`);
+    }
+    
+    // Add combinations of words
+    if (words.length >= 2) {
+      queries.push(`${words[0]} ${words[1]} whatsapp`);
+      queries.push(`grupo ${words[0]} ${words[1]}`);
     }
 
     // Execute main searches
@@ -287,7 +305,7 @@ serve(async (req) => {
       }
     }
 
-    // Directory site searches
+    // Directory site searches - expanded list
     const directories = [
       "gruposwhatsapp.com.br",
       "gruposdezap.com",
@@ -299,6 +317,14 @@ serve(async (req) => {
       "grupodozap.com",
       "zapgrupos.com",
       "gruposdowhats.com.br",
+      "zapzapgrupos.com",
+      "grupodewhatsapp.com",
+      "linkgrupos.com.br",
+      "gruposwpp.com.br",
+      "wppgrupos.com",
+      "linkszap.com",
+      "grupozapzap.com.br",
+      "gruposparawhatsapp.com",
     ];
 
     for (const site of directories) {
@@ -359,15 +385,27 @@ serve(async (req) => {
       }
     }
 
-    // Social media searches
+    // Social media searches - expanded
     const socialQueries = [
       `site:facebook.com ${segment} grupo whatsapp chat.whatsapp.com`,
       `site:facebook.com ${segment} link grupo zap`,
+      `site:facebook.com ${segment} grupo de whatsapp`,
       `site:twitter.com ${segment} chat.whatsapp.com`,
+      `site:twitter.com ${segment} grupo whatsapp`,
+      `site:x.com ${segment} chat.whatsapp.com`,
       `site:instagram.com ${segment} link whatsapp grupo`,
+      `site:instagram.com ${segment} grupo zap`,
       `site:reddit.com ${segment} whatsapp group brazil`,
       `site:telegram.me ${segment} whatsapp`,
+      `site:tiktok.com ${segment} grupo whatsapp`,
+      `site:youtube.com ${segment} link grupo whatsapp`,
     ];
+    
+    // Add word-based social queries
+    for (const word of words.slice(0, 2)) {
+      socialQueries.push(`site:facebook.com ${word} grupo whatsapp link`);
+      socialQueries.push(`site:twitter.com ${word} chat.whatsapp.com`);
+    }
 
     for (const query of socialQueries) {
       if (groups.length >= maxResults) break;
