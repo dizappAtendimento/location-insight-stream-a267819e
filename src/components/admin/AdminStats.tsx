@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Users, UserCheck, CreditCard, Send, Link2, List, Contact, TrendingUp, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 interface Stats {
   totalUsers: number;
@@ -21,9 +24,22 @@ interface ChartData {
   contactsPerList: { name: string; contacts: number }[];
 }
 
+interface UserWithPlan {
+  id: string;
+  nome: string | null;
+  Email: string | null;
+  plano_nome: string | null;
+  plano_extrator_nome: string | null;
+  status: boolean | null;
+  status_ex: boolean | null;
+  dataValidade: string | null;
+  dataValidade_extrator: string | null;
+}
+
 export function AdminStats() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [usersWithPlans, setUsersWithPlans] = useState<UserWithPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +60,15 @@ export function AdminStats() {
 
         if (chartDataRes) {
           setChartData(chartDataRes);
+        }
+
+        // Fetch users with plans for comparison table
+        const { data: usersRes } = await supabase.functions.invoke('admin-api', {
+          body: { action: 'get-users' }
+        });
+
+        if (usersRes?.users) {
+          setUsersWithPlans(usersRes.users);
         }
       } catch (err) {
         console.error('Error fetching stats:', err);
@@ -380,6 +405,78 @@ export function AdminStats() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Users Products Comparison Table */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Users className="w-4 h-4 text-violet-400" />
+            Comparativo de Produtos por Usuário
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-border/50">
+                  <TableHead className="text-xs">Usuário</TableHead>
+                  <TableHead className="text-xs text-center">Disparador</TableHead>
+                  <TableHead className="text-xs text-center">Validade Disp.</TableHead>
+                  <TableHead className="text-xs text-center">Extrator</TableHead>
+                  <TableHead className="text-xs text-center">Validade Ext.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {usersWithPlans.slice(0, 10).map((user) => (
+                  <TableRow key={user.id} className="border-border/20 hover:bg-muted/20">
+                    <TableCell className="py-2">
+                      <p className="text-sm font-medium">{user.nome || 'Sem nome'}</p>
+                      <p className="text-[10px] text-muted-foreground">{user.Email}</p>
+                    </TableCell>
+                    <TableCell className="text-center py-2">
+                      <div className="flex flex-col items-center gap-1">
+                        <Badge variant={user.status ? 'default' : 'secondary'} className="text-[10px]">
+                          {user.plano_nome || '—'}
+                        </Badge>
+                        <span className={`text-[10px] ${user.status ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {user.status ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-2">
+                      <span className="text-xs text-muted-foreground">
+                        {user.dataValidade ? format(new Date(user.dataValidade), 'dd/MM/yyyy') : '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center py-2">
+                      <div className="flex flex-col items-center gap-1">
+                        <Badge variant={user.status_ex ? 'default' : 'secondary'} className="text-[10px] bg-violet-500/20 text-violet-400 border-violet-500/30">
+                          {user.plano_extrator_nome || '—'}
+                        </Badge>
+                        <span className={`text-[10px] ${user.status_ex ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {user.status_ex ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-2">
+                      <span className="text-xs text-muted-foreground">
+                        {user.dataValidade_extrator ? format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy') : '—'}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {usersWithPlans.length > 10 && (
+            <div className="p-3 text-center border-t border-border/30">
+              <p className="text-xs text-muted-foreground">
+                Mostrando 10 de {usersWithPlans.length} usuários
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

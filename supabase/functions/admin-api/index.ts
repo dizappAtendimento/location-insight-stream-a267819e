@@ -289,6 +289,33 @@ serve(async (req) => {
         );
       }
 
+      case 'update-profile': {
+        // Update user profile (nome, telefone, avatar_url)
+        const { error } = await supabase
+          .from('SAAS_Usuarios')
+          .update({
+            nome: userData.nome,
+            telefone: userData.telefone,
+            avatar_url: userData.avatar_url,
+          })
+          .eq('id', userId);
+
+        if (error) {
+          console.error('[Admin API] Error updating profile:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao atualizar perfil' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Profile ${userId} updated successfully`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'create-plan': {
         const { error } = await supabase
           .from('SAAS_Planos')
