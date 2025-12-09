@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, Download, FileSpreadsheet } from 'lucide-react';
+import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, Download, FileSpreadsheet, MessageCircle } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
-type TypeFilter = 'all' | 'instagram' | 'linkedin' | 'places';
+type TypeFilter = 'all' | 'instagram' | 'linkedin' | 'places' | 'whatsapp-groups';
 type PeriodFilter = '7' | '14' | '30' | 'all' | 'custom';
 
 const HistoryPage = () => {
@@ -27,28 +27,32 @@ const HistoryPage = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 7));
   const [endDate, setEndDate] = useState<Date>(new Date());
 
-  const typeLabels = {
+  const typeLabels: Record<string, string> = {
     instagram: 'Instagram',
     linkedin: 'LinkedIn',
     places: 'Google Places',
+    'whatsapp-groups': 'WhatsApp',
   };
 
-  const typeIcons = {
+  const typeIcons: Record<string, any> = {
     instagram: Instagram,
     linkedin: Linkedin,
     places: MapPin,
+    'whatsapp-groups': MessageCircle,
   };
 
-  const typeColors = {
+  const typeColors: Record<string, string> = {
     instagram: 'bg-gradient-to-br from-pink-500 to-purple-600',
     linkedin: 'bg-[#0A66C2]',
     places: 'bg-gradient-to-br from-emerald-500 to-green-600',
+    'whatsapp-groups': 'bg-[#25D366]',
   };
 
-  const typeBadgeColors = {
+  const typeBadgeColors: Record<string, string> = {
     instagram: 'bg-pink-500/10 text-pink-500',
     linkedin: 'bg-[#0A66C2]/10 text-[#0A66C2]',
     places: 'bg-emerald-500/10 text-emerald-500',
+    'whatsapp-groups': 'bg-[#25D366]/10 text-[#25D366]',
   };
 
   const filteredHistory = useMemo(() => {
@@ -267,6 +271,7 @@ const HistoryPage = () => {
                   <SelectItem value="instagram">Instagram</SelectItem>
                   <SelectItem value="linkedin">LinkedIn</SelectItem>
                   <SelectItem value="places">Google Places</SelectItem>
+                  <SelectItem value="whatsapp-groups">WhatsApp</SelectItem>
                 </SelectContent>
               </Select>
 
