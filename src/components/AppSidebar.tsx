@@ -74,7 +74,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="border-r border-border/20 bg-gradient-to-b from-sidebar-background to-sidebar-background/95"
+      className="dark border-r border-white/5 bg-gradient-to-b from-[hsl(225,28%,7%)] to-[hsl(225,25%,6%)]"
       collapsible="icon"
     >
       <SidebarHeader className="p-5 border-b border-border/20">
