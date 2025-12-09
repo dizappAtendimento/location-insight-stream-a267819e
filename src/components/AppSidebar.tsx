@@ -153,6 +153,26 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              
+              {/* Theme Toggle - below WhatsApp */}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  tooltip={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'} 
+                  className="h-10 rounded-lg mx-1 transition-all duration-200 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
+                  onClick={toggleTheme}
+                >
+                  <div className="flex items-center gap-3 px-3">
+                    {theme === 'dark' ? (
+                      <Moon className="w-[18px] h-[18px]" strokeWidth={2} />
+                    ) : (
+                      <Sun className="w-[18px] h-[18px]" strokeWidth={2} />
+                    )}
+                    <span className="text-sm font-medium">
+                      {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
+                    </span>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -173,26 +193,6 @@ export function AppSidebar() {
         )}
 
         <SidebarMenu className="gap-0.5">
-          {/* Theme Toggle */}
-          <SidebarMenuItem>
-            <SidebarMenuButton 
-              tooltip={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'} 
-              className="h-9 rounded-lg mx-1 transition-all duration-200 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
-              onClick={toggleTheme}
-            >
-              <div className="flex items-center gap-2.5 px-3">
-                {theme === 'dark' ? (
-                  <Sun className="w-4 h-4" strokeWidth={2} />
-                ) : (
-                  <Moon className="w-4 h-4" strokeWidth={2} />
-                )}
-                <span className="text-[13px] font-medium">
-                  {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
-                </span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
           <SidebarMenuItem>
             <SidebarMenuButton 
               asChild
