@@ -56,6 +56,7 @@ export function useSearchJobs() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [filterOnlyWithPhone, setFilterOnlyWithPhone] = useState(false);
   const [isValidatingWhatsApp, setIsValidatingWhatsApp] = useState(false);
+  const [validatedJobIds, setValidatedJobIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { user } = useAuth();
   const sessionId = getSessionId();
@@ -109,6 +110,116 @@ export function useSearchJobs() {
 
     return () => clearInterval(interval);
   }, [fetchJobs, user?.id]);
+
+  // Auto-validate WhatsApp when job completes
+  useEffect(() => {
+    const checkAndValidate = async () => {
+      // Get validation settings from localStorage
+      const savedSettings = localStorage.getItem(`job_validate_${sessionId}`);
+      if (!savedSettings) return;
+      
+      const { validateWhatsApp, instanceName } = JSON.parse(savedSettings);
+      if (!validateWhatsApp || !instanceName) return;
+      
+      // Find completed jobs that haven't been validated yet
+      for (const job of jobs) {
+        if (
+          job.status === 'completed' && 
+          job.results.length > 0 && 
+          !validatedJobIds.has(job.id) &&
+          !isValidatingWhatsApp
+        ) {
+          // Check if results already have WhatsApp validation
+          const alreadyValidated = job.results.some(p => p.hasWhatsApp !== undefined);
+          if (alreadyValidated) {
+            setValidatedJobIds(prev => new Set([...prev, job.id]));
+            continue;
+          }
+          
+          // Mark as being validated
+          setValidatedJobIds(prev => new Set([...prev, job.id]));
+          
+          // Validate WhatsApp numbers
+          setIsValidatingWhatsApp(true);
+          toast({
+            title: "Validando WhatsApp automaticamente",
+            description: `Verificando ${job.results.filter(p => p.phone).length} números...`,
+          });
+          
+          try {
+            const phonesToValidate = job.results
+              .filter(p => p.phone && p.phone.trim() !== '')
+              .map(p => p.phone!.replace(/\D/g, ''));
+            
+            if (phonesToValidate.length === 0) {
+              setIsValidatingWhatsApp(false);
+              continue;
+            }
+            
+            const { data, error } = await supabase.functions.invoke('evolution-api', {
+              body: {
+                action: 'check-whatsapp',
+                instanceName,
+                data: { phones: phonesToValidate }
+              }
+            });
+            
+            if (error) throw error;
+            
+            // Create a map of phone -> hasWhatsApp
+            const whatsAppMap = new Map<string, boolean>();
+            if (data?.results) {
+              for (const result of data.results) {
+                const cleanNumber = (result.number || '').replace(/\D/g, '');
+                whatsAppMap.set(cleanNumber, result.exists === true);
+              }
+            }
+            
+            // Update places with WhatsApp info
+            const updatedResults = job.results.map(place => {
+              if (place.phone) {
+                const cleanPhone = place.phone.replace(/\D/g, '');
+                const hasWhatsApp = whatsAppMap.get(cleanPhone) || false;
+                return { ...place, hasWhatsApp };
+              }
+              return { ...place, hasWhatsApp: false };
+            });
+            
+            // Update job in Supabase
+            await supabase
+              .from('search_jobs')
+              .update({ results: updatedResults as unknown as any })
+              .eq('id', job.id);
+            
+            toast({
+              title: "Validação concluída!",
+              description: `${data?.withWhatsApp || 0} de ${phonesToValidate.length} têm WhatsApp`,
+            });
+            
+            // Refresh jobs to get updated data
+            await fetchJobs();
+            
+            // Clear validation settings after successful validation
+            localStorage.removeItem(`job_validate_${sessionId}`);
+            
+          } catch (error) {
+            console.error('Error auto-validating WhatsApp:', error);
+            toast({
+              title: "Erro na validação automática",
+              description: "Não foi possível validar os números de WhatsApp",
+              variant: "destructive",
+            });
+          } finally {
+            setIsValidatingWhatsApp(false);
+          }
+          
+          break; // Only validate one job at a time
+        }
+      }
+    };
+    
+    checkAndValidate();
+  }, [jobs, sessionId, validatedJobIds, isValidatingWhatsApp, toast, fetchJobs]);
 
   // Validate WhatsApp numbers
   const validateWhatsAppNumbers = useCallback(async (places: Place[], instanceName: string): Promise<Place[]> => {
@@ -518,16 +629,18 @@ export function useSearchJobs() {
         'Endereço': place.address || '',
         'Código País': '+' + countryInfo.dialCode,
         'Telefone': formatPhoneWithCountryCode(place.phone, countryInfo.dialCode),
-        'Rating': place.rating || '',
-        'Avaliações': place.reviewCount || '',
-        'Categoria': place.category || '',
-        'Website': place.website || '',
       };
 
-      // Add WhatsApp column if validation was performed
+      // Add Validação column right after Telefone if validation was performed
       if (hasWhatsAppValidation) {
-        baseData['WhatsApp'] = place.hasWhatsApp ? 'Sim' : 'Não';
+        baseData['Validação'] = place.hasWhatsApp ? 'Sim' : 'Não';
       }
+
+      // Continue with other columns
+      baseData['Rating'] = place.rating || '';
+      baseData['Avaliações'] = place.reviewCount || '';
+      baseData['Categoria'] = place.category || '';
+      baseData['Website'] = place.website || '';
 
       return baseData;
     });
@@ -541,15 +654,18 @@ export function useSearchJobs() {
       { wch: 50 }, // Endereço
       { wch: 12 }, // Código País
       { wch: 18 }, // Telefone
+    ];
+    
+    if (hasWhatsAppValidation) {
+      colWidths.push({ wch: 12 }); // Validação
+    }
+    
+    colWidths.push(
       { wch: 8 },  // Rating
       { wch: 12 }, // Avaliações
       { wch: 20 }, // Categoria
       { wch: 40 }, // Website
-    ];
-    
-    if (hasWhatsAppValidation) {
-      colWidths.push({ wch: 12 }); // WhatsApp
-    }
+    );
     
     worksheet['!cols'] = colWidths;
 
