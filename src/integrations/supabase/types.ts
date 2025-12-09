@@ -431,6 +431,7 @@ export type Database = {
       SAAS_Usuarios: {
         Row: {
           apikey_gpt: string | null
+          avatar_url: string | null
           created_at: string
           dataValidade: string | null
           dataValidade_extrator: string | null
@@ -446,6 +447,7 @@ export type Database = {
         }
         Insert: {
           apikey_gpt?: string | null
+          avatar_url?: string | null
           created_at?: string
           dataValidade?: string | null
           dataValidade_extrator?: string | null
@@ -461,6 +463,7 @@ export type Database = {
         }
         Update: {
           apikey_gpt?: string | null
+          avatar_url?: string | null
           created_at?: string
           dataValidade?: string | null
           dataValidade_extrator?: string | null
