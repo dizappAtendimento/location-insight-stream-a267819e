@@ -63,6 +63,7 @@ const WhatsAppGroupsExtractor = () => {
   // Public groups search states
   const [activeTab, setActiveTab] = useState('my-groups');
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchTags, setSearchTags] = useState<string[]>([]);
   const [publicGroups, setPublicGroups] = useState<PublicGroup[]>([]);
   const [isSearchingPublic, setIsSearchingPublic] = useState(false);
   const [searchProgress, setSearchProgress] = useState(0);
@@ -389,11 +390,35 @@ const WhatsAppGroupsExtractor = () => {
     }
   };
 
+  const addSearchTag = (tag: string) => {
+    const trimmed = tag.trim();
+    if (trimmed && !searchTags.includes(trimmed)) {
+      setSearchTags(prev => [...prev, trimmed]);
+    }
+    setSearchTerm('');
+  };
+
+  const removeSearchTag = (tagToRemove: string) => {
+    setSearchTags(prev => prev.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      e.preventDefault();
+      addSearchTag(searchTerm);
+    } else if (e.key === 'Backspace' && !searchTerm && searchTags.length > 0) {
+      removeSearchTag(searchTags[searchTags.length - 1]);
+    }
+  };
+
   const searchPublicGroups = async () => {
-    if (!searchTerm.trim()) {
-      toast({ title: "Erro", description: "Digite um tema para buscar", variant: "destructive" });
+    const allTerms = [...searchTags, searchTerm.trim()].filter(Boolean);
+    if (allTerms.length === 0) {
+      toast({ title: "Erro", description: "Digite pelo menos um termo para buscar", variant: "destructive" });
       return;
     }
+    
+    const searchQuery = allTerms.join(' ');
     
     setIsSearchingPublic(true);
     setPublicGroups([]);
@@ -420,7 +445,7 @@ const WhatsAppGroupsExtractor = () => {
     
     try {
       const { data, error } = await supabase.functions.invoke('search-whatsapp-groups', {
-        body: { segment: searchTerm, maxResults: 500 }
+        body: { segment: searchQuery, maxResults: 500 }
       });
       
       clearInterval(progressInterval);
@@ -759,18 +784,30 @@ const WhatsAppGroupsExtractor = () => {
                 <CardDescription>Encontre grupos de WhatsApp por tema para entrar</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
+                {/* Tags Input Container */}
+                <div className="flex flex-wrap items-center gap-2 p-2 min-h-[42px] bg-secondary/30 border border-border/50 rounded-lg focus-within:border-[#25D366]/50 transition-colors">
+                  {searchTags.map((tag) => (
+                    <Badge 
+                      key={tag}
+                      className="bg-[#25D366] text-white hover:bg-[#20BD5A] cursor-pointer flex items-center gap-1 px-2 py-1"
+                      onClick={() => removeSearchTag(tag)}
+                    >
+                      {tag}
+                      <span className="ml-1 hover:text-white/70">×</span>
+                    </Badge>
+                  ))}
                   <Input
-                    placeholder="Ex: marketing digital, empreendedorismo, vendas..."
+                    placeholder={searchTags.length === 0 ? "Digite um termo e pressione Enter..." : "Adicionar mais..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && searchPublicGroups()}
-                    className="flex-1"
+                    onKeyDown={handleSearchKeyDown}
+                    className="flex-1 min-w-[150px] border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
                   />
                   <Button 
                     onClick={searchPublicGroups} 
-                    disabled={isSearchingPublic}
-                    className="bg-[#25D366] hover:bg-[#20BD5A]"
+                    disabled={isSearchingPublic || (searchTags.length === 0 && !searchTerm.trim())}
+                    size="sm"
+                    className="bg-[#25D366] hover:bg-[#20BD5A] shrink-0"
                   >
                     {isSearchingPublic ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -787,9 +824,7 @@ const WhatsAppGroupsExtractor = () => {
                       key={tag}
                       variant="outline" 
                       className="cursor-pointer hover:bg-[#25D366]/10 hover:border-[#25D366]/50 hover:text-[#25D366] transition-colors"
-                      onClick={() => {
-                        setSearchTerm(tag);
-                      }}
+                      onClick={() => addSearchTag(tag)}
                     >
                       {tag}
                     </Badge>
