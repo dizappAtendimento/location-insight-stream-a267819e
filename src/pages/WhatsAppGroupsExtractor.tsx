@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, FileDown, Loader2, Users, Sparkles, ExternalLink, Smartphone, QrCode, RefreshCw, Wifi, WifiOff, Trash2 } from 'lucide-react';
+import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useExtractionHistory } from '@/hooks/useExtractionHistory';
+import { useAuth } from '@/contexts/AuthContext';
 import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -29,30 +30,22 @@ interface WhatsAppGroup {
   desc?: string;
 }
 
-interface EvolutionInstance {
-  instanceName?: string;
-  instanceId?: string;
-  status?: string;
-  state?: string;
-  name?: string;
-  owner?: string;
-  instance?: {
-    instanceName?: string;
-    instanceId?: string;
-    status?: string;
-    state?: string;
-    owner?: string;
-  };
+interface UserInstance {
+  id: number;
+  instanceName: string;
+  NomeConexao: string | null;
+  status: 'connected' | 'disconnected';
 }
 
 const WhatsAppGroupsExtractor = () => {
   const { toast } = useToast();
   const { addRecord } = useExtractionHistory();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   
-  // Evolution API states
-  const [instances, setInstances] = useState<EvolutionInstance[]>([]);
+  // Instance states
+  const [instances, setInstances] = useState<UserInstance[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<string>('');
   const [isLoadingInstances, setIsLoadingInstances] = useState(false);
   const [showQrDialog, setShowQrDialog] = useState(false);
@@ -62,17 +55,51 @@ const WhatsAppGroupsExtractor = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   useEffect(() => {
-    loadInstances();
-  }, []);
+    if (user?.id) {
+      loadUserInstances();
+    }
+  }, [user?.id]);
 
-  const loadInstances = async () => {
+  const loadUserInstances = async () => {
+    if (!user?.id) return;
     setIsLoadingInstances(true);
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'list-instances' }
-      });
-      if (error) throw new Error(error.message);
-      setInstances(data.instances || []);
+      // Load instances from database for this user
+      const { data: dbInstances, error } = await supabase
+        .from('SAAS_Conexões')
+        .select('id, instanceName, NomeConexao')
+        .eq('idUsuario', user.id)
+        .not('instanceName', 'is', null);
+      
+      if (error) throw error;
+      
+      // Get status from Evolution API for each instance
+      const instancesWithStatus: UserInstance[] = [];
+      
+      for (const inst of dbInstances || []) {
+        if (!inst.instanceName) continue;
+        
+        let status: 'connected' | 'disconnected' = 'disconnected';
+        try {
+          const { data } = await supabase.functions.invoke('evolution-api', {
+            body: { action: 'get-instance', instanceName: inst.instanceName }
+          });
+          if (data?.instance?.instance?.status === 'open' || data?.instance?.status === 'open' || data?.instance?.state === 'open') {
+            status = 'connected';
+          }
+        } catch {
+          // Instance might not exist in Evolution API
+        }
+        
+        instancesWithStatus.push({
+          id: inst.id,
+          instanceName: inst.instanceName,
+          NomeConexao: inst.NomeConexao,
+          status
+        });
+      }
+      
+      setInstances(instancesWithStatus);
     } catch (error) {
       console.error('Error loading instances:', error);
     } finally {
@@ -81,7 +108,7 @@ const WhatsAppGroupsExtractor = () => {
   };
 
   const createInstance = async () => {
-    if (!newInstanceName.trim()) {
+    if (!newInstanceName.trim() || !user?.id) {
       toast({ title: "Erro", description: "Digite um nome para a instância", variant: "destructive" });
       return;
     }
@@ -93,10 +120,21 @@ const WhatsAppGroupsExtractor = () => {
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);
       
+      // Save instance to database for this user
+      const { error: dbError } = await supabase
+        .from('SAAS_Conexões')
+        .insert({
+          idUsuario: user.id,
+          instanceName: newInstanceName.trim(),
+          NomeConexao: newInstanceName.trim()
+        });
+      
+      if (dbError) throw dbError;
+      
       toast({ title: "Sucesso", description: "Instância criada com sucesso" });
       setShowCreateDialog(false);
       setNewInstanceName('');
-      await loadInstances();
+      await loadUserInstances();
       
       // Get QR code for new instance
       if (data.qrcode?.base64) {
@@ -125,7 +163,7 @@ const WhatsAppGroupsExtractor = () => {
         setShowQrDialog(true);
       } else if (data.instance?.state === 'open') {
         toast({ title: "Conectado", description: "Instância já está conectada" });
-        await loadInstances();
+        await loadUserInstances();
       }
     } catch (error) {
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao conectar", variant: "destructive" });
@@ -141,20 +179,27 @@ const WhatsAppGroupsExtractor = () => {
       });
       if (error) throw new Error(error.message);
       toast({ title: "Desconectado", description: "Instância desconectada com sucesso" });
-      await loadInstances();
+      await loadUserInstances();
     } catch (error) {
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao desconectar", variant: "destructive" });
     }
   };
 
-  const deleteInstance = async (instanceName: string) => {
+  const deleteInstance = async (instanceName: string, instanceId: number) => {
     try {
-      const { error } = await supabase.functions.invoke('evolution-api', {
+      // Delete from Evolution API
+      await supabase.functions.invoke('evolution-api', {
         body: { action: 'delete-instance', instanceName }
       });
-      if (error) throw new Error(error.message);
+      
+      // Delete from database
+      await supabase
+        .from('SAAS_Conexões')
+        .delete()
+        .eq('id', instanceId);
+      
       toast({ title: "Excluída", description: "Instância excluída com sucesso" });
-      await loadInstances();
+      await loadUserInstances();
       setGroups([]);
     } catch (error) {
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao excluir", variant: "destructive" });
@@ -207,16 +252,7 @@ const WhatsAppGroupsExtractor = () => {
     XLSX.writeFile(workbook, `grupos_whatsapp_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const getInstanceName = (instance: EvolutionInstance): string => {
-    return instance.instanceName || instance.name || instance.instance?.instanceName || 'Unknown';
-  };
-
-  const getInstanceStatus = (instance: EvolutionInstance): 'connected' | 'disconnected' => {
-    const status = instance.status || instance.state || instance.instance?.status || instance.instance?.state || 'close';
-    return status === 'open' || status === 'connected' ? 'connected' : 'disconnected';
-  };
-
-  const connectedInstances = instances.filter(i => getInstanceStatus(i) === 'connected');
+  const connectedInstances = instances.filter(i => i.status === 'connected');
 
   return (
     <DashboardLayout>
@@ -248,7 +284,7 @@ const WhatsAppGroupsExtractor = () => {
                   <CardDescription>Conecte sua conta via Evolution API</CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={loadInstances} disabled={isLoadingInstances}>
+                  <Button size="sm" variant="outline" onClick={loadUserInstances} disabled={isLoadingInstances}>
                     <RefreshCw className={`w-4 h-4 ${isLoadingInstances ? 'animate-spin' : ''}`} />
                   </Button>
                   <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-[#25D366] hover:bg-[#20BD5A]">
@@ -269,42 +305,37 @@ const WhatsAppGroupsExtractor = () => {
                   <p className="text-sm text-muted-foreground/70">Crie uma nova instância para começar</p>
                 </div>
               ) : (
-                instances.map((instance, index) => {
-                  const status = getInstanceStatus(instance);
-                  const name = getInstanceName(instance);
-                  const uniqueKey = `${name}-${index}`;
-                  return (
-                    <div key={uniqueKey} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${status === 'connected' ? 'bg-[#25D366]' : 'bg-muted-foreground/30'}`} />
-                        <div>
-                          <p className="font-medium text-sm">{name}</p>
-                          <Badge variant={status === 'connected' ? 'default' : 'secondary'} className="text-xs mt-0.5">
-                            {status === 'connected' ? 'Conectado' : 'Desconectado'}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {status === 'connected' ? (
-                          <Button size="sm" variant="ghost" onClick={() => disconnectInstance(name)}>
-                            <WifiOff className="w-4 h-4 text-orange-500" />
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="ghost" onClick={() => connectInstance(name)} disabled={isConnecting}>
-                            {isConnecting && selectedInstance === name ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <QrCode className="w-4 h-4 text-[#25D366]" />
-                            )}
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" onClick={() => deleteInstance(name)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                instances.map((instance) => (
+                  <div key={instance.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${instance.status === 'connected' ? 'bg-[#25D366]' : 'bg-muted-foreground/30'}`} />
+                      <div>
+                        <p className="font-medium text-sm">{instance.NomeConexao || instance.instanceName}</p>
+                        <Badge variant={instance.status === 'connected' ? 'default' : 'secondary'} className="text-xs mt-0.5">
+                          {instance.status === 'connected' ? 'Conectado' : 'Desconectado'}
+                        </Badge>
                       </div>
                     </div>
-                  );
-                })
+                    <div className="flex gap-1">
+                      {instance.status === 'connected' ? (
+                        <Button size="sm" variant="ghost" onClick={() => disconnectInstance(instance.instanceName)}>
+                          <WifiOff className="w-4 h-4 text-orange-500" />
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => connectInstance(instance.instanceName)} disabled={isConnecting}>
+                          {isConnecting && selectedInstance === instance.instanceName ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <QrCode className="w-4 h-4 text-[#25D366]" />
+                          )}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" onClick={() => deleteInstance(instance.instanceName, instance.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
               )}
 
               {connectedInstances.length > 0 && (
@@ -314,9 +345,9 @@ const WhatsAppGroupsExtractor = () => {
                     <Select value={selectedInstance} onValueChange={setSelectedInstance}>
                       <SelectTrigger><SelectValue placeholder="Selecione uma instância conectada" /></SelectTrigger>
                       <SelectContent>
-                        {connectedInstances.map((instance, index) => (
-                          <SelectItem key={`select-${getInstanceName(instance)}-${index}`} value={getInstanceName(instance)}>
-                            {getInstanceName(instance)}
+                        {connectedInstances.map((instance) => (
+                          <SelectItem key={`select-${instance.id}`} value={instance.instanceName}>
+                            {instance.NomeConexao || instance.instanceName}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -417,7 +448,7 @@ const WhatsAppGroupsExtractor = () => {
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowQrDialog(false)}>Fechar</Button>
-            <Button onClick={() => { loadInstances(); setShowQrDialog(false); }} className="bg-[#25D366] hover:bg-[#20BD5A]">
+            <Button onClick={() => { loadUserInstances(); setShowQrDialog(false); }} className="bg-[#25D366] hover:bg-[#20BD5A]">
               Verificar Conexão
             </Button>
           </div>
