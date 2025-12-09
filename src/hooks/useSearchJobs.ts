@@ -342,52 +342,156 @@ export function useSearchJobs() {
     URL.revokeObjectURL(url);
   }, [filterOnlyWithPhone, toast]);
 
-  // Extract country code from phone number
-  const extractCountryCode = (phone: string | null): string => {
-    if (!phone) return '';
-    const cleanPhone = phone.replace(/\D/g, '');
+  // Get country code from location string
+  const getCountryCodeFromLocation = (location: string | null): { code: string; dialCode: string } => {
+    if (!location) return { code: 'BR', dialCode: '55' };
     
-    // Common country codes mapping
-    if (cleanPhone.startsWith('55') && cleanPhone.length >= 12) return '+55'; // Brazil
-    if (cleanPhone.startsWith('1') && cleanPhone.length >= 11) return '+1'; // USA/Canada
-    if (cleanPhone.startsWith('44') && cleanPhone.length >= 11) return '+44'; // UK
-    if (cleanPhone.startsWith('351') && cleanPhone.length >= 12) return '+351'; // Portugal
-    if (cleanPhone.startsWith('34') && cleanPhone.length >= 11) return '+34'; // Spain
-    if (cleanPhone.startsWith('33') && cleanPhone.length >= 11) return '+33'; // France
-    if (cleanPhone.startsWith('49') && cleanPhone.length >= 11) return '+49'; // Germany
-    if (cleanPhone.startsWith('39') && cleanPhone.length >= 11) return '+39'; // Italy
-    if (cleanPhone.startsWith('54') && cleanPhone.length >= 11) return '+54'; // Argentina
-    if (cleanPhone.startsWith('56') && cleanPhone.length >= 11) return '+56'; // Chile
-    if (cleanPhone.startsWith('57') && cleanPhone.length >= 11) return '+57'; // Colombia
-    if (cleanPhone.startsWith('52') && cleanPhone.length >= 11) return '+52'; // Mexico
-    if (cleanPhone.startsWith('51') && cleanPhone.length >= 11) return '+51'; // Peru
-    if (cleanPhone.startsWith('598') && cleanPhone.length >= 11) return '+598'; // Uruguay
-    if (cleanPhone.startsWith('595') && cleanPhone.length >= 11) return '+595'; // Paraguay
-    if (cleanPhone.startsWith('591') && cleanPhone.length >= 11) return '+591'; // Bolivia
-    if (cleanPhone.startsWith('593') && cleanPhone.length >= 11) return '+593'; // Ecuador
-    if (cleanPhone.startsWith('58') && cleanPhone.length >= 11) return '+58'; // Venezuela
+    const loc = location.toLowerCase().trim();
     
-    // Default: assume Brazil if starts with common DDD patterns
-    if (cleanPhone.length >= 10 && cleanPhone.length <= 11) return '+55';
+    // USA patterns
+    const usaPatterns = [
+      'usa', 'united states', 'estados unidos', 'eua', 'america',
+      'new york', 'california', 'texas', 'florida', 'illinois', 'pennsylvania',
+      'ohio', 'georgia', 'north carolina', 'michigan', 'new jersey', 'virginia',
+      'washington', 'arizona', 'massachusetts', 'tennessee', 'indiana', 'missouri',
+      'maryland', 'wisconsin', 'colorado', 'minnesota', 'south carolina', 'alabama',
+      'louisiana', 'kentucky', 'oregon', 'oklahoma', 'connecticut', 'utah', 'iowa',
+      'nevada', 'arkansas', 'mississippi', 'kansas', 'new mexico', 'nebraska',
+      'idaho', 'hawaii', 'maine', 'montana', 'delaware', 'south dakota',
+      'north dakota', 'alaska', 'vermont', 'wyoming', 'west virginia', 'rhode island',
+      'los angeles', 'chicago', 'houston', 'phoenix', 'philadelphia', 'san antonio',
+      'san diego', 'dallas', 'san jose', 'austin', 'jacksonville', 'fort worth',
+      'columbus', 'charlotte', 'indianapolis', 'seattle', 'denver', 'boston',
+      'el paso', 'nashville', 'detroit', 'portland', 'memphis', 'oklahoma city',
+      'las vegas', 'louisville', 'baltimore', 'milwaukee', 'albuquerque', 'tucson',
+      'fresno', 'sacramento', 'mesa', 'atlanta', 'kansas city', 'colorado springs',
+      'miami', 'raleigh', 'omaha', 'long beach', 'virginia beach', 'oakland',
+      'minneapolis', 'tulsa', 'tampa', 'arlington', 'new orleans'
+    ];
     
-    return '';
-  };
-
-  // Format phone with country code
-  const formatPhoneWithCountryCode = (phone: string | null): string => {
-    if (!phone) return '';
-    const cleanPhone = phone.replace(/\D/g, '');
-    const countryCode = extractCountryCode(phone);
+    // Canada patterns
+    const canadaPatterns = [
+      'canada', 'canadá', 'toronto', 'vancouver', 'montreal', 'calgary', 'edmonton',
+      'ottawa', 'winnipeg', 'quebec', 'ontario', 'british columbia', 'alberta'
+    ];
     
-    if (countryCode === '+55') {
-      // Brazilian format: already has 55 or needs it
-      if (cleanPhone.startsWith('55')) {
-        return cleanPhone;
-      }
-      return '55' + cleanPhone;
+    // UK patterns
+    const ukPatterns = [
+      'uk', 'united kingdom', 'reino unido', 'england', 'inglaterra', 'london',
+      'londres', 'scotland', 'wales', 'manchester', 'birmingham', 'liverpool'
+    ];
+    
+    // Portugal patterns
+    const portugalPatterns = [
+      'portugal', 'lisboa', 'lisbon', 'porto', 'oporto', 'algarve', 'braga', 'coimbra'
+    ];
+    
+    // Spain patterns
+    const spainPatterns = [
+      'spain', 'españa', 'espanha', 'madrid', 'barcelona', 'valencia', 'seville',
+      'sevilla', 'bilbao', 'malaga', 'zaragoza'
+    ];
+    
+    // Germany patterns
+    const germanyPatterns = [
+      'germany', 'alemania', 'alemanha', 'deutschland', 'berlin', 'munich', 'munique',
+      'frankfurt', 'hamburg', 'cologne', 'koln'
+    ];
+    
+    // France patterns
+    const francePatterns = [
+      'france', 'frança', 'francia', 'paris', 'lyon', 'marseille', 'toulouse', 'nice'
+    ];
+    
+    // Italy patterns  
+    const italyPatterns = [
+      'italy', 'italia', 'itália', 'rome', 'roma', 'milan', 'milano', 'naples',
+      'napoli', 'turin', 'torino', 'florence', 'firenze', 'venice', 'venezia'
+    ];
+    
+    // Argentina patterns
+    const argentinaPatterns = [
+      'argentina', 'buenos aires', 'cordoba', 'rosario', 'mendoza'
+    ];
+    
+    // Mexico patterns
+    const mexicoPatterns = [
+      'mexico', 'méxico', 'ciudad de mexico', 'guadalajara', 'monterrey', 'cancun',
+      'puebla', 'tijuana'
+    ];
+    
+    // Colombia patterns
+    const colombiaPatterns = [
+      'colombia', 'colômbia', 'bogota', 'bogotá', 'medellin', 'medellín', 'cali',
+      'barranquilla', 'cartagena'
+    ];
+    
+    // Chile patterns
+    const chilePatterns = [
+      'chile', 'santiago', 'valparaiso', 'concepcion'
+    ];
+    
+    // Peru patterns
+    const peruPatterns = [
+      'peru', 'perú', 'lima', 'arequipa', 'cusco', 'trujillo'
+    ];
+    
+    for (const pattern of usaPatterns) {
+      if (loc.includes(pattern)) return { code: 'US', dialCode: '1' };
+    }
+    for (const pattern of canadaPatterns) {
+      if (loc.includes(pattern)) return { code: 'CA', dialCode: '1' };
+    }
+    for (const pattern of ukPatterns) {
+      if (loc.includes(pattern)) return { code: 'UK', dialCode: '44' };
+    }
+    for (const pattern of portugalPatterns) {
+      if (loc.includes(pattern)) return { code: 'PT', dialCode: '351' };
+    }
+    for (const pattern of spainPatterns) {
+      if (loc.includes(pattern)) return { code: 'ES', dialCode: '34' };
+    }
+    for (const pattern of germanyPatterns) {
+      if (loc.includes(pattern)) return { code: 'DE', dialCode: '49' };
+    }
+    for (const pattern of francePatterns) {
+      if (loc.includes(pattern)) return { code: 'FR', dialCode: '33' };
+    }
+    for (const pattern of italyPatterns) {
+      if (loc.includes(pattern)) return { code: 'IT', dialCode: '39' };
+    }
+    for (const pattern of argentinaPatterns) {
+      if (loc.includes(pattern)) return { code: 'AR', dialCode: '54' };
+    }
+    for (const pattern of mexicoPatterns) {
+      if (loc.includes(pattern)) return { code: 'MX', dialCode: '52' };
+    }
+    for (const pattern of colombiaPatterns) {
+      if (loc.includes(pattern)) return { code: 'CO', dialCode: '57' };
+    }
+    for (const pattern of chilePatterns) {
+      if (loc.includes(pattern)) return { code: 'CL', dialCode: '56' };
+    }
+    for (const pattern of peruPatterns) {
+      if (loc.includes(pattern)) return { code: 'PE', dialCode: '51' };
     }
     
-    return cleanPhone;
+    // Default to Brazil
+    return { code: 'BR', dialCode: '55' };
+  };
+
+  // Format phone with country code from location
+  const formatPhoneWithCountryCode = (phone: string | null, dialCode: string): string => {
+    if (!phone) return '';
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    // If phone already starts with the dial code, return as is
+    if (cleanPhone.startsWith(dialCode)) {
+      return cleanPhone;
+    }
+    
+    // Add dial code
+    return dialCode + cleanPhone;
   };
 
   const downloadExcel = useCallback((job: SearchJob, onlyWithPhone: boolean = false) => {
@@ -402,6 +506,9 @@ export function useSearchJobs() {
       return;
     }
 
+    // Get country code from job location
+    const countryInfo = getCountryCodeFromLocation(job.location);
+
     // Check if WhatsApp validation was performed
     const hasWhatsAppValidation = filteredResults.some(p => p.hasWhatsApp !== undefined);
 
@@ -409,8 +516,8 @@ export function useSearchJobs() {
       const baseData: Record<string, string | number> = {
         'Nome': place.name || '',
         'Endereço': place.address || '',
-        'Código País': extractCountryCode(place.phone),
-        'Telefone': formatPhoneWithCountryCode(place.phone),
+        'Código País': '+' + countryInfo.dialCode,
+        'Telefone': formatPhoneWithCountryCode(place.phone, countryInfo.dialCode),
         'Rating': place.rating || '',
         'Avaliações': place.reviewCount || '',
         'Categoria': place.category || '',
