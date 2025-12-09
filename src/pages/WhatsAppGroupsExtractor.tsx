@@ -64,40 +64,18 @@ const WhatsAppGroupsExtractor = () => {
     if (!user?.id) return;
     setIsLoadingInstances(true);
     try {
-      // Load instances from database for this user
-      const { data: dbInstances, error } = await supabase
-        .from('SAAS_Conexões')
-        .select('id, instanceName, NomeConexao')
-        .eq('idUsuario', user.id)
-        .not('instanceName', 'is', null);
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'list-user-instances', userId: user.id }
+      });
       
       if (error) throw error;
       
-      // Get status from Evolution API for each instance
-      const instancesWithStatus: UserInstance[] = [];
-      
-      for (const inst of dbInstances || []) {
-        if (!inst.instanceName) continue;
-        
-        let status: 'connected' | 'disconnected' = 'disconnected';
-        try {
-          const { data } = await supabase.functions.invoke('evolution-api', {
-            body: { action: 'get-instance', instanceName: inst.instanceName }
-          });
-          if (data?.instance?.instance?.status === 'open' || data?.instance?.status === 'open' || data?.instance?.state === 'open') {
-            status = 'connected';
-          }
-        } catch {
-          // Instance might not exist in Evolution API
-        }
-        
-        instancesWithStatus.push({
-          id: inst.id,
-          instanceName: inst.instanceName,
-          NomeConexao: inst.NomeConexao,
-          status
-        });
-      }
+      const instancesWithStatus: UserInstance[] = (data?.instances || []).map((inst: any) => ({
+        id: inst.id,
+        instanceName: inst.instanceName,
+        NomeConexao: inst.NomeConexao,
+        status: inst.status === 'open' ? 'connected' : 'disconnected'
+      }));
       
       setInstances(instancesWithStatus);
     } catch (error) {
@@ -115,21 +93,15 @@ const WhatsAppGroupsExtractor = () => {
     setIsConnecting(true);
     try {
       const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'create-instance', instanceName: newInstanceName.trim() }
+        body: { 
+          action: 'create-instance', 
+          instanceName: newInstanceName.trim(),
+          userId: user.id,
+          data: { displayName: newInstanceName.trim() }
+        }
       });
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);
-      
-      // Save instance to database for this user
-      const { error: dbError } = await supabase
-        .from('SAAS_Conexões')
-        .insert({
-          idUsuario: user.id,
-          instanceName: newInstanceName.trim(),
-          NomeConexao: newInstanceName.trim()
-        });
-      
-      if (dbError) throw dbError;
       
       toast({ title: "Sucesso", description: "Instância criada com sucesso" });
       setShowCreateDialog(false);
@@ -185,18 +157,12 @@ const WhatsAppGroupsExtractor = () => {
     }
   };
 
-  const deleteInstance = async (instanceName: string, instanceId: number) => {
+  const deleteInstance = async (instanceName: string) => {
+    if (!user?.id) return;
     try {
-      // Delete from Evolution API
       await supabase.functions.invoke('evolution-api', {
-        body: { action: 'delete-instance', instanceName }
+        body: { action: 'delete-instance', instanceName, userId: user.id }
       });
-      
-      // Delete from database
-      await supabase
-        .from('SAAS_Conexões')
-        .delete()
-        .eq('id', instanceId);
       
       toast({ title: "Excluída", description: "Instância excluída com sucesso" });
       await loadUserInstances();
@@ -330,7 +296,7 @@ const WhatsAppGroupsExtractor = () => {
                           )}
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" onClick={() => deleteInstance(instance.instanceName, instance.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => deleteInstance(instance.instanceName)}>
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
                     </div>

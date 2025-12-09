@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,8 @@ serve(async (req) => {
   try {
     const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
     const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
       console.error("Evolution API credentials not configured");
@@ -22,8 +25,10 @@ serve(async (req) => {
       );
     }
 
-    const { action, instanceName, data } = await req.json();
-    console.log(`[Evolution API] Action: ${action}, Instance: ${instanceName || 'N/A'}`);
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    const { action, instanceName, data, userId } = await req.json();
+    console.log(`[Evolution API] Action: ${action}, Instance: ${instanceName || 'N/A'}, UserId: ${userId || 'N/A'}`);
 
     const baseUrl = EVOLUTION_API_URL.replace(/\/$/, '');
     const headers = {
@@ -44,6 +49,46 @@ serve(async (req) => {
         console.log(`[Evolution API] Found ${Array.isArray(result) ? result.length : 0} instances`);
         return new Response(
           JSON.stringify({ instances: result }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
+      case "list-user-instances":
+        // Busca instâncias do usuário no banco
+        const { data: userConnections, error: connError } = await supabase
+          .from("SAAS_Conexões")
+          .select("*")
+          .eq("idUsuario", userId);
+
+        if (connError) {
+          console.error("[Evolution API] Error fetching user connections:", connError);
+          return new Response(
+            JSON.stringify({ error: "Erro ao buscar conexões do usuário" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Para cada conexão, busca o status na Evolution API
+        const instancesWithStatus = await Promise.all(
+          (userConnections || []).map(async (conn: any) => {
+            try {
+              const statusRes = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${conn.instanceName}`, {
+                method: "GET",
+                headers,
+              });
+              const statusData = await statusRes.json();
+              const instanceData = Array.isArray(statusData) ? statusData[0] : statusData;
+              return {
+                ...conn,
+                status: instanceData?.instance?.state || instanceData?.state || "close",
+              };
+            } catch {
+              return { ...conn, status: "close" };
+            }
+          })
+        );
+
+        return new Response(
+          JSON.stringify({ instances: instancesWithStatus }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
@@ -70,6 +115,25 @@ serve(async (req) => {
         });
         result = await response.json();
         console.log(`[Evolution API] Instance created: ${instanceName}`);
+
+        // Salva no banco usando service_role
+        if (userId && result?.instance) {
+          const { error: insertError } = await supabase
+            .from("SAAS_Conexões")
+            .insert({
+              instanceName: instanceName,
+              NomeConexao: data?.displayName || instanceName,
+              idUsuario: userId,
+              Apikey: result.hash?.apikey || null,
+            });
+
+          if (insertError) {
+            console.error("[Evolution API] Error saving connection:", insertError);
+          } else {
+            console.log(`[Evolution API] Connection saved for user: ${userId}`);
+          }
+        }
+
         return new Response(
           JSON.stringify(result),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -117,6 +181,20 @@ serve(async (req) => {
         });
         result = await response.json();
         console.log(`[Evolution API] Deleted: ${instanceName}`);
+
+        // Remove do banco
+        if (userId) {
+          const { error: deleteError } = await supabase
+            .from("SAAS_Conexões")
+            .delete()
+            .eq("instanceName", instanceName)
+            .eq("idUsuario", userId);
+
+          if (deleteError) {
+            console.error("[Evolution API] Error deleting connection:", deleteError);
+          }
+        }
+
         return new Response(
           JSON.stringify(result),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
