@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, MapPin, Loader2, Phone, MessageCircle, AlertCircle } from 'lucide-react';
+import { Search, MapPin, Loader2, MessageCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -25,7 +25,6 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [maxResults, setMaxResults] = useState('100');
-  const [onlyWithPhone, setOnlyWithPhone] = useState(false);
   const [validateWhatsApp, setValidateWhatsApp] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<string>('');
   const [instances, setInstances] = useState<UserInstance[]>([]);
@@ -66,7 +65,7 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
       query, 
       location || undefined, 
       parseInt(maxResults), 
-      onlyWithPhone,
+      false, // onlyWithPhone - always false now
       validateWhatsApp && instances.length > 0,
       validateWhatsApp && selectedInstance ? selectedInstance : undefined
     );
@@ -137,22 +136,6 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="onlyWithPhone" 
-              checked={onlyWithPhone}
-              onCheckedChange={(checked) => setOnlyWithPhone(checked === true)}
-              className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-            />
-            <Label 
-              htmlFor="onlyWithPhone" 
-              className="text-sm font-medium cursor-pointer flex items-center gap-1.5"
-            >
-              <Phone className="w-3.5 h-3.5 text-emerald-500" />
-              Só com Telefone
-            </Label>
-          </div>
-
           <TooltipProvider>
             <div className="flex items-center gap-2">
               <Tooltip>
