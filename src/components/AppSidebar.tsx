@@ -155,11 +155,11 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
               
-              {/* Theme Toggle - below WhatsApp */}
+              {/* Theme Toggle */}
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   tooltip={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'} 
-                  className="h-10 rounded-lg mx-1 transition-all duration-200 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
+                  className="group transition-all duration-200 h-10 rounded-lg mx-1 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
                   onClick={toggleTheme}
                 >
                   <div className="flex items-center gap-3 px-3">
@@ -174,12 +174,46 @@ export function AppSidebar() {
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Configurações */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/configuracoes')}
+                  tooltip="Configurações"
+                  className={cn(
+                    "group transition-all duration-200 h-10 rounded-lg mx-1",
+                    isActive('/configuracoes') 
+                      ? "bg-primary/10 text-primary border border-primary/20" 
+                      : "hover:bg-muted/30 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Link to="/configuracoes" className="flex items-center gap-3 px-3">
+                    <Settings className="w-[18px] h-[18px]" strokeWidth={2} />
+                    <span className="text-sm font-medium">Configurações</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Sair */}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  tooltip="Sair" 
+                  className="group transition-all duration-200 h-10 rounded-lg mx-1 hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+                  onClick={handleLogout}
+                >
+                  <div className="flex items-center gap-3 px-3">
+                    <LogOut className="w-[18px] h-[18px]" strokeWidth={2} />
+                    <span className="text-sm font-medium">Sair</span>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-border/20 space-y-3">
+      <SidebarFooter className="p-3 border-t border-border/20">
         {/* Atendimento Card */}
         {!collapsed && (
           <div className="mx-1 p-3 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 border border-border/30 backdrop-blur-sm">
@@ -195,39 +229,6 @@ export function AppSidebar() {
             <p className="text-[11px] text-muted-foreground/70 pl-[38px]">atendimento@dizapp.com.br</p>
           </div>
         )}
-
-        <SidebarMenu className="gap-0.5">
-          <SidebarMenuItem>
-            <SidebarMenuButton 
-              asChild
-              isActive={isActive('/configuracoes')}
-              tooltip="Configurações" 
-              className={cn(
-                "h-9 rounded-lg mx-1 transition-all duration-200",
-                isActive('/configuracoes') 
-                  ? "bg-primary/10 text-primary border border-primary/20" 
-                  : "hover:bg-muted/30 text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Link to="/configuracoes" className="flex items-center gap-2.5 px-3">
-                <Settings className="w-4 h-4" strokeWidth={2} />
-                <span className="text-[13px] font-medium">Configurações</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton 
-              tooltip="Sair" 
-              className="h-9 rounded-lg mx-1 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
-              onClick={handleLogout}
-            >
-              <div className="flex items-center gap-2.5 px-3">
-                <LogOut className="w-4 h-4" strokeWidth={2} />
-                <span className="text-[13px] font-medium">Sair</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
