@@ -160,6 +160,14 @@ function detectLocationContext(location: string): { type: 'city' | 'state' | 'co
   return { type: 'city', cities: [location], locationName: location };
 }
 
+// Extract email from text snippets
+function extractEmail(text: string | undefined | null): string | null {
+  if (!text) return null;
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
+  const matches = text.match(emailRegex);
+  return matches ? matches[0] : null;
+}
+
 async function fetchPlaces(apiKey: string, searchQuery: string, page: number = 1): Promise<any> {
   const response = await fetch('https://google.serper.dev/places', {
     method: 'POST',
@@ -201,10 +209,18 @@ async function fetchAllPagesForQuery(
         const id = place.cid || `${place.title}-${place.address}`;
         if (!seenCids.has(id)) {
           seenCids.add(id);
+          
+          // Try to extract email from various fields
+          const email = extractEmail(place.snippet) || 
+                        extractEmail(place.description) || 
+                        extractEmail(place.website) ||
+                        null;
+          
           allPlaces.push({
             name: place.title,
             address: place.address,
             phone: place.phoneNumber || null,
+            email: email,
             rating: place.rating || null,
             reviewCount: place.ratingCount || null,
             category: place.category || null,

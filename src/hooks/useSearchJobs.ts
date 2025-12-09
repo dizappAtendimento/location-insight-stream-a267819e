@@ -8,6 +8,7 @@ export interface Place {
   name: string;
   address: string;
   phone: string | null;
+  email: string | null;
   rating: number | null;
   reviewCount: number | null;
   category: string | null;
@@ -442,9 +443,10 @@ export function useSearchJobs() {
         'Endereço': place.address || '',
         'Código País': '+' + countryInfo.dialCode,
         'Telefone': formatPhoneWithCountryCode(place.phone, countryInfo.dialCode),
+        'Email': place.email || '',
       };
 
-      // Add Validação column right after Telefone if validation was performed
+      // Add Validação column right after Email if validation was performed
       if (hasWhatsAppValidation) {
         baseData['Validação'] = place.hasWhatsApp ? 'Sim' : 'Não';
       }
@@ -467,6 +469,7 @@ export function useSearchJobs() {
       { wch: 50 }, // Endereço
       { wch: 12 }, // Código País
       { wch: 18 }, // Telefone
+      { wch: 30 }, // Email
     ];
     
     if (hasWhatsAppValidation) {
