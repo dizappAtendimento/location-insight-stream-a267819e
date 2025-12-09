@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Sidebar,
   SidebarContent,
@@ -164,19 +163,17 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 border-t border-border/20">
-        {/* Atendimento Card */}
+        {/* User Name Card */}
         {!collapsed && (
           <div className="mx-1 p-3 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 border border-border/30 backdrop-blur-sm">
-            <div className="flex items-center gap-2.5 mb-1">
-              <Avatar className="w-7 h-7">
-                <AvatarImage src={user?.avatar_url || undefined} alt={user?.nome || 'Usuário'} />
-                <AvatarFallback className="bg-primary/20 text-primary text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
+                <span className="text-primary text-xs font-semibold">
                   {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-semibold text-foreground">Atendimento</span>
+                </span>
+              </div>
+              <span className="text-sm font-medium text-foreground">{user?.nome || 'Usuário'}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground/70 pl-[38px]">atendimento@dizapp.com.br</p>
           </div>
         )}
       </SidebarFooter>
