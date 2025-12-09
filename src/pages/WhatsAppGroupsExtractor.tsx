@@ -308,9 +308,9 @@ const WhatsAppGroupsExtractor = () => {
 
         const participants = data?.participants || [];
         for (const p of participants) {
-          const rawId = p.remoteJid || p.id || '';
-          const phone = rawId.replace('@s.whatsapp.net', '') || '';
-          const telid = rawId.replace('@s.whatsapp.net', '@lid');
+          // id = "275350370173177@lid", phoneNumber = "556799600629@s.whatsapp.net"
+          const telid = p.id || '';
+          const phone = (p.phoneNumber || '').replace('@s.whatsapp.net', '');
           if (phone) {
             allParticipants.push({
               groupName: group.subject,
