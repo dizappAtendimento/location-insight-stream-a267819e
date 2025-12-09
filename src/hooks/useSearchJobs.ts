@@ -55,8 +55,6 @@ export function useSearchJobs() {
   const [jobs, setJobs] = useState<SearchJob[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [filterOnlyWithPhone, setFilterOnlyWithPhone] = useState(false);
-  const [isValidatingWhatsApp, setIsValidatingWhatsApp] = useState(false);
-  const [validatedJobIds, setValidatedJobIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { user } = useAuth();
   const sessionId = getSessionId();
@@ -111,189 +109,13 @@ export function useSearchJobs() {
     return () => clearInterval(interval);
   }, [fetchJobs, user?.id]);
 
-  // Auto-validate WhatsApp when job completes
-  useEffect(() => {
-    const checkAndValidate = async () => {
-      // Get validation settings from localStorage
-      const savedSettings = localStorage.getItem(`job_validate_${sessionId}`);
-      if (!savedSettings) return;
-      
-      const { validateWhatsApp, instanceName } = JSON.parse(savedSettings);
-      if (!validateWhatsApp || !instanceName) return;
-      
-      // Find completed jobs that haven't been validated yet
-      for (const job of jobs) {
-        if (
-          job.status === 'completed' && 
-          job.results.length > 0 && 
-          !validatedJobIds.has(job.id) &&
-          !isValidatingWhatsApp
-        ) {
-          // Check if results already have WhatsApp validation
-          const alreadyValidated = job.results.some(p => p.hasWhatsApp !== undefined);
-          if (alreadyValidated) {
-            setValidatedJobIds(prev => new Set([...prev, job.id]));
-            continue;
-          }
-          
-          // Mark as being validated
-          setValidatedJobIds(prev => new Set([...prev, job.id]));
-          
-          // Validate WhatsApp numbers
-          setIsValidatingWhatsApp(true);
-          toast({
-            title: "Validando WhatsApp automaticamente",
-            description: `Verificando ${job.results.filter(p => p.phone).length} números...`,
-          });
-          
-          try {
-            const phonesToValidate = job.results
-              .filter(p => p.phone && p.phone.trim() !== '')
-              .map(p => p.phone!.replace(/\D/g, ''));
-            
-            if (phonesToValidate.length === 0) {
-              setIsValidatingWhatsApp(false);
-              continue;
-            }
-            
-            const { data, error } = await supabase.functions.invoke('evolution-api', {
-              body: {
-                action: 'check-whatsapp',
-                instanceName,
-                data: { phones: phonesToValidate }
-              }
-            });
-            
-            if (error) throw error;
-            
-            // Create a map of phone -> hasWhatsApp
-            const whatsAppMap = new Map<string, boolean>();
-            if (data?.results) {
-              for (const result of data.results) {
-                const cleanNumber = (result.number || '').replace(/\D/g, '');
-                whatsAppMap.set(cleanNumber, result.exists === true);
-              }
-            }
-            
-            // Update places with WhatsApp info
-            const updatedResults = job.results.map(place => {
-              if (place.phone) {
-                const cleanPhone = place.phone.replace(/\D/g, '');
-                const hasWhatsApp = whatsAppMap.get(cleanPhone) || false;
-                return { ...place, hasWhatsApp };
-              }
-              return { ...place, hasWhatsApp: false };
-            });
-            
-            // Update job in Supabase
-            await supabase
-              .from('search_jobs')
-              .update({ results: updatedResults as unknown as any })
-              .eq('id', job.id);
-            
-            toast({
-              title: "Validação concluída!",
-              description: `${data?.withWhatsApp || 0} de ${phonesToValidate.length} têm WhatsApp`,
-            });
-            
-            // Refresh jobs to get updated data
-            await fetchJobs();
-            
-            // Clear validation settings after successful validation
-            localStorage.removeItem(`job_validate_${sessionId}`);
-            
-          } catch (error) {
-            console.error('Error auto-validating WhatsApp:', error);
-            toast({
-              title: "Erro na validação automática",
-              description: "Não foi possível validar os números de WhatsApp",
-              variant: "destructive",
-            });
-          } finally {
-            setIsValidatingWhatsApp(false);
-          }
-          
-          break; // Only validate one job at a time
-        }
-      }
-    };
-    
-    checkAndValidate();
-  }, [jobs, sessionId, validatedJobIds, isValidatingWhatsApp, toast, fetchJobs]);
-
-  // Validate WhatsApp numbers
-  const validateWhatsAppNumbers = useCallback(async (places: Place[], instanceName: string): Promise<Place[]> => {
-    const phonesToValidate = places
-      .filter(p => p.phone && p.phone.trim() !== '')
-      .map(p => p.phone!.replace(/\D/g, ''));
-
-    if (phonesToValidate.length === 0) return places;
-
-    setIsValidatingWhatsApp(true);
-    toast({
-      title: "Validando WhatsApp",
-      description: `Verificando ${phonesToValidate.length} números...`,
-    });
-
-    try {
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: {
-          action: 'check-whatsapp',
-          instanceName,
-          data: { phones: phonesToValidate }
-        }
-      });
-
-      if (error) throw error;
-
-      // Create a map of phone -> hasWhatsApp
-      const whatsAppMap = new Map<string, boolean>();
-      if (data?.results) {
-        for (const result of data.results) {
-          const cleanNumber = (result.number || '').replace(/\D/g, '');
-          whatsAppMap.set(cleanNumber, result.exists === true);
-        }
-      }
-
-      // Update places with WhatsApp info
-      const updatedPlaces = places.map(place => {
-        if (place.phone) {
-          const cleanPhone = place.phone.replace(/\D/g, '');
-          const hasWhatsApp = whatsAppMap.get(cleanPhone) || false;
-          return { ...place, hasWhatsApp };
-        }
-        return { ...place, hasWhatsApp: false };
-      });
-
-      toast({
-        title: "Validação concluída!",
-        description: `${data?.withWhatsApp || 0} de ${phonesToValidate.length} têm WhatsApp`,
-      });
-
-      return updatedPlaces;
-    } catch (error) {
-      console.error('Error validating WhatsApp:', error);
-      toast({
-        title: "Erro na validação",
-        description: "Não foi possível validar os números de WhatsApp",
-        variant: "destructive",
-      });
-      return places;
-    } finally {
-      setIsValidatingWhatsApp(false);
-    }
-  }, [toast]);
 
   // Create a new search job
   const createJob = useCallback(async (
     query: string, 
     location?: string, 
-    maxResults: number = 1000, 
-    onlyWithPhone: boolean = false,
-    validateWhatsApp: boolean = false,
-    instanceName?: string
+    maxResults: number = 1000
   ) => {
-    setFilterOnlyWithPhone(onlyWithPhone);
     if (!query.trim()) {
       toast({
         title: "Erro",
@@ -310,13 +132,6 @@ export function useSearchJobs() {
         variant: "destructive",
       });
       return;
-    }
-
-    // Store WhatsApp validation settings for when job completes
-    if (validateWhatsApp && instanceName) {
-      localStorage.setItem(`job_validate_${sessionId}`, JSON.stringify({ validateWhatsApp, instanceName }));
-    } else {
-      localStorage.removeItem(`job_validate_${sessionId}`);
     }
 
     setIsLoading(true);
@@ -345,9 +160,7 @@ export function useSearchJobs() {
       setActiveJobId(data.jobId);
       toast({
         title: "Busca iniciada!",
-        description: validateWhatsApp 
-          ? "A busca está rodando. Após concluída, os números serão validados no WhatsApp."
-          : "A busca está rodando em background. Você pode sair da página.",
+        description: "A busca está rodando em background. Você pode sair da página.",
       });
 
       // Refresh jobs list
@@ -675,7 +488,6 @@ export function useSearchJobs() {
 
   return {
     isLoading,
-    isValidatingWhatsApp,
     jobs,
     activeJob,
     activeJobId,
@@ -688,6 +500,5 @@ export function useSearchJobs() {
     downloadCSV,
     downloadJSON,
     downloadExcel,
-    validateWhatsAppNumbers,
   };
 }
