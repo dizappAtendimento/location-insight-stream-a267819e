@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Settings, Palette, Bell, Database, Shield, Moon, Sun, Monitor, Check, Trash2, Download } from 'lucide-react';
+import { Settings, Palette, Bell, Database, Shield, Moon, Sun, Monitor, Check, Trash2, Download, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface AppSettings {
@@ -39,8 +42,26 @@ const ACCENT_COLORS = [
 
 const SettingsPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user?.id) {
+        try {
+          const { data } = await supabase.functions.invoke('admin-api', {
+            body: { action: 'check-admin', userId: user.id }
+          });
+          setIsAdmin(data?.isAdmin === true);
+        } catch (error) {
+          setIsAdmin(false);
+        }
+      }
+    };
+    checkAdminStatus();
+  }, [user]);
 
   useEffect(() => {
     const stored = localStorage.getItem('app_settings');
@@ -256,6 +277,36 @@ const SettingsPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Admin Panel - Only for admins */}
+        {isAdmin && (
+          <Card className="opacity-0 animate-fade-in-up overflow-hidden relative border-amber-500/30" style={{ animationDelay: '275ms' }}>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-amber-500/50" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-amber-500" />
+                Administração
+              </CardTitle>
+              <CardDescription>Acesso às funcionalidades administrativas do sistema</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/admin">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/15 hover:border-amber-500/30 transition-all duration-200 cursor-pointer group">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 shadow-lg shadow-amber-500/20">
+                      <Shield className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Painel Admin</p>
+                      <p className="text-xs text-muted-foreground">Gerenciar usuários, planos e estatísticas</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Data Management */}
         <Card className="opacity-0 animate-fade-in-up border-destructive/30" style={{ animationDelay: '250ms' }}>
