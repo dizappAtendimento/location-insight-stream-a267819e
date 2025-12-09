@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download, ExternalLink, Globe } from 'lucide-react';
+import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download, ExternalLink, Globe, Clock, X } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,6 +68,37 @@ const WhatsAppGroupsExtractor = () => {
   const [isSearchingPublic, setIsSearchingPublic] = useState(false);
   const [searchProgress, setSearchProgress] = useState(0);
   const [searchStatus, setSearchStatus] = useState('');
+  const [searchHistory, setSearchHistory] = useState<{terms: string[], results: number, date: string}[]>([]);
+
+  // Load search history from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('whatsapp_group_search_history');
+    if (saved) {
+      try {
+        setSearchHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error loading search history:', e);
+      }
+    }
+  }, []);
+
+  // Save search to history
+  const addToSearchHistory = (terms: string[], resultsCount: number) => {
+    const newEntry = {
+      terms,
+      results: resultsCount,
+      date: new Date().toISOString()
+    };
+    const updated = [newEntry, ...searchHistory.slice(0, 9)]; // Keep last 10
+    setSearchHistory(updated);
+    localStorage.setItem('whatsapp_group_search_history', JSON.stringify(updated));
+  };
+
+  // Clear search history
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem('whatsapp_group_search_history');
+  };
   
   // Instance states
   const [instances, setInstances] = useState<UserInstance[]>([]);
@@ -462,9 +493,12 @@ const WhatsAppGroupsExtractor = () => {
       } else {
         toast({ title: "Busca concluída", description: `${data.groups?.length || 0} grupos encontrados` });
         
+        // Add to search history
+        addToSearchHistory(allTerms, data.groups?.length || 0);
+        
         addRecord({
           type: 'whatsapp-groups',
-          segment: `Busca: ${searchTerm}`,
+          segment: `Busca: ${searchQuery}`,
           totalResults: data.groups?.length || 0,
           emailsFound: 0,
           phonesFound: 0,
@@ -831,6 +865,51 @@ const WhatsAppGroupsExtractor = () => {
                   ))}
                 </div>
 
+                {/* Search History */}
+                {searchHistory.length > 0 && !isSearchingPublic && publicGroups.length === 0 && (
+                  <div className="border border-border/50 rounded-lg p-4 bg-secondary/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        Histórico de Buscas
+                      </h4>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                        onClick={clearSearchHistory}
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Limpar
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {searchHistory.map((entry, index) => (
+                        <div 
+                          key={index}
+                          className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors"
+                          onClick={() => {
+                            setSearchTags(entry.terms);
+                            setSearchTerm('');
+                          }}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-sm truncate">{entry.terms.join(', ')}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="secondary" className="text-xs">
+                              {entry.results} grupos
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(entry.date).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {/* Progress Bar */}
                 {isSearchingPublic && (
                   <div className="space-y-2 py-4">
