@@ -16,10 +16,10 @@ interface WhatsAppGroup {
 async function validateGroupLink(link: string): Promise<boolean> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
     
     const response = await fetch(link, {
-      method: "HEAD",
+      method: "GET",
       signal: controller.signal,
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -29,46 +29,45 @@ async function validateGroupLink(link: string): Promise<boolean> {
     
     clearTimeout(timeoutId);
     
-    // If we get a 200 or redirect to WhatsApp, it's valid
-    // If we get 404 or redirect to error page, it's invalid
     if (response.ok) {
+      const text = await response.text();
+      // Check if page contains group invite elements (valid group)
+      if (text.includes("invite") || text.includes("convite") || text.includes("group") || text.includes("Grupo")) {
+        return true;
+      }
+      // Check for expired/invalid indicators
+      if (text.includes("expired") || text.includes("expirado") || text.includes("invalid") || text.includes("não encontrado")) {
+        return false;
+      }
       return true;
     }
     
-    // Check if it redirected to the WhatsApp app page (valid group)
-    const finalUrl = response.url;
-    if (finalUrl && (finalUrl.includes("chat.whatsapp.com") || finalUrl.includes("web.whatsapp.com"))) {
-      return true;
-    }
-    
-    return false;
+    return response.status !== 404;
   } catch (error) {
-    // On timeout or network error, assume valid (don't penalize slow responses)
-    console.log(`Validation timeout/error for ${link}, assuming valid`);
+    // On timeout, assume valid
     return true;
   }
 }
 
-// Batch validate multiple links concurrently
-async function validateGroupLinks(groups: WhatsAppGroup[], maxConcurrent: number = 10): Promise<WhatsAppGroup[]> {
+// Batch validate links
+async function validateGroupLinks(groups: WhatsAppGroup[], maxConcurrent: number = 20): Promise<WhatsAppGroup[]> {
   const validatedGroups: WhatsAppGroup[] = [];
   
-  // Process in batches
   for (let i = 0; i < groups.length; i += maxConcurrent) {
     const batch = groups.slice(i, i + maxConcurrent);
     
-    const validationPromises = batch.map(async (group) => {
-      const isValid = await validateGroupLink(group.link);
-      return { ...group, validated: isValid };
-    });
-    
-    const results = await Promise.all(validationPromises);
+    const results = await Promise.all(
+      batch.map(async (group) => {
+        const isValid = await validateGroupLink(group.link);
+        return { ...group, validated: isValid };
+      })
+    );
     
     for (const result of results) {
       if (result.validated) {
         validatedGroups.push(result);
       } else {
-        console.log(`Invalid/expired group removed: ${result.link}`);
+        console.log(`Removed invalid: ${result.link}`);
       }
     }
   }
@@ -99,84 +98,80 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Searching WhatsApp groups for: ${segment} (max: ${maxResults}, validate: ${validateLinks})`);
+    console.log(`Deep search for: ${segment} (max: ${maxResults})`);
 
     const groups: WhatsAppGroup[] = [];
     const seenLinks = new Set<string>();
 
-    // Split segment into individual words for deep search
-    const words = segment.trim().split(/\s+/).filter((w: string) => w.length > 2);
-    const searchTerms: string[] = [];
-
-    // Add full segment first
-    searchTerms.push(segment);
+    // Build comprehensive search terms
+    const words = segment.trim().split(/\s+/).filter((w: string) => w.length > 1);
+    const searchTerms: string[] = [segment];
 
     // Add individual words
-    for (const word of words) {
-      if (!searchTerms.includes(word)) {
-        searchTerms.push(word);
-      }
+    words.forEach((word: string) => {
+      if (!searchTerms.includes(word)) searchTerms.push(word);
+    });
+
+    // Add common variations
+    const baseTerms = [segment, ...words.slice(0, 2)];
+    for (const term of baseTerms) {
+      const variations = [
+        `${term} brasil`,
+        `${term} grupo`,
+        `${term} zap`,
+        `${term} whatsapp`,
+        `grupo ${term}`,
+        `${term} link`,
+      ];
+      variations.forEach(v => {
+        if (!searchTerms.includes(v)) searchTerms.push(v);
+      });
     }
 
-    // Add word combinations (pairs)
-    if (words.length >= 2) {
-      for (let i = 0; i < words.length - 1; i++) {
-        const combo = `${words[i]} ${words[i + 1]}`;
-        if (!searchTerms.includes(combo)) {
-          searchTerms.push(combo);
-        }
-      }
-    }
+    console.log(`Terms: ${searchTerms.length}`);
 
-    // Add variations with common suffixes
-    const variations: string[] = [];
-    for (const word of words) {
-      const lowerWord = word.toLowerCase();
-      variations.push(`${lowerWord} brasil`);
-      variations.push(`${lowerWord} grupo`);
-      variations.push(`${lowerWord} zap`);
-    }
-    
-    for (const v of variations) {
-      if (!searchTerms.includes(v)) {
-        searchTerms.push(v);
-      }
-    }
-
-    console.log(`Search terms to use: ${JSON.stringify(searchTerms)}`);
-
-    // Expanded query templates for maximum results
-    const queryTemplates = [
-      (term: string) => `site:chat.whatsapp.com ${term}`,
-      (term: string) => `"chat.whatsapp.com" ${term}`,
-      (term: string) => `${term} grupo whatsapp link`,
-      (term: string) => `${term} whatsapp group invite`,
-      (term: string) => `grupo de ${term} whatsapp`,
-      (term: string) => `whatsapp ${term} convite`,
-      (term: string) => `${term} entrar grupo whatsapp`,
-      (term: string) => `link grupo ${term} whatsapp`,
-      (term: string) => `${term} whatsapp brasil`,
-      (term: string) => `grupos ${term} whats`,
-    ];
-
-    // Function to extract WhatsApp links from text
-    const extractWhatsAppLinks = (text: string): string[] => {
-      const matches = text.match(/chat\.whatsapp\.com\/([A-Za-z0-9]{15,30})/g) || [];
-      return matches.map(m => {
-        const code = m.replace("chat.whatsapp.com/", "");
-        return `https://chat.whatsapp.com/${code}`;
-      }).filter(link => {
-        const code = link.replace("https://chat.whatsapp.com/", "");
-        return code.length >= 18 && code.length <= 25 && /^[A-Za-z0-9]+$/.test(code);
+    // Extract WhatsApp links
+    const extractLinks = (text: string): string[] => {
+      const matches = text.match(/chat\.whatsapp\.com\/([A-Za-z0-9]{16,30})/g) || [];
+      return [...new Set(matches.map(m => `https://${m}`))].filter(link => {
+        const code = link.split("/").pop() || "";
+        return code.length >= 18 && code.length <= 26;
       });
     };
 
-    // Search function
-    const searchQuery = async (query: string, termForName: string) => {
-      if (groups.length >= maxResults) return;
+    // Main search queries - more aggressive
+    const queries = [
+      // Direct WhatsApp link searches
+      `${segment} chat.whatsapp.com`,
+      `${segment} "chat.whatsapp.com"`,
+      `grupo ${segment} link whatsapp`,
+      `${segment} whatsapp grupo convite`,
+      `${segment} entrar grupo whatsapp link`,
+      `link grupo whatsapp ${segment}`,
+      `whatsapp group ${segment} invite link`,
+      `${segment} grupo whats link`,
+      // Portuguese variations
+      `${segment} entre no grupo`,
+      `${segment} grupo zap link`,
+      `${segment} participe do grupo`,
+      // English variations  
+      `${segment} join whatsapp group`,
+      `${segment} whatsapp community`,
+    ];
+
+    // Add word-based queries
+    for (const word of words.slice(0, 3)) {
+      queries.push(`${word} chat.whatsapp.com`);
+      queries.push(`grupo ${word} whatsapp link`);
+      queries.push(`${word} whatsapp grupo brasil`);
+    }
+
+    // Execute main searches
+    for (const query of queries) {
+      if (groups.length >= maxResults) break;
 
       try {
-        console.log(`Searching: ${query}`);
+        console.log(`Query: ${query}`);
 
         const response = await fetch("https://google.serper.dev/search", {
           method: "POST",
@@ -192,103 +187,79 @@ serve(async (req) => {
           }),
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Serper error: ${response.status} - ${errorText}`);
-          return;
-        }
+        if (!response.ok) continue;
 
         const data = await response.json();
         const results = data.organic || [];
-        console.log(`Found ${results.length} results for: ${query}`);
+        console.log(`Results: ${results.length}`);
 
         for (const result of results) {
           if (groups.length >= maxResults) break;
 
-          const link = result.link || "";
-          const title = result.title || "";
-          const snippet = result.snippet || "";
-          const fullText = `${link} ${title} ${snippet}`;
-
-          if (
-            link.includes(".pdf") ||
-            link.includes("scribd.com") ||
-            link.includes("slideshare") ||
-            link.includes("academia.edu")
-          ) {
+          const fullText = `${result.link || ""} ${result.title || ""} ${result.snippet || ""}`;
+          
+          // Skip PDFs and document sites
+          if (fullText.includes(".pdf") || fullText.includes("scribd") || fullText.includes("slideshare")) {
             continue;
           }
 
-          const whatsappLinks = extractWhatsAppLinks(fullText);
+          const links = extractLinks(fullText);
 
-          for (const whatsappLink of whatsappLinks) {
+          for (const link of links) {
             if (groups.length >= maxResults) break;
-            if (seenLinks.has(whatsappLink)) continue;
+            if (seenLinks.has(link)) continue;
 
-            seenLinks.add(whatsappLink);
+            seenLinks.add(link);
 
-            let groupName = title
+            let name = (result.title || "")
               .replace(/WhatsApp/gi, "")
               .replace(/Group Invite/gi, "")
-              .replace(/Convite para grupo/gi, "")
-              .replace(/- Convite/gi, "")
-              .replace(/Entrar no grupo/gi, "")
-              .replace(/\|/g, "")
-              .replace(/PDF/gi, "")
+              .replace(/Convite.*grupo/gi, "")
               .replace(/https?:\/\/[^\s]+/g, "")
+              .replace(/[|–-]/g, " ")
               .trim();
 
-            if (!groupName || groupName.length < 3) {
-              groupName = `Grupo ${termForName}`;
+            if (!name || name.length < 3) {
+              name = `Grupo ${segment}`;
             }
 
             groups.push({
-              name: groupName.substring(0, 100),
-              link: whatsappLink,
-              description: snippet.substring(0, 300) || `Grupo de WhatsApp sobre ${termForName}`,
+              name: name.substring(0, 80),
+              link,
+              description: (result.snippet || "").substring(0, 250),
             });
 
-            console.log(`Found group #${groups.length}: ${whatsappLink}`);
+            console.log(`Found #${groups.length}: ${link}`);
           }
         }
+
+        await new Promise(r => setTimeout(r, 80));
       } catch (err) {
-        console.error(`Error with query "${query}":`, err);
-      }
-    };
-
-    // Execute searches for all terms with all templates
-    for (const term of searchTerms) {
-      if (groups.length >= maxResults) break;
-
-      for (const template of queryTemplates) {
-        if (groups.length >= maxResults) break;
-
-        await searchQuery(template(term), term);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        console.error(`Error: ${err}`);
       }
     }
 
-    // Additional search in group directory sites
-    const directorySites = [
+    // Directory site searches
+    const directories = [
       "gruposwhatsapp.com.br",
-      "gruposdezap.com", 
+      "gruposdezap.com",
       "linksdowhatsapp.com",
-      "whatsappgrouplinks.org",
       "grupowhats.com",
-      "gruposwhats.app",
-      "grupozap.com",
+      "grupozap.com.br",
+      "whatsappgrouplinks.org",
       "linkdogrupo.com.br",
+      "grupodozap.com",
+      "zapgrupos.com",
+      "gruposdowhats.com.br",
     ];
 
-    for (const site of directorySites) {
+    for (const site of directories) {
       if (groups.length >= maxResults) break;
 
-      for (const term of searchTerms) {
+      for (const term of searchTerms.slice(0, 5)) {
         if (groups.length >= maxResults) break;
 
         try {
-          console.log(`Searching ${site} for: ${term}`);
-
           const response = await fetch("https://google.serper.dev/search", {
             method: "POST",
             headers: {
@@ -306,157 +277,93 @@ serve(async (req) => {
           if (!response.ok) continue;
 
           const data = await response.json();
-          const results = data.organic || [];
-
-          for (const result of results) {
+          
+          for (const result of (data.organic || [])) {
             if (groups.length >= maxResults) break;
 
-            const fullText = `${result.link || ""} ${result.title || ""} ${result.snippet || ""}`;
-            const whatsappLinks = extractWhatsAppLinks(fullText);
+            const fullText = `${result.link || ""} ${result.snippet || ""}`;
+            const links = extractLinks(fullText);
 
-            for (const whatsappLink of whatsappLinks) {
-              if (seenLinks.has(whatsappLink)) continue;
-
-              seenLinks.add(whatsappLink);
-
-              let groupName = (result.title || "")
-                .replace(/Grupo de WhatsApp/gi, "")
-                .replace(/Link para/gi, "")
-                .replace(/-/g, " ")
-                .trim();
-
-              if (!groupName || groupName.length < 3) {
-                groupName = `Grupo ${term}`;
-              }
+            for (const link of links) {
+              if (seenLinks.has(link)) continue;
+              seenLinks.add(link);
 
               groups.push({
-                name: groupName.substring(0, 100),
-                link: whatsappLink,
-                description: (result.snippet || "").substring(0, 300) || `Grupo de ${term}`,
+                name: (result.title || `Grupo ${term}`).substring(0, 80),
+                link,
+                description: (result.snippet || "").substring(0, 250),
               });
             }
           }
 
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(r => setTimeout(r, 60));
         } catch (err) {
-          console.error(`Error searching ${site}:`, err);
+          // continue
         }
       }
     }
 
-    // Facebook groups search
-    try {
-      console.log(`Searching Facebook for WhatsApp groups`);
-      
-      for (const term of searchTerms) {
-        if (groups.length >= maxResults) break;
+    // Social media searches
+    const socialQueries = [
+      `site:facebook.com ${segment} grupo whatsapp chat.whatsapp.com`,
+      `site:facebook.com ${segment} link grupo zap`,
+      `site:twitter.com ${segment} chat.whatsapp.com`,
+      `site:instagram.com ${segment} link whatsapp grupo`,
+      `site:reddit.com ${segment} whatsapp group brazil`,
+      `site:telegram.me ${segment} whatsapp`,
+    ];
 
+    for (const query of socialQueries) {
+      if (groups.length >= maxResults) break;
+
+      try {
         const response = await fetch("https://google.serper.dev/search", {
           method: "POST",
           headers: {
             "X-API-KEY": SERPER_API_KEY,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            q: `site:facebook.com ${term} grupo whatsapp chat.whatsapp.com`,
-            gl: "br",
-            hl: "pt-br",
-            num: 50,
-          }),
+          body: JSON.stringify({ q: query, gl: "br", hl: "pt-br", num: 50 }),
         });
 
         if (response.ok) {
           const data = await response.json();
-          const results = data.organic || [];
-
-          for (const result of results) {
-            if (groups.length >= maxResults) break;
-
+          
+          for (const result of (data.organic || [])) {
             const fullText = `${result.link || ""} ${result.snippet || ""}`;
-            const whatsappLinks = extractWhatsAppLinks(fullText);
+            const links = extractLinks(fullText);
 
-            for (const whatsappLink of whatsappLinks) {
-              if (seenLinks.has(whatsappLink)) continue;
-
-              seenLinks.add(whatsappLink);
+            for (const link of links) {
+              if (seenLinks.has(link)) continue;
+              seenLinks.add(link);
 
               groups.push({
-                name: `Grupo ${term}`,
-                link: whatsappLink,
-                description: (result.snippet || "").substring(0, 300),
+                name: `Grupo ${segment}`,
+                link,
+                description: (result.snippet || "").substring(0, 250),
               });
+
+              if (groups.length >= maxResults) break;
             }
           }
         }
 
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(r => setTimeout(r, 60));
+      } catch (err) {
+        // continue
       }
-    } catch (err) {
-      console.error("Error searching Facebook:", err);
     }
 
-    // Twitter/X search
-    try {
-      console.log(`Searching Twitter for WhatsApp groups`);
-      
-      for (const term of searchTerms.slice(0, 3)) {
-        if (groups.length >= maxResults) break;
+    console.log(`Total before validation: ${groups.length}`);
 
-        const response = await fetch("https://google.serper.dev/search", {
-          method: "POST",
-          headers: {
-            "X-API-KEY": SERPER_API_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            q: `site:twitter.com OR site:x.com ${term} chat.whatsapp.com`,
-            gl: "br",
-            hl: "pt-br",
-            num: 30,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const results = data.organic || [];
-
-          for (const result of results) {
-            if (groups.length >= maxResults) break;
-
-            const fullText = `${result.link || ""} ${result.snippet || ""}`;
-            const whatsappLinks = extractWhatsAppLinks(fullText);
-
-            for (const whatsappLink of whatsappLinks) {
-              if (seenLinks.has(whatsappLink)) continue;
-
-              seenLinks.add(whatsappLink);
-
-              groups.push({
-                name: `Grupo ${term}`,
-                link: whatsappLink,
-                description: (result.snippet || "").substring(0, 300),
-              });
-            }
-          }
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    } catch (err) {
-      console.error("Error searching Twitter:", err);
-    }
-
-    console.log(`Total groups found before validation: ${groups.length}`);
-
-    // Validate links if enabled
+    // Validate links
     let finalGroups = groups;
     if (validateLinks && groups.length > 0) {
-      console.log(`Validating ${groups.length} group links...`);
-      finalGroups = await validateGroupLinks(groups, 15);
-      console.log(`Valid groups after validation: ${finalGroups.length}`);
+      console.log(`Validating ${groups.length} links...`);
+      finalGroups = await validateGroupLinks(groups, 25);
+      console.log(`Valid: ${finalGroups.length}`);
     }
 
-    // Remove the validated flag from response
     const cleanGroups = finalGroups.map(({ validated, ...rest }) => rest);
 
     return new Response(
@@ -464,18 +371,17 @@ serve(async (req) => {
         groups: cleanGroups, 
         total: cleanGroups.length,
         totalBeforeValidation: groups.length,
-        searchTermsUsed: searchTerms,
+        searchTermsUsed: searchTerms.slice(0, 10),
         message: cleanGroups.length === 0 
-          ? "Nenhum grupo válido encontrado. Tente termos diferentes ou mais genéricos."
+          ? "Nenhum grupo válido encontrado. Tente termos mais genéricos como 'vendas', 'marketing', 'empreendedorismo'."
           : undefined
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Error:", err);
-    const errorMessage = err instanceof Error ? err.message : "Erro interno";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: err instanceof Error ? err.message : "Erro interno" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
