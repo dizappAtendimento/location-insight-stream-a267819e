@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -13,7 +14,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { theme, setTheme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const toggleTheme = () => {
@@ -31,7 +32,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <AppSidebar />
         <main className="flex-1 flex flex-col min-w-0 overflow-auto">
           {/* Top Bar */}
-          <header className="h-14 border-b border-border/30 bg-background/80 backdrop-blur-sm flex items-center justify-end px-6 gap-2">
+          <header className="h-14 border-b border-border/30 bg-background/80 backdrop-blur-sm flex items-center justify-end px-6 gap-3">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -65,6 +66,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Sair</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Avatar 
+                    className="h-8 w-8 cursor-pointer ring-2 ring-border/30 hover:ring-primary/50 transition-all"
+                    onClick={() => navigate('/configuracoes')}
+                  >
+                    <AvatarImage src={user?.avatar_url || undefined} alt={user?.nome || 'Usuário'} />
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                      {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </TooltipTrigger>
+                <TooltipContent>{user?.nome || 'Perfil'}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </header>
