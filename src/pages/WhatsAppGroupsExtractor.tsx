@@ -298,7 +298,7 @@ const WhatsAppGroupsExtractor = () => {
         if (!group) continue;
 
         const { data, error } = await supabase.functions.invoke('evolution-api', {
-          body: { action: 'fetch-group-participants', instanceName: selectedInstance, groupId }
+          body: { action: 'fetch-group-participants', instanceName: selectedInstance, data: { groupId } }
         });
         
         if (error) {
