@@ -237,6 +237,20 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "fetch-contacts":
+        // Busca contatos da lista telefônica
+        response = await fetch(`${baseUrl}/chat/findContacts/${instanceName}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ where: {} }),
+        });
+        result = await response.json();
+        console.log(`[Evolution API] Fetched contacts for ${instanceName}: ${Array.isArray(result) ? result.length : 0}`);
+        return new Response(
+          JSON.stringify({ contacts: result || [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       case "check-whatsapp":
         // Verifica se números têm WhatsApp
         const { phones } = data || {};
