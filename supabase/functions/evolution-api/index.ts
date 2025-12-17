@@ -251,6 +251,20 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "fetch-chats":
+        // Busca conversas/chats
+        response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ where: {} }),
+        });
+        result = await response.json();
+        console.log(`[Evolution API] Fetched chats for ${instanceName}: ${Array.isArray(result) ? result.length : 0}`);
+        return new Response(
+          JSON.stringify({ chats: result || [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       case "check-whatsapp":
         // Verifica se números têm WhatsApp
         const { phones } = data || {};
