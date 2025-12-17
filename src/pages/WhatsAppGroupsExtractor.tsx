@@ -674,10 +674,18 @@ const WhatsAppGroupsExtractor = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3 mb-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-6">
             <TabsTrigger value="my-groups" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Meus Grupos
+            </TabsTrigger>
+            <TabsTrigger value="contacts" className="flex items-center gap-2">
+              <BookUser className="w-4 h-4" />
+              Lista Telefônica
+            </TabsTrigger>
+            <TabsTrigger value="chats" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Bate-Papo
             </TabsTrigger>
             <TabsTrigger value="search-groups" className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
@@ -777,26 +785,6 @@ const WhatsAppGroupsExtractor = () => {
                     {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
                     {isLoading ? 'Buscando grupos...' : 'Extrair Grupos'}
                   </Button>
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button 
-                      onClick={fetchContacts} 
-                      variant="outline"
-                      className="border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10" 
-                      disabled={isLoadingContacts || !selectedInstance}
-                    >
-                      {isLoadingContacts ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookUser className="w-4 h-4 mr-2" />}
-                      {isLoadingContacts ? 'Extraindo...' : 'Lista Telefônica'}
-                    </Button>
-                    <Button 
-                      onClick={fetchChats} 
-                      variant="outline"
-                      className="border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10" 
-                      disabled={isLoadingChats || !selectedInstance}
-                    >
-                      {isLoadingChats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MessageSquare className="w-4 h-4 mr-2" />}
-                      {isLoadingChats ? 'Extraindo...' : 'Bate-Papo'}
-                    </Button>
-                  </div>
                 </div>
               )}
             </CardContent>
@@ -1091,6 +1079,98 @@ const WhatsAppGroupsExtractor = () => {
                     <p className="text-muted-foreground">Busque grupos por tema</p>
                     <p className="text-sm text-muted-foreground/70">Ex: vendas, marketing, finanças</p>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="contacts">
+            <Card className="opacity-0 animate-fade-in-up overflow-hidden max-w-xl">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#25D366] to-[#128C7E]" />
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookUser className="w-5 h-5 text-[#25D366]" />
+                  Lista Telefônica
+                </CardTitle>
+                <CardDescription>Extraia os contatos salvos no WhatsApp conectado</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {connectedInstances.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Smartphone className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="text-muted-foreground">Nenhuma instância conectada</p>
+                    <p className="text-sm text-muted-foreground/70">Conecte uma instância na aba "Meus Grupos" primeiro</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Selecione a Instância</Label>
+                      <Select value={selectedInstance} onValueChange={setSelectedInstance}>
+                        <SelectTrigger><SelectValue placeholder="Selecione uma instância conectada" /></SelectTrigger>
+                        <SelectContent>
+                          {connectedInstances.map((instance) => (
+                            <SelectItem key={`contacts-select-${instance.id}`} value={instance.instanceName}>
+                              {instance.NomeConexao || instance.instanceName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button 
+                      onClick={fetchContacts} 
+                      className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
+                      disabled={isLoadingContacts || !selectedInstance}
+                    >
+                      {isLoadingContacts ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookUser className="w-4 h-4 mr-2" />}
+                      {isLoadingContacts ? 'Extraindo contatos...' : 'Extrair Lista Telefônica'}
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="chats">
+            <Card className="opacity-0 animate-fade-in-up overflow-hidden max-w-xl">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#25D366] to-[#128C7E]" />
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-[#25D366]" />
+                  Bate-Papo
+                </CardTitle>
+                <CardDescription>Extraia os contatos das suas conversas</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {connectedInstances.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Smartphone className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="text-muted-foreground">Nenhuma instância conectada</p>
+                    <p className="text-sm text-muted-foreground/70">Conecte uma instância na aba "Meus Grupos" primeiro</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Selecione a Instância</Label>
+                      <Select value={selectedInstance} onValueChange={setSelectedInstance}>
+                        <SelectTrigger><SelectValue placeholder="Selecione uma instância conectada" /></SelectTrigger>
+                        <SelectContent>
+                          {connectedInstances.map((instance) => (
+                            <SelectItem key={`chats-select-${instance.id}`} value={instance.instanceName}>
+                              {instance.NomeConexao || instance.instanceName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button 
+                      onClick={fetchChats} 
+                      className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
+                      disabled={isLoadingChats || !selectedInstance}
+                    >
+                      {isLoadingChats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MessageSquare className="w-4 h-4 mr-2" />}
+                      {isLoadingChats ? 'Extraindo conversas...' : 'Extrair Bate-Papo'}
+                    </Button>
+                  </>
                 )}
               </CardContent>
             </Card>
