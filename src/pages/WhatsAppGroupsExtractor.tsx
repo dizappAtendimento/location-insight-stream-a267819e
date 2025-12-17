@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download, ExternalLink, Globe, Clock, X, BookUser } from 'lucide-react';
+import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download, ExternalLink, Globe, Clock, X, BookUser, MessageSquare } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,6 +67,7 @@ const WhatsAppGroupsExtractor = () => {
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [isExtractingParticipants, setIsExtractingParticipants] = useState(false);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
   
   // Public groups search states
   const [activeTab, setActiveTab] = useState('my-groups');
@@ -360,6 +361,55 @@ const WhatsAppGroupsExtractor = () => {
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar contatos", variant: "destructive" });
     } finally {
       setIsLoadingContacts(false);
+    }
+  };
+
+  const fetchChats = async () => {
+    if (!selectedInstance) {
+      toast({ title: "Erro", description: "Selecione uma instância conectada", variant: "destructive" });
+      return;
+    }
+    setIsLoadingChats(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'fetch-chats', instanceName: selectedInstance }
+      });
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
+      
+      const chats = data.chats || [];
+      
+      // Filtrar apenas conversas individuais (não grupos)
+      const individualChats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
+      
+      if (individualChats.length === 0) {
+        toast({ title: "Aviso", description: "Nenhuma conversa encontrada", variant: "destructive" });
+        return;
+      }
+
+      // Download Excel com contatos do bate-papo
+      const worksheet = XLSX.utils.json_to_sheet(individualChats.map((c: any) => ({
+        'Nome': c.pushName || c.name || '',
+        'Telefone': (c.remoteJid || '').replace(/@.*$/, ''),
+        'ID': c.remoteJid || c.id || '',
+      })));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Conversas');
+      XLSX.writeFile(workbook, `conversas_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      addRecord({
+        type: 'whatsapp-groups',
+        segment: `Conversas de ${selectedInstance}`,
+        totalResults: individualChats.length,
+        emailsFound: 0,
+        phonesFound: individualChats.length,
+      });
+      
+      toast({ title: "Extração concluída", description: `${individualChats.length} conversas extraídas` });
+    } catch (error) {
+      toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar conversas", variant: "destructive" });
+    } finally {
+      setIsLoadingChats(false);
     }
   };
 
@@ -1062,16 +1112,27 @@ const WhatsAppGroupsExtractor = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button 
-                      onClick={fetchContacts} 
-                      className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
-                      disabled={isLoadingContacts || !selectedInstance}
-                    >
-                      {isLoadingContacts ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookUser className="w-4 h-4 mr-2" />}
-                      {isLoadingContacts ? 'Extraindo contatos...' : 'Extrair Contatos'}
-                    </Button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        onClick={fetchContacts} 
+                        className="bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
+                        disabled={isLoadingContacts || !selectedInstance}
+                      >
+                        {isLoadingContacts ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookUser className="w-4 h-4 mr-2" />}
+                        {isLoadingContacts ? 'Extraindo...' : 'Lista Telefônica'}
+                      </Button>
+                      <Button 
+                        onClick={fetchChats} 
+                        variant="outline"
+                        className="border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10" 
+                        disabled={isLoadingChats || !selectedInstance}
+                      >
+                        {isLoadingChats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MessageSquare className="w-4 h-4 mr-2" />}
+                        {isLoadingChats ? 'Extraindo...' : 'Bate-Papo'}
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground text-center">
-                      Os contatos serão baixados automaticamente em formato Excel
+                      Lista Telefônica: contatos salvos | Bate-Papo: pessoas que você conversa
                     </p>
                   </>
                 )}
