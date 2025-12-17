@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download, ExternalLink, Globe, Clock, X } from 'lucide-react';
+import { Search, FileDown, Loader2, Users, Smartphone, QrCode, RefreshCw, WifiOff, Trash2, Download, ExternalLink, Globe, Clock, X, BookUser } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +51,13 @@ interface UserInstance {
   status: 'connected' | 'disconnected';
 }
 
+interface WhatsAppContact {
+  id: string;
+  pushName?: string;
+  profilePictureUrl?: string;
+  owner?: string;
+}
+
 const WhatsAppGroupsExtractor = () => {
   const { toast } = useToast();
   const { addRecord } = useExtractionHistory();
@@ -59,6 +66,7 @@ const WhatsAppGroupsExtractor = () => {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [isExtractingParticipants, setIsExtractingParticipants] = useState(false);
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   
   // Public groups search states
   const [activeTab, setActiveTab] = useState('my-groups');
@@ -306,6 +314,52 @@ const WhatsAppGroupsExtractor = () => {
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar grupos", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchContacts = async () => {
+    if (!selectedInstance) {
+      toast({ title: "Erro", description: "Selecione uma instância conectada", variant: "destructive" });
+      return;
+    }
+    setIsLoadingContacts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'fetch-contacts', instanceName: selectedInstance }
+      });
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
+      
+      const contacts: WhatsAppContact[] = data.contacts || [];
+      
+      if (contacts.length === 0) {
+        toast({ title: "Aviso", description: "Nenhum contato encontrado na lista telefônica", variant: "destructive" });
+        return;
+      }
+
+      // Download Excel com contatos
+      const worksheet = XLSX.utils.json_to_sheet(contacts.map((c: WhatsAppContact) => ({
+        'Nome': c.pushName || '',
+        'Telefone': (c.id || '').replace('@s.whatsapp.net', '').replace('@c.us', ''),
+        'ID': c.id || '',
+      })));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Contatos');
+      XLSX.writeFile(workbook, `contatos_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      addRecord({
+        type: 'whatsapp-groups',
+        segment: `Contatos de ${selectedInstance}`,
+        totalResults: contacts.length,
+        emailsFound: 0,
+        phonesFound: contacts.length,
+      });
+      
+      toast({ title: "Extração concluída", description: `${contacts.length} contatos extraídos` });
+    } catch (error) {
+      toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar contatos", variant: "destructive" });
+    } finally {
+      setIsLoadingContacts(false);
     }
   };
 
@@ -665,14 +719,25 @@ const WhatsAppGroupsExtractor = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button 
-                    onClick={fetchGroups} 
-                    className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
-                    disabled={isLoading || !selectedInstance}
-                  >
-                    {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
-                    {isLoading ? 'Buscando grupos...' : 'Extrair Grupos'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={fetchGroups} 
+                      className="flex-1 bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
+                      disabled={isLoading || !selectedInstance}
+                    >
+                      {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+                      {isLoading ? 'Buscando...' : 'Extrair Grupos'}
+                    </Button>
+                    <Button 
+                      onClick={fetchContacts} 
+                      variant="outline"
+                      className="flex-1 border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10" 
+                      disabled={isLoadingContacts || !selectedInstance}
+                    >
+                      {isLoadingContacts ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookUser className="w-4 h-4 mr-2" />}
+                      {isLoadingContacts ? 'Extraindo...' : 'Extrair Contatos'}
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
