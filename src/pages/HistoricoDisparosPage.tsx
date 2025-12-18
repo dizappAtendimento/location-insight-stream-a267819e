@@ -92,8 +92,12 @@ const HistoricoDisparosPage = () => {
 
   const filteredDisparos = useMemo(() => {
     return disparos.filter((disparo) => {
-      const tipoMatch = tipoFilter === "todos" || disparo.TipoDisparo === tipoFilter;
-      const statusMatch = statusFilter === "todos" || disparo.StatusDisparo === statusFilter;
+      const tipoMatch = tipoFilter === "todos" || 
+        disparo.TipoDisparo?.toLowerCase() === tipoFilter.toLowerCase() ||
+        (tipoFilter === "grupo" && disparo.TipoDisparo?.toLowerCase() === "grupos");
+      const statusMatch = statusFilter === "todos" || 
+        disparo.StatusDisparo?.toLowerCase().replace(/ /g, "_") === statusFilter.toLowerCase() ||
+        disparo.StatusDisparo?.toLowerCase() === statusFilter.toLowerCase().replace(/_/g, " ");
       return tipoMatch && statusMatch;
     });
   }, [disparos, tipoFilter, statusFilter]);
