@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Plus, Users, MessageSquare, Pencil, Trash2, List, Search, Loader2 } from "lucide-react";
+import { RefreshCw, Plus, Users, MessageSquare, Pencil, Trash2, List, Search, Loader2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -54,6 +55,7 @@ interface Lista {
 }
 
 const ListasPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [listas, setListas] = useState<Lista[]>([]);
   const [filteredListas, setFilteredListas] = useState<Lista[]>([]);
@@ -480,8 +482,18 @@ const ListasPage = () => {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => navigate(`/listas/${lista.id}`)}
+                              className="hover:text-primary hover:bg-primary/10"
+                              title="Ver detalhes"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => openEditModal(lista)}
                               className="hover:text-primary hover:bg-primary/10"
+                              title="Editar"
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
@@ -490,6 +502,7 @@ const ListasPage = () => {
                               size="icon"
                               onClick={() => openDeleteDialog(lista)}
                               className="hover:text-destructive hover:bg-destructive/10"
+                              title="Excluir"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

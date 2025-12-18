@@ -20,6 +20,7 @@ import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import ConexoesPage from "./pages/ConexoesPage";
 import ListasPage from "./pages/ListasPage";
+import ListaDetalhesPage from "./pages/ListaDetalhesPage";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/disparos" element={<ProtectedRoute><DisparosPage /></ProtectedRoute>} />
               <Route path="/disparos-grupo" element={<ProtectedRoute><DisparosGrupoPage /></ProtectedRoute>} />
               <Route path="/listas" element={<ProtectedRoute><ListasPage /></ProtectedRoute>} />
+              <Route path="/listas/:id" element={<ProtectedRoute><ListaDetalhesPage /></ProtectedRoute>} />
               <Route path="/historico" element={<ProtectedRoute><HistoricoPage /></ProtectedRoute>} />
               <Route path="/places" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/instagram" element={<ProtectedRoute><InstagramExtractor /></ProtectedRoute>} />
