@@ -83,14 +83,12 @@ const ListasPage = () => {
     if (!user?.id) return;
     
     try {
-      const { data, error } = await supabase
-        .from("SAAS_Listas")
-        .select("*")
-        .eq("idUsuario", user.id)
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: { action: "get-listas", userId: user.id },
+      });
 
       if (error) throw error;
-      setListas(data || []);
+      setListas(data?.listas || []);
     } catch (error) {
       console.error("Erro ao buscar listas:", error);
       toast.error("Erro ao carregar listas");
@@ -160,15 +158,17 @@ const ListasPage = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("SAAS_Listas")
-        .insert({
-          nome: newListName.trim(),
-          tipo: newListType,
-          descricao: newListDescription.trim() || null,
-          idUsuario: user.id,
-          campos: {},
-        });
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: {
+          action: "create-lista",
+          userId: user.id,
+          disparoData: {
+            nome: newListName.trim(),
+            tipo: newListType,
+            descricao: newListDescription.trim() || null,
+          },
+        },
+      });
 
       if (error) throw error;
 
@@ -192,16 +192,22 @@ const ListasPage = () => {
       return;
     }
 
+    if (!user?.id) return;
+
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("SAAS_Listas")
-        .update({
-          nome: newListName.trim(),
-          tipo: newListType,
-          descricao: newListDescription.trim() || null,
-        })
-        .eq("id", selectedLista.id);
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: {
+          action: "update-lista",
+          userId: user.id,
+          disparoData: {
+            id: selectedLista.id,
+            nome: newListName.trim(),
+            tipo: newListType,
+            descricao: newListDescription.trim() || null,
+          },
+        },
+      });
 
       if (error) throw error;
 
@@ -221,13 +227,16 @@ const ListasPage = () => {
   };
 
   const handleDeleteLista = async () => {
-    if (!selectedLista) return;
+    if (!selectedLista || !user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from("SAAS_Listas")
-        .delete()
-        .eq("id", selectedLista.id);
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: {
+          action: "delete-lista",
+          userId: user.id,
+          disparoData: { id: selectedLista.id },
+        },
+      });
 
       if (error) throw error;
 
