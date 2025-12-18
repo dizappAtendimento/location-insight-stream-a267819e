@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import InstagramExtractor from "./pages/InstagramExtractor";
 import LinkedInExtractor from "./pages/LinkedInExtractor";
 import WhatsAppGroupsExtractor from "./pages/WhatsAppGroupsExtractor";
+import DisparosPage from "./pages/DisparosPage";
 import Dashboard from "./pages/Dashboard";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -30,6 +31,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/disparos" element={<ProtectedRoute><DisparosPage /></ProtectedRoute>} />
               <Route path="/historico" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
               <Route path="/places" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/instagram" element={<ProtectedRoute><InstagramExtractor /></ProtectedRoute>} />

@@ -6,6 +6,7 @@ import {
   MapPin,
   History,
   Settings,
+  Send,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +28,7 @@ import logo from '@/assets/logo.png';
 
 const menuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Disparos', url: '/disparos', icon: Send },
   { title: 'Histórico', url: '/historico', icon: History },
 ];
 
