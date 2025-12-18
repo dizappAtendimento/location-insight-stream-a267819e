@@ -130,16 +130,20 @@ export default function DisparosPage() {
     if (!user?.id) return;
     setIsLoadingConnections(true);
     try {
-      const { data, error } = await supabase
-        .from('SAAS_Conexões')
-        .select('*')
-        .eq('idUsuario', user.id);
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'get-connections',
+          userId: user.id,
+        },
+      });
 
       if (error) throw error;
 
+      const connectionsData = data?.connections || [];
+      
       // Fetch status for each connection
       const connectionsWithStatus: Connection[] = await Promise.all(
-        (data || []).map(async (conn) => {
+        connectionsData.map(async (conn: any) => {
           try {
             const response = await supabase.functions.invoke('evolution-api', {
               body: {
@@ -171,13 +175,15 @@ export default function DisparosPage() {
     if (!user?.id) return;
     setIsLoadingListas(true);
     try {
-      const { data, error } = await supabase
-        .from('SAAS_Listas')
-        .select('*')
-        .eq('idUsuario', user.id);
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'get-listas',
+          userId: user.id,
+        },
+      });
 
       if (error) throw error;
-      setListas(data || []);
+      setListas(data?.listas || []);
     } catch (error) {
       console.error('Error fetching listas:', error);
       toast.error('Erro ao carregar listas');
