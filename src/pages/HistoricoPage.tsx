@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, FileSpreadsheet, MessageCircle, Send, MoreVertical, Play, Pause, Trash2 as TrashIcon, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, FileSpreadsheet, MessageCircle, Send, MoreVertical, Play, Pause, Trash2 as TrashIcon, RefreshCw, Eye } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,7 @@ interface Disparo {
 }
 
 const HistoricoPage = () => {
+  const navigate = useNavigate();
   const { history, clearHistory, deleteRecord, getResults } = useExtractionHistory();
   const { toast: toastUI } = useToast();
   const { user } = useAuth();
@@ -857,6 +859,13 @@ const HistoricoPage = () => {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="bg-card border-border">
+                                  <DropdownMenuItem
+                                    onClick={() => navigate(`/disparos/${disparo.id}`)}
+                                    className="focus:bg-primary/10"
+                                  >
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Ver detalhes
+                                  </DropdownMenuItem>
                                   {canPauseResume && (
                                     isPaused ? (
                                       <DropdownMenuItem
