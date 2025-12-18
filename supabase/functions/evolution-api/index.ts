@@ -265,6 +265,26 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "status":
+        // Busca status de uma instância específica usando apikey própria
+        const { apikey } = await req.json().catch(() => ({}));
+        const statusHeaders = {
+          "Content-Type": "application/json",
+          "apikey": apikey || EVOLUTION_API_KEY,
+        };
+        response = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
+          method: "GET",
+          headers: statusHeaders,
+        });
+        result = await response.json();
+        const statusInstance = Array.isArray(result) ? result[0] : result;
+        const state = statusInstance?.connectionStatus || statusInstance?.instance?.state || statusInstance?.state || 'close';
+        console.log(`[Evolution API] Status for ${instanceName}: ${state}`);
+        return new Response(
+          JSON.stringify({ state, instance: statusInstance }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       case "check-whatsapp":
         // Verifica se números têm WhatsApp
         const { phones } = data || {};
