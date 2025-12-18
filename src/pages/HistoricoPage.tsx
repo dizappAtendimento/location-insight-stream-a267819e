@@ -134,7 +134,16 @@ const HistoricoPage = () => {
 
   useEffect(() => {
     fetchDisparos();
-  }, [user?.id]);
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      if (activeTab === 'disparo') {
+        fetchDisparos();
+      }
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user?.id, activeTab]);
 
   const handleRefreshDisparos = () => {
     setRefreshing(true);
@@ -828,7 +837,11 @@ const HistoricoPage = () => {
                         const canPauseResume = isPaused || isRunning;
 
                         return (
-                          <TableRow key={disparo.id} className="border-border">
+                          <TableRow 
+                            key={disparo.id} 
+                            className="border-border cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => navigate(`/disparos/${disparo.id}`)}
+                          >
                             <TableCell>
                               <div className="text-foreground">{date}</div>
                               <div className="text-sm text-muted-foreground">{time}</div>
@@ -847,7 +860,7 @@ const HistoricoPage = () => {
                               </div>
                             </TableCell>
                             <TableCell>{getStatusBadge(disparo.StatusDisparo)}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
