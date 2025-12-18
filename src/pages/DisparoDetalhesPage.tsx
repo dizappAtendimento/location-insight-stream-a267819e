@@ -291,6 +291,49 @@ export default function DisparoDetalhesPage() {
     return null;
   };
 
+  // Estimate finish time based on current rate
+  const getEstimatedFinishTime = () => {
+    if (!disparo) return null;
+    
+    // Only calculate for active dispatches
+    const status = disparo.StatusDisparo?.toLowerCase();
+    if (status === 'concluido' || status === 'finalizado' || status === 'cancelado') {
+      return "Concluído";
+    }
+    if (status === 'pausado') {
+      return "Pausado";
+    }
+    
+    const sentDetails = detalhes.filter(d => d.dataEnvio);
+    if (sentDetails.length < 2) return "Calculando...";
+    
+    // Sort by date
+    const sorted = sentDetails.sort((a, b) => 
+      new Date(a.dataEnvio!).getTime() - new Date(b.dataEnvio!).getTime()
+    );
+    
+    const firstTime = new Date(sorted[0].dataEnvio!).getTime();
+    const lastTime = new Date(sorted[sorted.length - 1].dataEnvio!).getTime();
+    const elapsedMs = lastTime - firstTime;
+    
+    if (elapsedMs <= 0 || sentDetails.length <= 1) return "Calculando...";
+    
+    // Calculate rate (messages per millisecond)
+    const messagesPerMs = sentDetails.length / elapsedMs;
+    
+    // Remaining messages
+    const remaining = stats.pendentes;
+    if (remaining <= 0) return "Quase pronto";
+    
+    // Estimated remaining time in ms
+    const remainingMs = remaining / messagesPerMs;
+    
+    // Estimated finish date
+    const estimatedFinish = new Date(Date.now() + remainingMs);
+    
+    return format(estimatedFinish, "dd/MM/yyyy HH:mm", { locale: ptBR });
+  };
+
   // Export to Excel
   const handleExportExcel = () => {
     if (!disparo) return;
@@ -522,7 +565,7 @@ export default function DisparoDetalhesPage() {
         </div>
 
         {/* Status and Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Status */}
           <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50 flex flex-col items-center justify-center min-h-[140px]">
             <p className="text-sm text-muted-foreground mb-3">Status do Disparo</p>
@@ -551,6 +594,17 @@ export default function DisparoDetalhesPage() {
             <div className="flex items-center gap-2">
               <Clock className="h-6 w-6 text-warning" />
               <span className="text-3xl font-bold text-warning">{stats.pendentes}</span>
+            </div>
+          </div>
+
+          {/* Estimated finish time */}
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50 flex flex-col items-center justify-center min-h-[140px]">
+            <p className="text-sm text-muted-foreground mb-2">Previsão de Término</p>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-6 w-6 text-info" />
+              <span className="text-lg font-bold text-info">
+                {getEstimatedFinishTime() || "N/A"}
+              </span>
             </div>
           </div>
         </div>
