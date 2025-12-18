@@ -11,6 +11,7 @@ import InstagramExtractor from "./pages/InstagramExtractor";
 import LinkedInExtractor from "./pages/LinkedInExtractor";
 import WhatsAppGroupsExtractor from "./pages/WhatsAppGroupsExtractor";
 import DisparosPage from "./pages/DisparosPage";
+import DisparosGrupoPage from "./pages/DisparosGrupoPage";
 import Dashboard from "./pages/Dashboard";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/conexoes" element={<ProtectedRoute><ConexoesPage /></ProtectedRoute>} />
               <Route path="/disparos" element={<ProtectedRoute><DisparosPage /></ProtectedRoute>} />
+              <Route path="/disparos-grupo" element={<ProtectedRoute><DisparosGrupoPage /></ProtectedRoute>} />
               <Route path="/historico" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
               <Route path="/places" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/instagram" element={<ProtectedRoute><InstagramExtractor /></ProtectedRoute>} />
