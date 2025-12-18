@@ -80,6 +80,7 @@ export default function DisparosGrupoPage() {
   const [mentionAll, setMentionAll] = useState(false);
   const [enableAI, setEnableAI] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
   const [isLoadingListas, setIsLoadingListas] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -271,6 +272,54 @@ export default function DisparosGrupoPage() {
         ? { ...m, mediaType: null, mediaUrl: null, mediaName: null }
         : m
     ));
+  };
+
+  const generateWithAI = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error('Digite uma descrição para a mensagem');
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'generate-ai-message',
+          userId: user?.id,
+          disparoData: { 
+            prompt: aiPrompt,
+            currentMessages: messages.map(m => m.text).filter(t => t.trim())
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        if (data.error.includes('API key')) {
+          toast.error('Configure sua API key do ChatGPT em Conexões');
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
+
+      if (data?.message) {
+        setMessages(prev => {
+          const updated = [...prev];
+          if (updated.length > 0) {
+            updated[0] = { ...updated[0], text: data.message };
+          }
+          return updated;
+        });
+        toast.success('Mensagem gerada com sucesso!');
+      }
+    } catch (error: any) {
+      console.error('Error generating AI message:', error);
+      toast.error('Erro ao gerar mensagem com IA');
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -727,9 +776,22 @@ export default function DisparosGrupoPage() {
                         A IA irá variar a mensagem para cada grupo, mantendo o mesmo contexto.
                       </p>
                     </div>
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Gerar Mensagem com IA
+                    <Button 
+                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                      onClick={generateWithAI}
+                      disabled={isGeneratingAI || !aiPrompt.trim()}
+                    >
+                      {isGeneratingAI ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Gerando...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Gerar Mensagem com IA
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}
