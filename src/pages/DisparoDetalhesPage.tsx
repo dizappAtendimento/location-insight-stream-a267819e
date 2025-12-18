@@ -1,0 +1,768 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { 
+  ArrowLeft, 
+  RefreshCw, 
+  Loader2,
+  MoreVertical,
+  Play,
+  Pause,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Send,
+  MessageSquare,
+  Calendar,
+  Settings2,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  Image,
+  Video,
+  FileAudio,
+  FileText,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
+
+interface Disparo {
+  id: number;
+  created_at: string;
+  StatusDisparo: string | null;
+  TipoDisparo: string | null;
+  TotalDisparos: number | null;
+  MensagensDisparadas: number | null;
+  Mensagens: any[] | null;
+  idListas: number[] | null;
+  idConexoes: number[] | null;
+  intervaloMin: number | null;
+  intervaloMax: number | null;
+  StartTime: string | null;
+  EndTime: string | null;
+  DiasSelecionados: number[] | null;
+  DataAgendamento: string | null;
+}
+
+interface Detalhe {
+  id: number;
+  idDisparo: number;
+  idContato: number | null;
+  idGrupo: number | null;
+  idConexao: number | null;
+  Status: string | null;
+  Mensagem: string | null;
+  dataEnvio: string | null;
+  mensagemErro: string | null;
+  TelefoneContato: string | null;
+  NomeConexao: string | null;
+  NomeGrupo: string | null;
+  TipoDisparo: string | null;
+}
+
+interface Lista {
+  id: number;
+  nome: string;
+  tipo: string | null;
+}
+
+interface Conexao {
+  id: number;
+  NomeConexao: string | null;
+  Telefone: string | null;
+}
+
+const ITEMS_PER_PAGE = 20;
+
+const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+export default function DisparoDetalhesPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [disparo, setDisparo] = useState<Disparo | null>(null);
+  const [detalhes, setDetalhes] = useState<Detalhe[]>([]);
+  const [listas, setListas] = useState<Lista[]>([]);
+  const [conexoes, setConexoes] = useState<Conexao[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isPausing, setIsPausing] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
+
+  useEffect(() => {
+    if (user?.id && id) {
+      fetchDisparoDetails();
+    }
+  }, [user?.id, id]);
+
+  const fetchDisparoDetails = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: {
+          action: "get-disparo-detalhes",
+          userId: user?.id,
+          disparoData: { id: parseInt(id!) },
+        },
+      });
+
+      if (error) throw error;
+
+      setDisparo(data.disparo);
+      setDetalhes(data.detalhes || []);
+      setListas(data.listas || []);
+      setConexoes(data.conexoes || []);
+    } catch (error: any) {
+      console.error("Error fetching disparo details:", error);
+      toast.error("Erro ao carregar detalhes do disparo");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchDisparoDetails();
+    setIsRefreshing(false);
+    toast.success("Dados atualizados");
+  };
+
+  const handlePause = async () => {
+    try {
+      setIsPausing(true);
+      const { error } = await supabase.functions.invoke("disparos-api", {
+        body: {
+          action: "pause-disparo",
+          userId: user?.id,
+          disparoData: { id: disparo?.id },
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Disparo pausado");
+      fetchDisparoDetails();
+    } catch (error: any) {
+      toast.error("Erro ao pausar disparo");
+    } finally {
+      setIsPausing(false);
+    }
+  };
+
+  const handleResume = async () => {
+    try {
+      setIsResuming(true);
+      const { error } = await supabase.functions.invoke("disparos-api", {
+        body: {
+          action: "resume-disparo",
+          userId: user?.id,
+          disparoData: { id: disparo?.id },
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Disparo retomado");
+      fetchDisparoDetails();
+    } catch (error: any) {
+      toast.error("Erro ao retomar disparo");
+    } finally {
+      setIsResuming(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      const { error } = await supabase.functions.invoke("disparos-api", {
+        body: {
+          action: "delete-disparo",
+          userId: user?.id,
+          disparoData: { id: disparo?.id },
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Disparo excluído");
+      navigate("/historico");
+    } catch (error: any) {
+      toast.error("Erro ao excluir disparo");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  // Calculate stats
+  const stats = {
+    enviados: detalhes.filter((d) => d.Status === "enviado" || d.Status === "Enviado").length,
+    falhas: detalhes.filter((d) => d.Status === "falha" || d.Status === "Falha" || d.Status === "erro").length,
+    pendentes: detalhes.filter((d) => d.Status === "pendente" || d.Status === "Pendente" || !d.Status).length,
+  };
+
+  // Filter and paginate
+  const filteredDetalhes = detalhes.filter((d) => {
+    if (statusFilter === "all") return true;
+    return d.Status?.toLowerCase() === statusFilter.toLowerCase();
+  });
+
+  const totalPages = Math.ceil(filteredDetalhes.length / ITEMS_PER_PAGE);
+  const paginatedDetalhes = filteredDetalhes.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Chart data
+  const pieData = [
+    { name: "Enviados", value: stats.enviados, color: "#22c55e" },
+    { name: "Falhas", value: stats.falhas, color: "#ef4444" },
+    { name: "Pendentes", value: stats.pendentes, color: "#f59e0b" },
+  ].filter((d) => d.value > 0);
+
+  // Group by hour for area chart
+  const hourlyData = detalhes.reduce((acc: any[], d) => {
+    if (!d.dataEnvio) return acc;
+    const hour = format(parseISO(d.dataEnvio), "HH:00");
+    const existing = acc.find((a) => a.hora === hour);
+    if (existing) {
+      if (d.Status === "enviado" || d.Status === "Enviado") existing.enviados++;
+      else if (d.Status === "falha" || d.Status === "Falha") existing.falhas++;
+    } else {
+      acc.push({
+        hora: hour,
+        enviados: d.Status === "enviado" || d.Status === "Enviado" ? 1 : 0,
+        falhas: d.Status === "falha" || d.Status === "Falha" ? 1 : 0,
+      });
+    }
+    return acc;
+  }, []).sort((a, b) => a.hora.localeCompare(b.hora));
+
+  const getStatusBadge = (status: string | null) => {
+    switch (status?.toLowerCase()) {
+      case "enviado":
+        return <Badge className="bg-success/20 text-success border-success/30">Enviado</Badge>;
+      case "falha":
+      case "erro":
+        return <Badge className="bg-destructive/20 text-destructive border-destructive/30">Falha</Badge>;
+      case "pendente":
+      default:
+        return <Badge className="bg-warning/20 text-warning border-warning/30">Pendente</Badge>;
+    }
+  };
+
+  const getDisparoStatusBadge = (status: string | null) => {
+    switch (status?.toLowerCase()) {
+      case "concluido":
+      case "finalizado":
+        return <Badge className="bg-success/20 text-success border-success/30 text-lg px-4 py-1">Concluído</Badge>;
+      case "em_andamento":
+      case "em andamento":
+      case "processando":
+        return <Badge className="bg-primary/20 text-primary border-primary/30 text-lg px-4 py-1">Em Andamento</Badge>;
+      case "pausado":
+        return <Badge className="bg-warning/20 text-warning border-warning/30 text-lg px-4 py-1">Pausado</Badge>;
+      case "cancelado":
+        return <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-lg px-4 py-1">Cancelado</Badge>;
+      case "agendado":
+        return <Badge className="bg-info/20 text-info border-info/30 text-lg px-4 py-1">Agendado</Badge>;
+      default:
+        return <Badge className="bg-muted/20 text-muted-foreground text-lg px-4 py-1">{status || "N/A"}</Badge>;
+    }
+  };
+
+  const getMessageTypeIcon = (msg: any) => {
+    if (msg?.mediaType === "image") return <Image className="h-4 w-4" />;
+    if (msg?.mediaType === "video") return <Video className="h-4 w-4" />;
+    if (msg?.mediaType === "audio") return <FileAudio className="h-4 w-4" />;
+    if (msg?.mediaType === "document") return <FileText className="h-4 w-4" />;
+    return <MessageSquare className="h-4 w-4" />;
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando detalhes do disparo...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!disparo) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <AlertTriangle className="h-12 w-12 text-warning" />
+          <p className="text-muted-foreground">Disparo não encontrado</p>
+          <Button onClick={() => navigate("/historico")} variant="outline">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">
+              Detalhes do Disparo #{disparo.id}
+            </h1>
+            <p className="text-muted-foreground">
+              Criado em {format(parseISO(disparo.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/historico")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {disparo.StatusDisparo?.toLowerCase() === "em_andamento" ||
+                disparo.StatusDisparo?.toLowerCase() === "processando" ? (
+                  <DropdownMenuItem onClick={handlePause} disabled={isPausing}>
+                    <Pause className="h-4 w-4 mr-2" />
+                    Pausar Disparo
+                  </DropdownMenuItem>
+                ) : disparo.StatusDisparo?.toLowerCase() === "pausado" ? (
+                  <DropdownMenuItem onClick={handleResume} disabled={isResuming}>
+                    <Play className="h-4 w-4 mr-2" />
+                    Retomar Disparo
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir Disparo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Status and Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Status */}
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50 flex flex-col items-center justify-center min-h-[140px]">
+            <p className="text-sm text-muted-foreground mb-3">Status do Disparo</p>
+            {getDisparoStatusBadge(disparo.StatusDisparo)}
+          </div>
+
+          {/* Stats */}
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50 flex flex-col items-center justify-center min-h-[140px]">
+            <p className="text-sm text-muted-foreground mb-2">Enviados</p>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-6 w-6 text-success" />
+              <span className="text-3xl font-bold text-success">{stats.enviados}</span>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50 flex flex-col items-center justify-center min-h-[140px]">
+            <p className="text-sm text-muted-foreground mb-2">Falhas</p>
+            <div className="flex items-center gap-2">
+              <XCircle className="h-6 w-6 text-destructive" />
+              <span className="text-3xl font-bold text-destructive">{stats.falhas}</span>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50 flex flex-col items-center justify-center min-h-[140px]">
+            <p className="text-sm text-muted-foreground mb-2">Pendentes</p>
+            <div className="flex items-center gap-2">
+              <Clock className="h-6 w-6 text-warning" />
+              <span className="text-3xl font-bold text-warning">{stats.pendentes}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Config and Messages Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Configuration */}
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50">
+            <div className="flex items-center gap-2 mb-4">
+              <Settings2 className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Configurações</h2>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <span className="text-muted-foreground">Intervalo</span>
+                <span className="font-medium text-primary">
+                  {disparo.intervaloMin || 5}s - {disparo.intervaloMax || 15}s
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <span className="text-muted-foreground">Horário</span>
+                <span className="font-medium text-primary">
+                  {disparo.StartTime || "08:00"} - {disparo.EndTime || "18:00"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <span className="text-muted-foreground">Dias da Semana</span>
+                <span className="font-medium text-primary">
+                  {disparo.DiasSelecionados?.map((d) => diasSemana[d]).join(", ") || "Todos"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <span className="text-muted-foreground">Total de Disparos</span>
+                <span className="font-medium text-primary">
+                  {disparo.MensagensDisparadas || 0} / {disparo.TotalDisparos || 0}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <span className="text-muted-foreground">Listas</span>
+                <span className="font-medium text-primary">
+                  {listas.map((l) => l.nome).join(", ") || "N/A"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <span className="text-muted-foreground">Conexões</span>
+                <span className="font-medium text-primary">
+                  {conexoes.map((c) => c.NomeConexao).join(", ") || "N/A"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50">
+            <div className="flex items-center gap-2 mb-4">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Mensagens ({disparo.Mensagens?.length || 0})</h2>
+            </div>
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {disparo.Mensagens?.map((msg, idx) => (
+                <div key={idx} className="p-3 rounded-lg bg-background/50 border border-border/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    {getMessageTypeIcon(msg)}
+                    <Badge variant="outline" className="text-xs">
+                      {msg.mediaType || "Texto"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {msg.text || msg.content || "Sem conteúdo de texto"}
+                  </p>
+                </div>
+              )) || (
+                <p className="text-muted-foreground text-center py-4">
+                  Nenhuma mensagem configurada
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Pie Chart */}
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50">
+            <h2 className="text-lg font-semibold mb-4">Distribuição de Status</h2>
+            <div className="h-[300px]">
+              {pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${value}`}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  Sem dados para exibir
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Area Chart */}
+          <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50">
+            <h2 className="text-lg font-semibold mb-4">Progresso por Hora</h2>
+            <div className="h-[300px]">
+              {hourlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={hourlyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="hora" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="enviados"
+                      stackId="1"
+                      stroke="#22c55e"
+                      fill="#22c55e"
+                      fillOpacity={0.6}
+                      name="Enviados"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="falhas"
+                      stackId="1"
+                      stroke="#ef4444"
+                      fill="#ef4444"
+                      fillOpacity={0.6}
+                      name="Falhas"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  Sem dados para exibir
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Details Table */}
+        <div className="rounded-xl bg-card/50 backdrop-blur border border-border/50 overflow-hidden">
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Filtrar por status:</span>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="enviado">Enviados</SelectItem>
+                  <SelectItem value="falha">Falhas</SelectItem>
+                  <SelectItem value="pendente">Pendentes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {filteredDetalhes.length} registros
+            </span>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Destinatário</TableHead>
+                  <TableHead>Conexão</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Mensagem</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedDetalhes.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="font-mono text-primary">
+                      {d.TelefoneContato || d.NomeGrupo || "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      {d.NomeConexao || (
+                        <span className="text-destructive font-medium">Sem conexão</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(d.Status)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {d.dataEnvio
+                        ? format(parseISO(d.dataEnvio), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="max-w-[200px]">
+                      <p className="truncate text-sm text-muted-foreground">
+                        {d.Mensagem || "-"}
+                      </p>
+                      {d.mensagemErro && (
+                        <p className="text-xs text-destructive mt-1 truncate">
+                          {d.mensagemErro}
+                        </p>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {paginatedDetalhes.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      Nenhum registro encontrado
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-border/50">
+              <span className="text-sm text-muted-foreground">
+                Página {currentPage} de {totalPages}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Delete Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Disparo</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir este disparo? Esta ação não pode ser desfeita.
+                Todos os detalhes e histórico serão removidos permanentemente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </DashboardLayout>
+  );
+}
