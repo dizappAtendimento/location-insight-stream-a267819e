@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Bell, Database, Shield, Moon, Sun, Monitor, 
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
-  Pencil, X, Save, Camera, Loader2
+  Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
@@ -51,6 +51,18 @@ const SettingsPage = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Password change state
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -223,6 +235,68 @@ const SettingsPage = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!user?.id) return;
+    
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A nova senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Senhas não conferem",
+        description: "A nova senha e a confirmação devem ser iguais",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { 
+          action: 'change-password', 
+          userId: user.id,
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Senha alterada",
+        description: "Sua senha foi alterada com sucesso",
+      });
+      setIsChangingPassword(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      toast({
+        title: "Erro ao alterar senha",
+        description: error.message || "Não foi possível alterar a senha",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
   const themeOptions = [
     { value: 'light', icon: Sun, label: 'Claro' },
     { value: 'dark', icon: Moon, label: 'Escuro' },
@@ -367,6 +441,127 @@ const SettingsPage = () => {
               )}
             </div>
           </div>
+        </section>
+
+        <Separator className="bg-border/30" />
+
+        {/* Password Section */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-muted-foreground" />
+              <h2 className="text-sm font-medium text-foreground">Segurança</h2>
+            </div>
+            {!isChangingPassword && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsChangingPassword(true)}
+                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Pencil className="w-3 h-3 mr-1" />
+                Alterar senha
+              </Button>
+            )}
+          </div>
+
+          {isChangingPassword ? (
+            <div className="p-4 rounded-lg bg-card border border-border/50 space-y-4">
+              <div className="space-y-3">
+                <div className="relative">
+                  <Label className="text-xs text-muted-foreground">Senha atual</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder="Digite sua senha atual"
+                      className="h-9 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <Label className="text-xs text-muted-foreground">Nova senha</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showNewPassword ? "text" : "password"}
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="Digite a nova senha"
+                      className="h-9 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <Label className="text-xs text-muted-foreground">Confirmar nova senha</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="Confirme a nova senha"
+                      className="h-9 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-8"
+                  onClick={() => {
+                    setIsChangingPassword(false);
+                    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                  }}
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Cancelar
+                </Button>
+                <Button 
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={handleChangePassword}
+                  disabled={isSavingPassword}
+                >
+                  {isSavingPassword ? (
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  ) : (
+                    <Save className="w-3 h-3 mr-1" />
+                  )}
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/50">
+              <div>
+                <p className="text-sm text-foreground">Senha</p>
+                <p className="text-xs text-muted-foreground">••••••••</p>
+              </div>
+            </div>
+          )}
         </section>
 
         <Separator className="bg-border/30" />

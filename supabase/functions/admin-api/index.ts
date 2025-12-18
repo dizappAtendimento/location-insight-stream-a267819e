@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, userId, userData, planData, statusType } = await req.json();
+    const { action, userId, userData, planData, statusType, currentPassword, newPassword } = await req.json();
 
     console.log(`[Admin API] Action: ${action}, UserId: ${userId || 'N/A'}, StatusType: ${statusType || 'N/A'}`);
 
@@ -309,6 +309,52 @@ serve(async (req) => {
         }
 
         console.log(`[Admin API] Profile ${userId} updated successfully`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'change-password': {
+        // Verify current password
+        const { data: user, error: fetchError } = await supabase
+          .from('SAAS_Usuarios')
+          .select('senha')
+          .eq('id', userId)
+          .single();
+
+        if (fetchError || !user) {
+          console.error('[Admin API] Error fetching user for password change:', fetchError);
+          return new Response(
+            JSON.stringify({ error: 'Usuário não encontrado' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (user.senha !== currentPassword) {
+          console.log(`[Admin API] Invalid current password for user ${userId}`);
+          return new Response(
+            JSON.stringify({ error: 'Senha atual incorreta' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Update password
+        const { error: updateError } = await supabase
+          .from('SAAS_Usuarios')
+          .update({ senha: newPassword })
+          .eq('id', userId);
+
+        if (updateError) {
+          console.error('[Admin API] Error updating password:', updateError);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao atualizar senha' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Password changed for user ${userId}`);
 
         return new Response(
           JSON.stringify({ success: true }),
