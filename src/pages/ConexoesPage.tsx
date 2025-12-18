@@ -208,12 +208,12 @@ const ConexoesPage = () => {
   };
 
   const deleteConnection = async () => {
-    if (!selectedConnection) return;
+    if (!selectedConnection || !user?.id) return;
     
     try {
       setDeletingConnection(true);
       
-      // Delete from Evolution API
+      // Delete from Evolution API first
       if (selectedConnection.instanceName && selectedConnection.Apikey) {
         await supabase.functions.invoke('evolution-api', {
           body: { 
@@ -224,11 +224,14 @@ const ConexoesPage = () => {
         });
       }
       
-      // Delete from database
-      const { error } = await supabase
-        .from('SAAS_Conexões')
-        .delete()
-        .eq('id', selectedConnection.id);
+      // Delete from database using edge function (bypasses RLS)
+      const { error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'delete-connection',
+          userId: user.id,
+          disparoData: { id: selectedConnection.id }
+        }
+      });
 
       if (error) throw error;
       
@@ -287,6 +290,8 @@ const ConexoesPage = () => {
   };
 
   const deleteDisconnectedConnections = async () => {
+    if (!user?.id) return;
+    
     const disconnected = connections.filter(c => c.status === 'close');
     
     if (disconnected.length === 0) {
@@ -309,10 +314,14 @@ const ConexoesPage = () => {
           });
         }
         
-        await supabase
-          .from('SAAS_Conexões')
-          .delete()
-          .eq('id', conn.id);
+        // Use edge function to delete from database
+        await supabase.functions.invoke('disparos-api', {
+          body: {
+            action: 'delete-connection',
+            userId: user.id,
+            disparoData: { id: conn.id }
+          }
+        });
           
       } catch (error) {
         console.error('Error deleting connection:', error);
