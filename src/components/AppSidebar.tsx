@@ -9,6 +9,7 @@ import {
   Send,
   Smartphone,
   Users,
+  List,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +35,7 @@ const menuItems = [
   { title: 'Conexões', url: '/conexoes', icon: Smartphone },
   { title: 'Disparos', url: '/disparos', icon: Send },
   { title: 'Disparos em Grupo', url: '/disparos-grupo', icon: Users },
+  { title: 'Listas', url: '/listas', icon: List },
 ];
 
 const extractorItems = [
