@@ -539,6 +539,110 @@ serve(async (req) => {
         }
       }
 
+      case 'generate-ai-message': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const prompt = disparoData?.prompt;
+        if (!prompt) {
+          return new Response(
+            JSON.stringify({ error: 'Prompt is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Disparos API] Generating AI message for user ${userId}`);
+
+        // Get user's OpenAI API key
+        const { data: userData, error: userError } = await supabase
+          .from('SAAS_Usuarios')
+          .select('apikey_gpt')
+          .eq('id', userId)
+          .single();
+
+        if (userError || !userData?.apikey_gpt) {
+          console.log('[Disparos API] User has no OpenAI API key configured');
+          return new Response(
+            JSON.stringify({ error: 'Configure sua API key do ChatGPT em Conexões antes de usar a IA' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        try {
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${userData.apikey_gpt}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                {
+                  role: 'system',
+                  content: `Você é um especialista em marketing e comunicação via WhatsApp. 
+Crie mensagens persuasivas, amigáveis e naturais para campanhas de marketing.
+As mensagens devem ser informais mas profissionais.
+Use variáveis como <nome> para personalização quando apropriado.
+Mantenha as mensagens concisas (máximo 3-4 parágrafos curtos).
+Não use hashtags ou emojis em excesso.`
+                },
+                {
+                  role: 'user',
+                  content: `Crie uma mensagem de WhatsApp com base nesta descrição: ${prompt}`
+                }
+              ],
+              max_tokens: 500,
+              temperature: 0.7,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('[Disparos API] OpenAI API error:', errorData);
+            
+            if (response.status === 401) {
+              return new Response(
+                JSON.stringify({ error: 'API key inválida ou expirada. Atualize sua chave em Conexões.' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+            if (response.status === 429) {
+              return new Response(
+                JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente mais tarde.' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+            
+            throw new Error('Erro ao gerar mensagem com IA');
+          }
+
+          const data = await response.json();
+          const generatedMessage = data.choices?.[0]?.message?.content;
+
+          if (!generatedMessage) {
+            throw new Error('Resposta vazia da IA');
+          }
+
+          console.log('[Disparos API] AI message generated successfully');
+
+          return new Response(
+            JSON.stringify({ message: generatedMessage }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (aiError: any) {
+          console.error('[Disparos API] Error generating AI message:', aiError);
+          return new Response(
+            JSON.stringify({ error: aiError.message || 'Erro ao gerar mensagem com IA' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
