@@ -56,7 +56,11 @@ import {
   Video,
   FileAudio,
   FileText,
+  Download,
+  PlayCircle,
+  StopCircle,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -262,6 +266,78 @@ export default function DisparoDetalhesPage() {
     }
   };
 
+  // Get first and last send times
+  const getFirstSendTime = () => {
+    const sentDetails = detalhes.filter(d => d.dataEnvio);
+    if (sentDetails.length === 0) return null;
+    const sorted = sentDetails.sort((a, b) => 
+      new Date(a.dataEnvio!).getTime() - new Date(b.dataEnvio!).getTime()
+    );
+    return format(parseISO(sorted[0].dataEnvio!), "dd/MM/yyyy HH:mm:ss", { locale: ptBR });
+  };
+
+  const getLastSendTime = () => {
+    const sentDetails = detalhes.filter(d => d.dataEnvio);
+    if (sentDetails.length === 0) return null;
+    const sorted = sentDetails.sort((a, b) => 
+      new Date(b.dataEnvio!).getTime() - new Date(a.dataEnvio!).getTime()
+    );
+    // Only show end time if dispatch is completed
+    if (disparo?.StatusDisparo?.toLowerCase() === 'concluido' || 
+        disparo?.StatusDisparo?.toLowerCase() === 'finalizado' ||
+        disparo?.StatusDisparo?.toLowerCase() === 'cancelado') {
+      return format(parseISO(sorted[0].dataEnvio!), "dd/MM/yyyy HH:mm:ss", { locale: ptBR });
+    }
+    return null;
+  };
+
+  // Export to Excel
+  const handleExportExcel = () => {
+    if (!disparo) return;
+
+    // Resumo sheet
+    const resumoData = [
+      ["Disparo #", disparo.id],
+      ["Status", disparo.StatusDisparo || "N/A"],
+      ["Tipo", disparo.TipoDisparo || "N/A"],
+      ["Criado em", format(parseISO(disparo.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })],
+      ["Hora Início", getFirstSendTime() || "N/A"],
+      ["Hora Fim", getLastSendTime() || "Em andamento"],
+      ["Total Disparos", disparo.TotalDisparos || 0],
+      ["Mensagens Disparadas", disparo.MensagensDisparadas || 0],
+      ["Enviados", stats.enviados],
+      ["Falhas", stats.falhas],
+      ["Pendentes", stats.pendentes],
+      ["Intervalo", `${disparo.intervaloMin || 5}s - ${disparo.intervaloMax || 15}s`],
+      ["Horário Permitido", `${disparo.StartTime || "08:00"} - ${disparo.EndTime || "18:00"}`],
+      ["Dias da Semana", disparo.DiasSelecionados?.map((d) => diasSemana[d]).join(", ") || "Todos"],
+      ["Listas", listas.map((l) => l.nome).join(", ") || "N/A"],
+      ["Conexões", conexoes.map((c) => c.NomeConexao).join(", ") || "N/A"],
+    ];
+
+    // Detalhes sheet
+    const detalhesData = detalhes.map(d => ({
+      "ID": d.id,
+      "Destinatário": d.TelefoneContato || d.NomeGrupo || "N/A",
+      "Conexão": d.NomeConexao || "N/A",
+      "Status": d.Status || "pendente",
+      "Data/Hora Envio": d.dataEnvio ? format(parseISO(d.dataEnvio), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "N/A",
+      "Mensagem": d.Mensagem || "N/A",
+      "Erro": d.mensagemErro || "",
+    }));
+
+    const wb = XLSX.utils.book_new();
+    
+    const wsResumo = XLSX.utils.aoa_to_sheet(resumoData);
+    XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo");
+    
+    const wsDetalhes = XLSX.utils.json_to_sheet(detalhesData);
+    XLSX.utils.book_append_sheet(wb, wsDetalhes, "Detalhes");
+
+    XLSX.writeFile(wb, `disparo_${disparo.id}_${format(new Date(), "yyyy-MM-dd_HH-mm")}.xlsx`);
+    toast.success("Excel exportado com sucesso!");
+  };
+
   // Calculate stats - use actual DB status values (sent, pending, failed)
   const stats = {
     enviados: detalhes.filter((d) => d.Status === "sent" || d.Status === "Enviado" || d.Status === "enviado").length,
@@ -396,6 +472,14 @@ export default function DisparoDetalhesPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <Button
               variant="outline"
+              onClick={handleExportExcel}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+            <Button
+              variant="outline"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
@@ -481,13 +565,31 @@ export default function DisparoDetalhesPage() {
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <div className="flex items-center gap-2">
+                  <PlayCircle className="h-4 w-4 text-success" />
+                  <span className="text-muted-foreground">Início</span>
+                </div>
+                <span className="font-medium text-success">
+                  {getFirstSendTime() || "Aguardando início"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <div className="flex items-center gap-2">
+                  <StopCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-muted-foreground">Fim</span>
+                </div>
+                <span className="font-medium text-destructive">
+                  {getLastSendTime() || "Em andamento"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
                 <span className="text-muted-foreground">Intervalo</span>
                 <span className="font-medium text-primary">
                   {disparo.intervaloMin || 5}s - {disparo.intervaloMax || 15}s
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-                <span className="text-muted-foreground">Horário</span>
+                <span className="text-muted-foreground">Horário Permitido</span>
                 <span className="font-medium text-primary">
                   {disparo.StartTime || "08:00"} - {disparo.EndTime || "18:00"}
                 </span>
