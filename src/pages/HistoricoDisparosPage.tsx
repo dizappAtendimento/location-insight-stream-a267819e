@@ -64,14 +64,14 @@ const HistoricoDisparosPage = () => {
     if (!user?.id) return;
     
     try {
-      const { data, error } = await supabase
-        .from("SAAS_Disparos")
-        .select("*")
-        .eq("userId", user.id)
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: { action: "get-disparos", userId: user.id }
+      });
 
       if (error) throw error;
-      setDisparos(data || []);
+      if (data?.error) throw new Error(data.error);
+      
+      setDisparos(data?.disparos || []);
     } catch (error) {
       console.error("Erro ao carregar disparos:", error);
       toast.error("Erro ao carregar histórico de disparos");
@@ -101,12 +101,13 @@ const HistoricoDisparosPage = () => {
   const handlePause = async (disparo: Disparo) => {
     setActionLoading(disparo.id);
     try {
-      const { error } = await supabase.rpc("pause_disparo", {
-        p_disparo_id: disparo.id,
-        p_user_id: user?.id,
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: { action: "pause-disparo", userId: user?.id, disparoData: { id: disparo.id } }
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
       toast.success("Disparo pausado com sucesso");
       fetchDisparos();
     } catch (error) {
@@ -120,12 +121,13 @@ const HistoricoDisparosPage = () => {
   const handleResume = async (disparo: Disparo) => {
     setActionLoading(disparo.id);
     try {
-      const { error } = await supabase.rpc("resume_disparo", {
-        p_disparo_id: disparo.id,
-        p_user_id: user?.id,
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: { action: "resume-disparo", userId: user?.id, disparoData: { id: disparo.id } }
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
       toast.success("Disparo retomado com sucesso");
       fetchDisparos();
     } catch (error) {
@@ -141,12 +143,13 @@ const HistoricoDisparosPage = () => {
     
     setActionLoading(selectedDisparo.id);
     try {
-      const { error } = await supabase.rpc("delete_disparo", {
-        p_disparo_id: selectedDisparo.id,
-        p_user_id: user?.id,
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: { action: "delete-disparo", userId: user?.id, disparoData: { id: selectedDisparo.id } }
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
       toast.success("Disparo excluído com sucesso");
       setDeleteDialogOpen(false);
       setSelectedDisparo(null);
