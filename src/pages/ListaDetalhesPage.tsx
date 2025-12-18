@@ -137,6 +137,17 @@ const ListaDetalhesPage = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedConexao, setSelectedConexao] = useState<string>("");
   const [importingWhatsApp, setImportingWhatsApp] = useState(false);
+  
+  // Sync groups modal states
+  const [syncGruposModalOpen, setSyncGruposModalOpen] = useState(false);
+  const [loadingGruposFromApi, setLoadingGruposFromApi] = useState(false);
+  const [gruposFromApi, setGruposFromApi] = useState<any[]>([]);
+  const [selectedGruposToSync, setSelectedGruposToSync] = useState<Set<string>>(new Set());
+  const [gruposSearchTerm, setGruposSearchTerm] = useState("");
+  const [syncingGrupos, setSyncingGrupos] = useState(false);
+  
+  // Count participants state
+  const [countingParticipants, setCountingParticipants] = useState(false);
 
   const fetchLista = async () => {
     if (!id || !user?.id) return;
@@ -530,6 +541,188 @@ const ListaDetalhesPage = () => {
     }
   };
 
+  // Fetch groups from WhatsApp for sync modal
+  const fetchGruposFromWhatsApp = async () => {
+    if (!selectedConexao) {
+      toast.error("Selecione uma conexão");
+      return;
+    }
+
+    setLoadingGruposFromApi(true);
+    setGruposFromApi([]);
+    setSelectedGruposToSync(new Set());
+
+    try {
+      const conexao = conexoes.find(c => c.id === parseInt(selectedConexao));
+      if (!conexao?.instanceName || !conexao?.Apikey) {
+        toast.error("Conexão inválida");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("evolution-api", {
+        body: {
+          action: "fetchGroups",
+          instanceName: conexao.instanceName,
+          apiKey: conexao.Apikey,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.groups && Array.isArray(data.groups)) {
+        // Mark duplicates (groups already in the list)
+        const existingWhatsAppIds = new Set(grupos.map(g => g.WhatsAppId));
+        const gruposWithDuplicateFlag = data.groups.map((group: any) => ({
+          ...group,
+          isDuplicate: existingWhatsAppIds.has(group.id),
+        }));
+        setGruposFromApi(gruposWithDuplicateFlag);
+        toast.success(`${gruposWithDuplicateFlag.length} grupos encontrados`);
+      } else {
+        toast.info("Nenhum grupo encontrado");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar grupos:", error);
+      toast.error("Erro ao buscar grupos do WhatsApp");
+    } finally {
+      setLoadingGruposFromApi(false);
+    }
+  };
+
+  // Toggle group selection
+  const toggleGrupoSelection = (groupId: string) => {
+    setSelectedGruposToSync(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all groups
+  const selectAllGrupos = () => {
+    const filteredGrupos = gruposFromApi.filter(g =>
+      g.subject?.toLowerCase().includes(gruposSearchTerm.toLowerCase())
+    );
+    setSelectedGruposToSync(new Set(filteredGrupos.map(g => g.id)));
+  };
+
+  // Deselect all groups
+  const deselectAllGrupos = () => {
+    setSelectedGruposToSync(new Set());
+  };
+
+  // Sync selected groups
+  const handleSyncSelectedGrupos = async () => {
+    if (!user?.id || !id || selectedGruposToSync.size === 0) {
+      toast.error("Selecione pelo menos um grupo");
+      return;
+    }
+
+    setSyncingGrupos(true);
+    try {
+      const gruposToInsert = gruposFromApi
+        .filter(g => selectedGruposToSync.has(g.id) && !g.isDuplicate)
+        .map(group => ({
+          nome: group.subject || "",
+          WhatsAppId: group.id || "",
+          participantes: group.size || 0,
+          idLista: parseInt(id),
+          idUsuario: user.id,
+          idConexao: parseInt(selectedConexao),
+          atributos: {
+            isCommunity: group.isCommunity || false,
+            isAnnounce: group.announce || false,
+          },
+        }));
+
+      if (gruposToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from("SAAS_Grupos")
+          .insert(gruposToInsert);
+
+        if (insertError) throw insertError;
+        toast.success(`${gruposToInsert.length} grupos sincronizados!`);
+        fetchGrupos();
+      } else {
+        toast.info("Nenhum grupo novo para sincronizar");
+      }
+
+      setSyncGruposModalOpen(false);
+      setSelectedConexao("");
+      setGruposFromApi([]);
+      setSelectedGruposToSync(new Set());
+    } catch (error) {
+      console.error("Erro ao sincronizar grupos:", error);
+      toast.error("Erro ao sincronizar grupos");
+    } finally {
+      setSyncingGrupos(false);
+    }
+  };
+
+  // Count participants for all groups
+  const handleCountParticipants = async () => {
+    if (grupos.length === 0) {
+      toast.error("Nenhum grupo para contar participantes");
+      return;
+    }
+
+    // Group by connection
+    const gruposByConexao = grupos.reduce((acc, g) => {
+      if (!acc[g.idConexao]) acc[g.idConexao] = [];
+      acc[g.idConexao].push(g);
+      return acc;
+    }, {} as Record<number, Grupo[]>);
+
+    setCountingParticipants(true);
+    let updatedCount = 0;
+
+    try {
+      for (const [conexaoId, gruposConexao] of Object.entries(gruposByConexao)) {
+        const conexao = conexoes.find(c => c.id === parseInt(conexaoId));
+        if (!conexao?.instanceName || !conexao?.Apikey) continue;
+
+        // Fetch groups from API to get current participant count
+        const { data, error } = await supabase.functions.invoke("evolution-api", {
+          body: {
+            action: "fetchGroups",
+            instanceName: conexao.instanceName,
+            apiKey: conexao.Apikey,
+          },
+        });
+
+        if (error) continue;
+
+        if (data?.groups && Array.isArray(data.groups)) {
+          const groupsMap = new Map(data.groups.map((g: any) => [g.id, g.size || 0]));
+
+          for (const grupo of gruposConexao) {
+            const newCount = groupsMap.get(grupo.WhatsAppId) as number | undefined;
+            if (newCount !== undefined && newCount !== grupo.participantes) {
+              const { error: updateError } = await supabase
+                .from("SAAS_Grupos")
+                .update({ participantes: newCount as number })
+                .eq("id", grupo.id);
+
+              if (!updateError) updatedCount++;
+            }
+          }
+        }
+      }
+
+      await fetchGrupos();
+      toast.success(`${updatedCount} grupos atualizados com contagem de participantes`);
+    } catch (error) {
+      console.error("Erro ao contar participantes:", error);
+      toast.error("Erro ao contar participantes");
+    } finally {
+      setCountingParticipants(false);
+    }
+  };
+
   const openEditModal = (contato: Contato) => {
     setSelectedContato(contato);
     setNewNome(contato.nome || "");
@@ -633,15 +826,38 @@ const ListaDetalhesPage = () => {
               </>
             )}
             {lista?.tipo === "grupos" && (
-              <Button
-                variant="outline"
-                onClick={handleExportCsv}
-                className="gap-2"
-                disabled={grupos.length === 0}
-              >
-                <Download className="w-4 h-4" />
-                Exportar
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleCountParticipants}
+                  className="gap-2"
+                  disabled={countingParticipants || grupos.length === 0}
+                >
+                  {countingParticipants ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Users className="w-4 h-4" />
+                  )}
+                  {countingParticipants ? "Contando..." : "Contar Participantes"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSyncGruposModalOpen(true)}
+                  className="gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Sincronizar Grupos
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExportCsv}
+                  className="gap-2"
+                  disabled={grupos.length === 0}
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -1032,6 +1248,185 @@ const ListaDetalhesPage = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Sync Groups Modal */}
+        <Dialog open={syncGruposModalOpen} onOpenChange={(open) => {
+          setSyncGruposModalOpen(open);
+          if (!open) {
+            setSelectedConexao("");
+            setGruposFromApi([]);
+            setSelectedGruposToSync(new Set());
+            setGruposSearchTerm("");
+          }
+        }}>
+          <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="text-primary flex items-center gap-2">
+                <RefreshCw className="w-5 h-5" />
+                Sincronizar Grupos
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4 flex-1 overflow-hidden flex flex-col">
+              <p className="text-sm text-muted-foreground">
+                Selecione uma conexão e escolha os grupos que deseja sincronizar para esta lista.
+              </p>
+              <div className="space-y-2">
+                <Label>Conexão</Label>
+                <div className="flex gap-2">
+                  <Select value={selectedConexao} onValueChange={setSelectedConexao}>
+                    <SelectTrigger className="bg-background/50 flex-1">
+                      <SelectValue placeholder="Selecione uma conexão" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      {conexoes.map((conexao) => (
+                        <SelectItem key={conexao.id} value={conexao.id.toString()}>
+                          {conexao.NomeConexao || conexao.Telefone || `Conexão ${conexao.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={fetchGruposFromWhatsApp}
+                    disabled={!selectedConexao || loadingGruposFromApi}
+                    className="gap-2"
+                  >
+                    {loadingGruposFromApi ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    Buscar
+                  </Button>
+                </div>
+              </div>
+
+              {gruposFromApi.length > 0 && (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar grupo..."
+                      value={gruposSearchTerm}
+                      onChange={(e) => setGruposSearchTerm(e.target.value)}
+                      className="pl-9 bg-background/50"
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-primary font-medium">
+                      {gruposFromApi.filter(g => 
+                        g.subject?.toLowerCase().includes(gruposSearchTerm.toLowerCase())
+                      ).length} grupos encontrados
+                    </span>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={selectAllGrupos}
+                        className="text-xs text-primary hover:text-primary"
+                      >
+                        Selecionar todos
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={deselectAllGrupos}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Limpar seleção
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg border-border overflow-hidden flex-1 min-h-0">
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {gruposFromApi
+                        .filter(g => g.subject?.toLowerCase().includes(gruposSearchTerm.toLowerCase()))
+                        .map((group) => (
+                          <div
+                            key={group.id}
+                            className={`flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-b-0 cursor-pointer transition-colors ${
+                              selectedGruposToSync.has(group.id) 
+                                ? "bg-primary/10" 
+                                : "hover:bg-primary/5"
+                            } ${group.isDuplicate ? "bg-yellow-500/10 border-l-2 border-l-yellow-500" : ""}`}
+                            onClick={() => toggleGrupoSelection(group.id)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedGruposToSync.has(group.id)}
+                              onChange={() => toggleGrupoSelection(group.id)}
+                              className="w-4 h-4 accent-primary cursor-pointer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-medium truncate ${group.isDuplicate ? "text-yellow-500" : "text-foreground"}`}>
+                                {group.subject}
+                              </p>
+                              <div className="flex gap-4 text-xs text-muted-foreground mt-1">
+                                <span>{group.size || 0} participantes</span>
+                                {group.isCommunity && (
+                                  <span className="text-primary">Comunidade</span>
+                                )}
+                                {group.announce && (
+                                  <span className="text-yellow-500">Apenas admins</span>
+                                )}
+                              </div>
+                            </div>
+                            {group.isDuplicate && (
+                              <span className="text-xs bg-yellow-500 text-black px-2 py-0.5 rounded-full font-medium">
+                                Duplicado
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {loadingGruposFromApi && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  <span className="ml-3 text-primary">Buscando grupos...</span>
+                </div>
+              )}
+
+              {conexoes.length === 0 && (
+                <p className="text-sm text-yellow-500">
+                  Nenhuma conexão encontrada. Conecte seu WhatsApp primeiro.
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setSyncGruposModalOpen(false);
+                    setSelectedConexao("");
+                    setGruposFromApi([]);
+                    setSelectedGruposToSync(new Set());
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                  onClick={handleSyncSelectedGrupos}
+                  disabled={selectedGruposToSync.size === 0 || syncingGrupos}
+                >
+                  {syncingGrupos ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sincronizando...
+                    </>
+                  ) : (
+                    `Sincronizar ${selectedGruposToSync.size} grupo${selectedGruposToSync.size !== 1 ? "s" : ""}`
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent className="bg-card border-border">
