@@ -144,11 +144,23 @@ export default function DisparoDetalhesPage() {
   const [isPausing, setIsPausing] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
 
+  // Auto-refresh every 30 seconds for active dispatches
   useEffect(() => {
     if (user?.id && id) {
       fetchDisparoDetails();
+      
+      // Set up auto-refresh interval
+      const interval = setInterval(() => {
+        if (disparo?.StatusDisparo?.toLowerCase() === 'em andamento' || 
+            disparo?.StatusDisparo?.toLowerCase() === 'aguardando' ||
+            disparo?.StatusDisparo?.toLowerCase() === 'processando') {
+          fetchDisparoDetails();
+        }
+      }, 30000);
+      
+      return () => clearInterval(interval);
     }
-  }, [user?.id, id]);
+  }, [user?.id, id, disparo?.StatusDisparo]);
 
   const fetchDisparoDetails = async () => {
     try {
@@ -250,11 +262,11 @@ export default function DisparoDetalhesPage() {
     }
   };
 
-  // Calculate stats
+  // Calculate stats - use actual DB status values (sent, pending, failed)
   const stats = {
-    enviados: detalhes.filter((d) => d.Status === "enviado" || d.Status === "Enviado").length,
-    falhas: detalhes.filter((d) => d.Status === "falha" || d.Status === "Falha" || d.Status === "erro").length,
-    pendentes: detalhes.filter((d) => d.Status === "pendente" || d.Status === "Pendente" || !d.Status).length,
+    enviados: detalhes.filter((d) => d.Status === "sent" || d.Status === "Enviado" || d.Status === "enviado").length,
+    falhas: detalhes.filter((d) => d.Status === "failed" || d.Status === "Falha" || d.Status === "falha" || d.Status === "erro").length,
+    pendentes: detalhes.filter((d) => d.Status === "pending" || d.Status === "Pendente" || d.Status === "pendente" || d.Status === "processing" || !d.Status).length,
   };
 
   // Filter and paginate
@@ -276,32 +288,39 @@ export default function DisparoDetalhesPage() {
     { name: "Pendentes", value: stats.pendentes, color: "#f59e0b" },
   ].filter((d) => d.value > 0);
 
-  // Group by hour for area chart
+  // Group by hour for area chart - use actual DB status values
   const hourlyData = detalhes.reduce((acc: any[], d) => {
     if (!d.dataEnvio) return acc;
     const hour = format(parseISO(d.dataEnvio), "HH:00");
     const existing = acc.find((a) => a.hora === hour);
+    const isSent = d.Status === "sent" || d.Status === "enviado" || d.Status === "Enviado";
+    const isFailed = d.Status === "failed" || d.Status === "falha" || d.Status === "Falha";
     if (existing) {
-      if (d.Status === "enviado" || d.Status === "Enviado") existing.enviados++;
-      else if (d.Status === "falha" || d.Status === "Falha") existing.falhas++;
+      if (isSent) existing.enviados++;
+      else if (isFailed) existing.falhas++;
     } else {
       acc.push({
         hora: hour,
-        enviados: d.Status === "enviado" || d.Status === "Enviado" ? 1 : 0,
-        falhas: d.Status === "falha" || d.Status === "Falha" ? 1 : 0,
+        enviados: isSent ? 1 : 0,
+        falhas: isFailed ? 1 : 0,
       });
     }
     return acc;
   }, []).sort((a, b) => a.hora.localeCompare(b.hora));
 
   const getStatusBadge = (status: string | null) => {
-    switch (status?.toLowerCase()) {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
+      case "sent":
       case "enviado":
         return <Badge className="bg-success/20 text-success border-success/30">Enviado</Badge>;
+      case "failed":
       case "falha":
       case "erro":
         return <Badge className="bg-destructive/20 text-destructive border-destructive/30">Falha</Badge>;
+      case "pending":
       case "pendente":
+      case "processing":
       default:
         return <Badge className="bg-warning/20 text-warning border-warning/30">Pendente</Badge>;
     }
