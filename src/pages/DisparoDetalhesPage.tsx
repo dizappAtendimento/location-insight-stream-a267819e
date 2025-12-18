@@ -360,13 +360,11 @@ export default function DisparoDetalhesPage() {
 
     // Detalhes sheet
     const detalhesData = detalhes.map(d => ({
-      "ID": d.id,
       "Destinatário": d.TelefoneContato || d.NomeGrupo || "N/A",
       "Conexão": d.NomeConexao || "N/A",
       "Status": d.Status || "pendente",
-      "Data/Hora Envio": d.dataEnvio ? format(parseISO(d.dataEnvio), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "N/A",
+      "Data/Hora": d.dataEnvio ? format(parseISO(d.dataEnvio), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "N/A",
       "Mensagem": d.Mensagem || "N/A",
-      "Erro": d.mensagemErro || "",
     }));
 
     const wb = XLSX.utils.book_new();
