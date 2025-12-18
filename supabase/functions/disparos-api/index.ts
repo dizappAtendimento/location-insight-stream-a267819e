@@ -457,6 +457,36 @@ serve(async (req) => {
         );
       }
 
+      case 'update-user-apikey': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const apiKey = disparoData?.apikey_gpt;
+
+        console.log(`[Disparos API] Updating API key for user ${userId}`);
+
+        const { error } = await supabase
+          .from('SAAS_Usuarios')
+          .update({ apikey_gpt: apiKey || null })
+          .eq('id', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error updating API key:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] API key updated successfully for user ${userId}`);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
