@@ -487,6 +487,58 @@ serve(async (req) => {
         );
       }
 
+      case 'validate-openai-key': {
+        const apiKey = disparoData?.apikey_gpt;
+
+        if (!apiKey) {
+          return new Response(
+            JSON.stringify({ valid: false, error: 'API key is required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Disparos API] Validating OpenAI API key`);
+
+        try {
+          // Make a simple request to OpenAI to validate the key
+          const response = await fetch('https://api.openai.com/v1/models', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+            },
+          });
+
+          if (response.ok) {
+            console.log(`[Disparos API] OpenAI API key is valid`);
+            return new Response(
+              JSON.stringify({ valid: true }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.log(`[Disparos API] OpenAI API key is invalid:`, errorData);
+            
+            let errorMessage = 'Chave API inválida';
+            if (response.status === 401) {
+              errorMessage = 'Chave API inválida ou expirada';
+            } else if (response.status === 429) {
+              errorMessage = 'Limite de requisições excedido. Tente novamente mais tarde.';
+            }
+            
+            return new Response(
+              JSON.stringify({ valid: false, error: errorMessage }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        } catch (validationError: any) {
+          console.error('[Disparos API] Error validating OpenAI key:', validationError);
+          return new Response(
+            JSON.stringify({ valid: false, error: 'Erro ao validar a chave API' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),

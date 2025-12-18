@@ -262,12 +262,39 @@ const ConexoesPage = () => {
     try {
       setSavingApiKey(true);
       
+      // First validate the API key
+      if (chatGptApiKey.trim()) {
+        toast({
+          title: "Validando...",
+          description: "Verificando se a chave API é válida",
+        });
+        
+        const { data: validationResult, error: validationError } = await supabase.functions.invoke('disparos-api', {
+          body: {
+            action: 'validate-openai-key',
+            disparoData: { apikey_gpt: chatGptApiKey.trim() }
+          }
+        });
+
+        if (validationError) throw validationError;
+        
+        if (!validationResult?.valid) {
+          toast({
+            title: "Chave Inválida",
+            description: validationResult?.error || "A chave API do ChatGPT não é válida. Verifique e tente novamente.",
+            variant: "destructive"
+          });
+          setSavingApiKey(false);
+          return;
+        }
+      }
+      
       // Use edge function to bypass RLS
       const { error } = await supabase.functions.invoke('disparos-api', {
         body: {
           action: 'update-user-apikey',
           userId: user.id,
-          disparoData: { apikey_gpt: chatGptApiKey }
+          disparoData: { apikey_gpt: chatGptApiKey.trim() || null }
         }
       });
 
