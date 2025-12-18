@@ -57,28 +57,42 @@ const DEFAULT_SETTINGS: AppSettings = {
   maxResults: '1000',
 };
 
+// Helper to check if a limit is "unlimited" (null, 0, or very large number)
+const isUnlimitedValue = (value: number | null): boolean => {
+  if (value === null || value === 0) return true;
+  // Values larger than 1 billion are considered unlimited
+  return value > 999999999;
+};
+
 // Component for usage bars
 const UsageBar = ({ label, used, limit, color = 'green' }: { label: string; used: number; limit: number | null; color?: 'green' | 'blue' }) => {
-  const isUnlimited = limit === null || limit === 0;
-  const percentage = isUnlimited ? 100 : Math.min((used / limit) * 100, 100);
-  const colorClass = color === 'blue' ? 'bg-blue-500' : 'bg-emerald-500';
+  const isUnlimited = isUnlimitedValue(limit);
+  const percentage = isUnlimited ? Math.min((used / 100) * 10, 100) : Math.min((used / (limit || 1)) * 100, 100);
+  const colorClass = color === 'blue' ? 'bg-gradient-to-r from-blue-500 to-cyan-400' : 'bg-gradient-to-r from-emerald-500 to-green-400';
+  const textColor = color === 'blue' ? 'text-blue-400' : 'text-emerald-400';
   
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
-        <span className={color === 'blue' ? 'text-blue-400' : 'text-emerald-400'}>
+        <span className={textColor + ' font-medium'}>
           {used.toLocaleString('pt-BR')} / {isUnlimited ? 'Ilimitado' : limit?.toLocaleString('pt-BR')}
         </span>
       </div>
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+      <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
         <div 
-          className={cn("h-full rounded-full transition-all", colorClass)} 
-          style={{ width: `${percentage}%` }}
+          className={cn("h-full rounded-full transition-all duration-500", colorClass)} 
+          style={{ width: `${isUnlimited ? 100 : percentage}%` }}
         />
       </div>
     </div>
   );
+};
+
+// Helper to format limit display
+const formatLimit = (value: number | null): string => {
+  if (isUnlimitedValue(value)) return 'ilimitado';
+  return value?.toLocaleString('pt-BR') || '0';
 };
 
 const SettingsPage = () => {
@@ -656,31 +670,50 @@ const SettingsPage = () => {
           
           <div className="grid gap-4 md:grid-cols-2">
             {/* Plano Disparador */}
-            <div className="p-4 rounded-lg bg-card border border-border/50 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <h3 className="text-sm font-medium text-foreground">Disparador</h3>
+            <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 animate-pulse"></div>
+                  <h3 className="text-sm font-semibold text-foreground">Disparador</h3>
+                </div>
+                {disparadorPlan && (
+                  <span className="text-xs text-muted-foreground">Ativo</span>
+                )}
               </div>
               
               {loadingPlans ? (
                 <div className="space-y-3">
-                  <div className="h-4 bg-muted animate-pulse rounded"></div>
-                  <div className="h-4 bg-muted animate-pulse rounded w-2/3"></div>
+                  <div className="h-16 bg-muted/50 animate-pulse rounded-lg"></div>
+                  <div className="h-4 bg-muted/50 animate-pulse rounded w-2/3"></div>
                 </div>
               ) : disparadorPlan ? (
                 <>
-                  <div className="p-3 rounded-md bg-primary/10 border border-primary/20">
-                    <p className="text-primary font-semibold">{disparadorPlan.planoNome || 'Sem plano'}</p>
-                    <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
-                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> {disparadorPlan.limiteDisparos ? `${disparadorPlan.limiteDisparos} disparos/mês` : 'Disparos ilimitados'}</p>
-                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> {disparadorPlan.limiteConexoes ? `${disparadorPlan.limiteConexoes} conexões` : 'Conexões ilimitadas'}</p>
-                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> {disparadorPlan.limiteContatos ? `${disparadorPlan.limiteContatos} contatos` : 'Contatos ilimitados'}</p>
-                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> {disparadorPlan.limiteListas ? `${disparadorPlan.limiteListas} listas` : 'Listas ilimitadas'}</p>
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-green-500/5 border border-emerald-500/20">
+                    <p className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+                      {disparadorPlan.planoNome || 'Sem plano'}
+                    </p>
+                    <div className="mt-2 text-xs text-muted-foreground space-y-1">
+                      <p className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" /> 
+                        {isUnlimitedValue(disparadorPlan.limiteDisparos) ? 'Disparos ilimitados' : `${formatLimit(disparadorPlan.limiteDisparos)} disparos/mês`}
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" /> 
+                        {isUnlimitedValue(disparadorPlan.limiteConexoes) ? 'Conexões ilimitadas' : `${formatLimit(disparadorPlan.limiteConexoes)} conexões`}
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" /> 
+                        {isUnlimitedValue(disparadorPlan.limiteContatos) ? 'Contatos ilimitados' : `${formatLimit(disparadorPlan.limiteContatos)} contatos`}
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" /> 
+                        {isUnlimitedValue(disparadorPlan.limiteListas) ? 'Listas ilimitadas' : `${formatLimit(disparadorPlan.limiteListas)} listas`}
+                      </p>
                     </div>
                   </div>
                   
-                  <div className="space-y-3">
-                    <p className="text-xs font-medium text-muted-foreground">Uso do Plano</p>
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Uso do Plano</p>
                     <UsageBar label="Disparos" used={disparadorPlan.usadoDisparos} limit={disparadorPlan.limiteDisparos} />
                     <UsageBar label="Conexões" used={disparadorPlan.usadoConexoes} limit={disparadorPlan.limiteConexoes} />
                     <UsageBar label="Contatos" used={disparadorPlan.usadoContatos} limit={disparadorPlan.limiteContatos} />
@@ -688,48 +721,73 @@ const SettingsPage = () => {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhum plano ativo</p>
+                <div className="py-8 text-center">
+                  <p className="text-sm text-muted-foreground">Nenhum plano ativo</p>
+                  <p className="text-xs text-muted-foreground mt-1">Entre em contato para ativar</p>
+                </div>
               )}
             </div>
 
             {/* Plano Extrator */}
-            <div className="p-4 rounded-lg bg-card border border-border/50 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <h3 className="text-sm font-medium text-foreground">Extrator</h3>
+            <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "w-3 h-3 rounded-full",
+                    extratorPlan ? "bg-gradient-to-r from-blue-500 to-cyan-400 animate-pulse" : "bg-muted"
+                  )}></div>
+                  <h3 className="text-sm font-semibold text-foreground">Extrator</h3>
+                </div>
+                {extratorPlan && (
+                  <span className="text-xs text-muted-foreground">Ativo</span>
+                )}
               </div>
               
               {loadingPlans ? (
                 <div className="space-y-3">
-                  <div className="h-4 bg-muted animate-pulse rounded"></div>
-                  <div className="h-4 bg-muted animate-pulse rounded w-2/3"></div>
+                  <div className="h-16 bg-muted/50 animate-pulse rounded-lg"></div>
+                  <div className="h-4 bg-muted/50 animate-pulse rounded w-2/3"></div>
                 </div>
               ) : extratorPlan ? (
                 <>
-                  <div className="p-3 rounded-md bg-blue-500/10 border border-blue-500/20">
-                    <p className="text-blue-400 font-semibold">{extratorPlan.planoNome || 'Sem plano'}</p>
-                    <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
-                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-blue-400" /> {extratorPlan.limitePlaces ? `${extratorPlan.limitePlaces} extrações Places` : 'Places ilimitado'}</p>
-                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-blue-400" /> {extratorPlan.limiteInstagram ? `${extratorPlan.limiteInstagram} extrações Instagram` : 'Instagram ilimitado'}</p>
-                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-blue-400" /> {extratorPlan.limiteLinkedin ? `${extratorPlan.limiteLinkedin} extrações LinkedIn` : 'LinkedIn ilimitado'}</p>
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20">
+                    <p className="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                      {extratorPlan.planoNome || 'Sem plano'}
+                    </p>
+                    <div className="mt-2 text-xs text-muted-foreground space-y-1">
+                      <p className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-blue-400" /> 
+                        {isUnlimitedValue(extratorPlan.limitePlaces) ? 'Places ilimitado' : `${formatLimit(extratorPlan.limitePlaces)} extrações Places`}
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-blue-400" /> 
+                        {isUnlimitedValue(extratorPlan.limiteInstagram) ? 'Instagram ilimitado' : `${formatLimit(extratorPlan.limiteInstagram)} extrações Instagram`}
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-blue-400" /> 
+                        {isUnlimitedValue(extratorPlan.limiteLinkedin) ? 'LinkedIn ilimitado' : `${formatLimit(extratorPlan.limiteLinkedin)} extrações LinkedIn`}
+                      </p>
                     </div>
                   </div>
                   
-                  <div className="space-y-3">
-                    <p className="text-xs font-medium text-muted-foreground">Uso do Plano</p>
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Uso do Plano</p>
                     <UsageBar label="Places" used={extratorPlan.usadoPlaces} limit={extratorPlan.limitePlaces} color="blue" />
                     <UsageBar label="Instagram" used={extratorPlan.usadoInstagram} limit={extratorPlan.limiteInstagram} color="blue" />
                     <UsageBar label="LinkedIn" used={extratorPlan.usadoLinkedin} limit={extratorPlan.limiteLinkedin} color="blue" />
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhum plano ativo</p>
+                <div className="py-8 text-center">
+                  <p className="text-sm text-muted-foreground">Nenhum plano ativo</p>
+                  <p className="text-xs text-muted-foreground mt-1">Entre em contato para ativar</p>
+                </div>
               )}
             </div>
           </div>
           
-          <p className="text-xs text-muted-foreground">
-            Caso queira mudar de plano, <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">clique aqui</a> e fale com o suporte.
+          <p className="text-xs text-muted-foreground text-center">
+            Caso queira mudar de plano, <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">clique aqui</a> e fale com o suporte.
           </p>
         </section>
 
