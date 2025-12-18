@@ -302,13 +302,15 @@ const ConexoesPage = () => {
 
       if (error) throw error;
       
+      // Update saved API key state to show masked version
+      setSavedApiKey(chatGptApiKey.trim());
+      setIsReplacingApiKey(false);
+      setChatGptApiKey("");
+      
       toast({
         title: "Sucesso",
         description: "Chave API do ChatGPT salva com sucesso!",
       });
-      
-      setShowChatGptModal(false);
-      setChatGptApiKey("");
       
     } catch (error) {
       console.error('Error saving API key:', error);
