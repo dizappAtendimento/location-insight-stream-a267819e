@@ -505,38 +505,6 @@ const SettingsPage = () => {
           </>
         )}
 
-        <Separator className="bg-border/30" />
-
-        {/* Data Management */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium text-foreground">Dados</h2>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/50">
-              <div>
-                <p className="text-sm text-foreground">Restaurar padrões</p>
-                <p className="text-xs text-muted-foreground">Resetar configurações</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={resetSettings} className="h-8 text-xs">
-                Restaurar
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-              <div>
-                <p className="text-sm text-destructive">Limpar dados</p>
-                <p className="text-xs text-muted-foreground">Remover todos os dados locais</p>
-              </div>
-              <Button variant="destructive" size="sm" onClick={clearAllData} className="h-8 text-xs">
-                <Trash2 className="w-3 h-3 mr-1" />
-                Limpar
-              </Button>
-            </div>
-          </div>
-        </section>
 
         {/* Version Info */}
         <div className="pt-4 text-center text-xs text-muted-foreground/50">
