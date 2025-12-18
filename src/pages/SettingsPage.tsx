@@ -668,7 +668,7 @@ const SettingsPage = () => {
             <h2 className="text-sm font-medium text-foreground">Meus Planos</h2>
           </div>
           
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-4">
             {/* Plano Disparador */}
             <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5">
               <div className="flex items-center justify-between">
