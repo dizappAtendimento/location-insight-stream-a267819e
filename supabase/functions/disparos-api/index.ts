@@ -73,6 +73,117 @@ serve(async (req) => {
         );
       }
 
+      case 'create-lista': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { nome, tipo, descricao } = await req.json().catch(() => ({})) || disparoData || {};
+
+        const { data, error } = await supabase
+          .from('SAAS_Listas')
+          .insert({
+            nome: nome || disparoData?.nome,
+            tipo: tipo || disparoData?.tipo || 'contatos',
+            descricao: descricao || disparoData?.descricao || null,
+            idUsuario: userId,
+            campos: {},
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Disparos API] Error creating lista:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Lista created with ID: ${data?.id}`);
+        
+        return new Response(
+          JSON.stringify({ success: true, lista: data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'update-lista': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const listaData = disparoData;
+        if (!listaData?.id) {
+          return new Response(
+            JSON.stringify({ error: 'lista id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { data, error } = await supabase
+          .from('SAAS_Listas')
+          .update({
+            nome: listaData.nome,
+            tipo: listaData.tipo,
+            descricao: listaData.descricao,
+          })
+          .eq('id', listaData.id)
+          .eq('idUsuario', userId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Disparos API] Error updating lista:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Lista updated: ${data?.id}`);
+        
+        return new Response(
+          JSON.stringify({ success: true, lista: data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'delete-lista': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const listaId = disparoData?.id;
+        if (!listaId) {
+          return new Response(
+            JSON.stringify({ error: 'lista id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error } = await supabase
+          .from('SAAS_Listas')
+          .delete()
+          .eq('id', listaId)
+          .eq('idUsuario', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error deleting lista:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Lista deleted: ${listaId}`);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'create-disparo': {
         if (!userId || !disparoData) {
           return new Response(
