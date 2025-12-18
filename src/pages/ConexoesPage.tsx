@@ -53,6 +53,8 @@ const ConexoesPage = () => {
   const [qrCodeData, setQrCodeData] = useState<{ base64?: string; pairingCode?: string } | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
   const [chatGptApiKey, setChatGptApiKey] = useState("");
+  const [savedApiKey, setSavedApiKey] = useState<string | null>(null);
+  const [isReplacingApiKey, setIsReplacingApiKey] = useState(false);
   const [savingApiKey, setSavingApiKey] = useState(false);
   const [deletingConnection, setDeletingConnection] = useState(false);
 
@@ -320,6 +322,35 @@ const ConexoesPage = () => {
     }
   };
 
+  const fetchSavedApiKey = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('SAAS_Usuarios')
+        .select('apikey_gpt')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      setSavedApiKey(data?.apikey_gpt || null);
+    } catch (error) {
+      console.error('Error fetching API key:', error);
+    }
+  };
+
+  const openChatGptModal = () => {
+    fetchSavedApiKey();
+    setIsReplacingApiKey(false);
+    setChatGptApiKey("");
+    setShowChatGptModal(true);
+  };
+
+  const maskApiKey = (key: string) => {
+    if (key.length <= 8) return '••••••••';
+    return `${key.substring(0, 5)}...${key.substring(key.length - 4)}`;
+  };
+
   const deleteDisconnectedConnections = async () => {
     if (!user?.id) return;
     
@@ -423,7 +454,7 @@ const ConexoesPage = () => {
             
             <Button
               variant="outline"
-              onClick={() => setShowChatGptModal(true)}
+              onClick={openChatGptModal}
               className="bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
             >
               <Settings className="w-4 h-4 mr-2" />
@@ -748,16 +779,52 @@ const ConexoesPage = () => {
           </DialogHeader>
           
           <div className="py-4">
-            <label className="text-sm font-medium text-foreground mb-2 block">
-              API Key
-            </label>
-            <Input
-              type="password"
-              placeholder="sk-..."
-              value={chatGptApiKey}
-              onChange={(e) => setChatGptApiKey(e.target.value)}
-              className="w-full"
-            />
+            {savedApiKey && !isReplacingApiKey ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    API Key Atual
+                  </label>
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg border">
+                    <code className="text-sm font-mono text-muted-foreground flex-1">
+                      {maskApiKey(savedApiKey)}
+                    </code>
+                    <Check className="w-4 h-4 text-emerald-500" />
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsReplacingApiKey(true)}
+                  className="w-full"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Substituir Chave
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">
+                  {savedApiKey ? 'Nova API Key' : 'API Key'}
+                </label>
+                <Input
+                  type="password"
+                  placeholder="sk-..."
+                  value={chatGptApiKey}
+                  onChange={(e) => setChatGptApiKey(e.target.value)}
+                  className="w-full"
+                />
+                {savedApiKey && isReplacingApiKey && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsReplacingApiKey(false)}
+                    className="mt-2 text-muted-foreground"
+                  >
+                    Cancelar substituição
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           
           <DialogFooter>
@@ -766,27 +833,30 @@ const ConexoesPage = () => {
               onClick={() => {
                 setShowChatGptModal(false);
                 setChatGptApiKey("");
+                setIsReplacingApiKey(false);
               }}
             >
-              Cancelar
+              {savedApiKey && !isReplacingApiKey ? 'Fechar' : 'Cancelar'}
             </Button>
-            <Button
-              onClick={saveChatGptApiKey}
-              disabled={!chatGptApiKey.trim() || savingApiKey}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {savingApiKey ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Salvar
-                </>
-              )}
-            </Button>
+            {(!savedApiKey || isReplacingApiKey) && (
+              <Button
+                onClick={saveChatGptApiKey}
+                disabled={!chatGptApiKey.trim() || savingApiKey}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                {savingApiKey ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Salvar
+                  </>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
