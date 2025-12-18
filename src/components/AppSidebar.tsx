@@ -30,10 +30,10 @@ import logo from '@/assets/logo.png';
 
 const menuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Histórico de Disparos', url: '/historico-disparos', icon: History },
   { title: 'Conexões', url: '/conexoes', icon: Smartphone },
   { title: 'Disparos', url: '/disparos', icon: Send },
   { title: 'Disparos em Grupo', url: '/disparos-grupo', icon: Users },
-  { title: 'Histórico', url: '/historico', icon: History },
 ];
 
 const extractorItems = [
