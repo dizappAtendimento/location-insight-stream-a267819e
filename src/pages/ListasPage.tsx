@@ -36,7 +36,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Plus, Users, MessageSquare, Pencil, Trash2, List, Search, Loader2, Eye } from "lucide-react";
+import { RefreshCw, Plus, Users, MessageSquare, Pencil, Trash2, List, Search, Loader2, Eye, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -52,6 +53,7 @@ interface Lista {
   idUsuario: string;
   idConexao: number | null;
   campos: any;
+  _count?: number;
 }
 
 const ListasPage = () => {
@@ -78,6 +80,8 @@ const ListasPage = () => {
   const [newListType, setNewListType] = useState("contatos");
   const [newListDescription, setNewListDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [listaCounts, setListaCounts] = useState<Record<number, number>>({});
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const fetchListas = async () => {
     if (!user?.id) return;
@@ -88,13 +92,96 @@ const ListasPage = () => {
       });
 
       if (error) throw error;
-      setListas(data?.listas || []);
+      const listasData = data?.listas || [];
+      setListas(listasData);
+      
+      // Fetch counts for each list
+      fetchListCounts(listasData);
     } catch (error) {
       console.error("Erro ao buscar listas:", error);
       toast.error("Erro ao carregar listas");
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchListCounts = async (listasData: Lista[]) => {
+    const counts: Record<number, number> = {};
+    
+    for (const lista of listasData) {
+      try {
+        if (lista.tipo === 'contatos') {
+          const { count } = await supabase
+            .from('SAAS_Contatos')
+            .select('*', { count: 'exact', head: true })
+            .eq('idLista', lista.id);
+          counts[lista.id] = count || 0;
+        } else {
+          const { count } = await supabase
+            .from('SAAS_Grupos')
+            .select('*', { count: 'exact', head: true })
+            .eq('idLista', lista.id);
+          counts[lista.id] = count || 0;
+        }
+      } catch (error) {
+        counts[lista.id] = 0;
+      }
+    }
+    
+    setListaCounts(counts);
+  };
+
+  const downloadListaExcel = async (lista: Lista) => {
+    setDownloadingId(lista.id);
+    try {
+      let data: any[] = [];
+      
+      if (lista.tipo === 'contatos') {
+        const { data: contatos, error } = await supabase
+          .from('SAAS_Contatos')
+          .select('*')
+          .eq('idLista', lista.id);
+        
+        if (error) throw error;
+        
+        data = (contatos || []).map(c => ({
+          'Nome': c.nome || '',
+          'Telefone': c.telefone || '',
+          ...((typeof c.atributos === 'object' && c.atributos) ? c.atributos : {})
+        }));
+      } else {
+        const { data: grupos, error } = await supabase
+          .from('SAAS_Grupos')
+          .select('*')
+          .eq('idLista', lista.id);
+        
+        if (error) throw error;
+        
+        data = (grupos || []).map(g => ({
+          'Nome do Grupo': g.nome || '',
+          'WhatsApp ID': g.WhatsAppId || '',
+          'Participantes': g.participantes || 0,
+          ...((typeof g.atributos === 'object' && g.atributos) ? g.atributos : {})
+        }));
+      }
+
+      if (data.length === 0) {
+        toast.error('Nenhum item encontrado nesta lista');
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, lista.tipo === 'contatos' ? 'Contatos' : 'Grupos');
+      
+      XLSX.writeFile(workbook, `${lista.nome.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+      toast.success('Excel baixado com sucesso!');
+    } catch (error) {
+      console.error('Error downloading excel:', error);
+      toast.error('Erro ao baixar Excel');
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -443,6 +530,7 @@ const ListasPage = () => {
                   <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-primary font-semibold">Nome da Lista</TableHead>
                     <TableHead className="text-primary font-semibold">Tipo</TableHead>
+                    <TableHead className="text-primary font-semibold text-center">Quantidade</TableHead>
                     <TableHead className="text-primary font-semibold">Data de Criação</TableHead>
                     <TableHead className="text-primary font-semibold text-right">Ações</TableHead>
                   </TableRow>
@@ -450,7 +538,7 @@ const ListasPage = () => {
                 <TableBody>
                   {filteredListas.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                         {listas.length === 0
                           ? "Nenhuma lista encontrada. Crie sua primeira lista!"
                           : "Nenhuma lista corresponde aos filtros selecionados."}
@@ -481,13 +569,32 @@ const ListasPage = () => {
                             {lista.tipo === "contatos" ? "Contatos" : "Grupos"}
                           </span>
                         </TableCell>
+                        <TableCell className="text-center">
+                          <span className="inline-flex items-center justify-center min-w-[50px] px-3 py-1 rounded-lg bg-muted text-foreground font-semibold text-sm">
+                            {listaCounts[lista.id] !== undefined ? listaCounts[lista.id] : '...'}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(new Date(lista.created_at), "dd/MM/yyyy 'às' HH:mm", {
                             locale: ptBR,
                           })}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => downloadListaExcel(lista)}
+                              disabled={downloadingId === lista.id}
+                              className="hover:text-emerald-500 hover:bg-emerald-500/10"
+                              title="Baixar Excel"
+                            >
+                              {downloadingId === lista.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Download className="w-4 h-4" />
+                              )}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"
