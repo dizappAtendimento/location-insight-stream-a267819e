@@ -65,10 +65,29 @@ serve(async (req) => {
           throw error;
         }
 
-        console.log(`[Disparos API] Found ${data?.length || 0} listas`);
+        // Fetch counts for each list
+        const listasWithCounts = await Promise.all((data || []).map(async (lista: any) => {
+          let count = 0;
+          if (lista.tipo === 'contatos') {
+            const { count: contatosCount } = await supabase
+              .from('SAAS_Contatos')
+              .select('*', { count: 'exact', head: true })
+              .eq('idLista', lista.id);
+            count = contatosCount || 0;
+          } else {
+            const { count: gruposCount } = await supabase
+              .from('SAAS_Grupos')
+              .select('*', { count: 'exact', head: true })
+              .eq('idLista', lista.id);
+            count = gruposCount || 0;
+          }
+          return { ...lista, _count: count };
+        }));
+
+        console.log(`[Disparos API] Found ${listasWithCounts.length} listas with counts`);
         
         return new Response(
-          JSON.stringify({ listas: data || [] }),
+          JSON.stringify({ listas: listasWithCounts }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

@@ -95,8 +95,12 @@ const ListasPage = () => {
       const listasData = data?.listas || [];
       setListas(listasData);
       
-      // Fetch counts for each list
-      fetchListCounts(listasData);
+      // Build counts from the _count property returned by API
+      const counts: Record<number, number> = {};
+      listasData.forEach((lista: Lista) => {
+        counts[lista.id] = lista._count || 0;
+      });
+      setListaCounts(counts);
     } catch (error) {
       console.error("Erro ao buscar listas:", error);
       toast.error("Erro ao carregar listas");
@@ -104,32 +108,6 @@ const ListasPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  const fetchListCounts = async (listasData: Lista[]) => {
-    const counts: Record<number, number> = {};
-    
-    for (const lista of listasData) {
-      try {
-        if (lista.tipo === 'contatos') {
-          const { count } = await supabase
-            .from('SAAS_Contatos')
-            .select('*', { count: 'exact', head: true })
-            .eq('idLista', lista.id);
-          counts[lista.id] = count || 0;
-        } else {
-          const { count } = await supabase
-            .from('SAAS_Grupos')
-            .select('*', { count: 'exact', head: true })
-            .eq('idLista', lista.id);
-          counts[lista.id] = count || 0;
-        }
-      } catch (error) {
-        counts[lista.id] = 0;
-      }
-    }
-    
-    setListaCounts(counts);
   };
 
   const downloadListaExcel = async (lista: Lista) => {
