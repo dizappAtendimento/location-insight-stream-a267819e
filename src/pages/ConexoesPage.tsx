@@ -262,10 +262,14 @@ const ConexoesPage = () => {
     try {
       setSavingApiKey(true);
       
-      const { error } = await supabase
-        .from('SAAS_Usuarios')
-        .update({ apikey_gpt: chatGptApiKey })
-        .eq('id', user.id);
+      // Use edge function to bypass RLS
+      const { error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'update-user-apikey',
+          userId: user.id,
+          disparoData: { apikey_gpt: chatGptApiKey }
+        }
+      });
 
       if (error) throw error;
       
