@@ -241,6 +241,185 @@ serve(async (req) => {
         );
       }
 
+      case 'get-disparo-detalhes': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const disparoId = disparoData?.id;
+        if (!disparoId) {
+          return new Response(
+            JSON.stringify({ error: 'disparo id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Get disparo data
+        const { data: disparo, error: disparoError } = await supabase
+          .from('SAAS_Disparos')
+          .select('*')
+          .eq('id', disparoId)
+          .eq('userId', userId)
+          .single();
+
+        if (disparoError) {
+          console.error('[Disparos API] Error fetching disparo:', disparoError);
+          throw disparoError;
+        }
+
+        // Get detalhes from view
+        const { data: detalhes, error: detalhesError } = await supabase
+          .from('vw_Detalhes_Completo')
+          .select('*')
+          .eq('idDisparo', disparoId)
+          .eq('UserId', userId)
+          .order('dataEnvio', { ascending: false });
+
+        if (detalhesError) {
+          console.error('[Disparos API] Error fetching detalhes:', detalhesError);
+          throw detalhesError;
+        }
+
+        // Get listas info
+        const listaIds = disparo?.idListas || [];
+        let listas: any[] = [];
+        if (listaIds.length > 0) {
+          const { data: listasData } = await supabase
+            .from('SAAS_Listas')
+            .select('id, nome, tipo')
+            .in('id', listaIds);
+          listas = listasData || [];
+        }
+
+        // Get conexoes info
+        const conexaoIds = disparo?.idConexoes || [];
+        let conexoes: any[] = [];
+        if (conexaoIds.length > 0) {
+          const { data: conexoesData } = await supabase
+            .from('SAAS_Conexões')
+            .select('id, NomeConexao, Telefone, instanceName')
+            .in('id', conexaoIds);
+          conexoes = conexoesData || [];
+        }
+
+        console.log(`[Disparos API] Disparo ${disparoId} loaded with ${detalhes?.length || 0} detalhes`);
+        
+        return new Response(
+          JSON.stringify({ 
+            disparo, 
+            detalhes: detalhes || [], 
+            listas,
+            conexoes
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'pause-disparo': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const disparoId = disparoData?.id;
+        if (!disparoId) {
+          return new Response(
+            JSON.stringify({ error: 'disparo id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error } = await supabase.rpc('pause_disparo', {
+          p_disparo_id: disparoId,
+          p_user_id: userId
+        });
+
+        if (error) {
+          console.error('[Disparos API] Error pausing disparo:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Disparo ${disparoId} paused`);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'resume-disparo': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const disparoId = disparoData?.id;
+        if (!disparoId) {
+          return new Response(
+            JSON.stringify({ error: 'disparo id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error } = await supabase.rpc('resume_disparo', {
+          p_disparo_id: disparoId,
+          p_user_id: userId
+        });
+
+        if (error) {
+          console.error('[Disparos API] Error resuming disparo:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Disparo ${disparoId} resumed`);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'delete-disparo': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const disparoId = disparoData?.id;
+        if (!disparoId) {
+          return new Response(
+            JSON.stringify({ error: 'disparo id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error } = await supabase.rpc('delete_disparo', {
+          p_disparo_id: disparoId,
+          p_user_id: userId
+        });
+
+        if (error) {
+          console.error('[Disparos API] Error deleting disparo:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Disparo ${disparoId} deleted`);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
