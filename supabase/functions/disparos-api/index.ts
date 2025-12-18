@@ -420,6 +420,43 @@ serve(async (req) => {
         );
       }
 
+      case 'delete-connection': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const connectionId = disparoData?.id;
+        if (!connectionId) {
+          return new Response(
+            JSON.stringify({ error: 'connection id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Disparos API] Deleting connection ${connectionId} for user ${userId}`);
+
+        const { error } = await supabase
+          .from('SAAS_Conexões')
+          .delete()
+          .eq('id', connectionId)
+          .eq('idUsuario', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error deleting connection:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Connection ${connectionId} deleted successfully`);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
