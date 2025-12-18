@@ -429,6 +429,118 @@ serve(async (req) => {
         );
       }
 
+      case 'get-user-plan-usage': {
+        // Get user with plans data
+        const { data: userData, error: userError } = await supabase
+          .from('SAAS_Usuarios')
+          .select('plano, plano_extrator')
+          .eq('id', userId)
+          .single();
+
+        if (userError) {
+          return new Response(
+            JSON.stringify({ error: 'Usuário não encontrado' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        let disparadorData = null;
+        let extratorData = null;
+
+        // Get disparador plan info
+        if (userData.plano) {
+          const { data: planInfo } = await supabase
+            .from('SAAS_Planos')
+            .select('nome, qntDisparos, qntConexoes, qntContatos, qntListas')
+            .eq('id', userData.plano)
+            .single();
+
+          // Get usage counts
+          const { count: conexoesCount } = await supabase
+            .from('SAAS_Conexões')
+            .select('*', { count: 'exact', head: true })
+            .eq('idUsuario', userId);
+
+          const { count: listasCount } = await supabase
+            .from('SAAS_Listas')
+            .select('*', { count: 'exact', head: true })
+            .eq('idUsuario', userId);
+
+          const { count: contatosCount } = await supabase
+            .from('SAAS_Contatos')
+            .select('*', { count: 'exact', head: true })
+            .eq('idUsuario', userId);
+
+          // Get dispatches this month
+          const monthStart = new Date();
+          monthStart.setDate(1);
+          monthStart.setHours(0, 0, 0, 0);
+          
+          const { data: disparosData } = await supabase
+            .from('SAAS_Disparos')
+            .select('id')
+            .eq('userId', userId)
+            .gte('created_at', monthStart.toISOString());
+
+          let disparosCount = 0;
+          if (disparosData && disparosData.length > 0) {
+            const disparoIds = disparosData.map(d => d.id);
+            const { count } = await supabase
+              .from('SAAS_Detalhes_Disparos')
+              .select('*', { count: 'exact', head: true })
+              .in('idDisparo', disparoIds);
+            disparosCount = count || 0;
+          }
+
+          disparadorData = {
+            planoNome: planInfo?.nome || null,
+            limiteDisparos: planInfo?.qntDisparos || null,
+            limiteConexoes: planInfo?.qntConexoes || null,
+            limiteContatos: planInfo?.qntContatos || null,
+            limiteListas: planInfo?.qntListas || null,
+            usadoDisparos: disparosCount,
+            usadoConexoes: conexoesCount || 0,
+            usadoContatos: contatosCount || 0,
+            usadoListas: listasCount || 0,
+          };
+        }
+
+        // Get extrator plan info
+        if (userData.plano_extrator) {
+          const { data: planInfo } = await supabase
+            .from('SAAS_Planos')
+            .select('nome, qntPlaces, qntInstagram, qntLinkedin')
+            .eq('id', userData.plano_extrator)
+            .single();
+
+          // Get extraction counts this month
+          const monthStart = new Date();
+          monthStart.setDate(1);
+          monthStart.setHours(0, 0, 0, 0);
+          
+          const { count: placesCount } = await supabase
+            .from('search_jobs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .gte('created_at', monthStart.toISOString());
+
+          extratorData = {
+            planoNome: planInfo?.nome || null,
+            limitePlaces: planInfo?.qntPlaces || null,
+            limiteInstagram: planInfo?.qntInstagram || null,
+            limiteLinkedin: planInfo?.qntLinkedin || null,
+            usadoPlaces: placesCount || 0,
+            usadoInstagram: 0, // TODO: Add when Instagram extraction table exists
+            usadoLinkedin: 0,  // TODO: Add when LinkedIn extraction table exists
+          };
+        }
+
+        return new Response(
+          JSON.stringify({ disparador: disparadorData, extrator: extratorData }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Ação inválida' }),

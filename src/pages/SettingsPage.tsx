@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Bell, Database, Shield, Moon, Sun, Monitor, 
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
-  Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff
+  Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +27,28 @@ interface AppSettings {
   maxResults: string;
 }
 
+interface PlanUsage {
+  planoNome: string | null;
+  limiteDisparos: number | null;
+  limiteConexoes: number | null;
+  limiteContatos: number | null;
+  limiteListas: number | null;
+  usadoDisparos: number;
+  usadoConexoes: number;
+  usadoContatos: number;
+  usadoListas: number;
+}
+
+interface ExtractorPlanUsage {
+  planoNome: string | null;
+  limitePlaces: number | null;
+  limiteInstagram: number | null;
+  limiteLinkedin: number | null;
+  usadoPlaces: number;
+  usadoInstagram: number;
+  usadoLinkedin: number;
+}
+
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   notifications: true,
@@ -34,12 +57,41 @@ const DEFAULT_SETTINGS: AppSettings = {
   maxResults: '1000',
 };
 
+// Component for usage bars
+const UsageBar = ({ label, used, limit, color = 'green' }: { label: string; used: number; limit: number | null; color?: 'green' | 'blue' }) => {
+  const isUnlimited = limit === null || limit === 0;
+  const percentage = isUnlimited ? 100 : Math.min((used / limit) * 100, 100);
+  const colorClass = color === 'blue' ? 'bg-blue-500' : 'bg-emerald-500';
+  
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={color === 'blue' ? 'text-blue-400' : 'text-emerald-400'}>
+          {used.toLocaleString('pt-BR')} / {isUnlimited ? 'Ilimitado' : limit?.toLocaleString('pt-BR')}
+        </span>
+      </div>
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+        <div 
+          className={cn("h-full rounded-full transition-all", colorClass)} 
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const SettingsPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Plan usage state
+  const [disparadorPlan, setDisparadorPlan] = useState<PlanUsage | null>(null);
+  const [extratorPlan, setExtratorPlan] = useState<ExtractorPlanUsage | null>(null);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -72,6 +124,35 @@ const SettingsPage = () => {
       });
       setAvatarUrl(user.avatar_url || null);
     }
+  }, [user]);
+
+  // Fetch plan usage data
+  useEffect(() => {
+    const fetchPlanUsage = async () => {
+      if (!user?.id) return;
+      setLoadingPlans(true);
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-api', {
+          body: { action: 'get-user-plan-usage', userId: user.id }
+        });
+        
+        if (error) throw error;
+        
+        if (data?.disparador) {
+          setDisparadorPlan(data.disparador);
+        }
+        if (data?.extrator) {
+          setExtratorPlan(data.extrator);
+        }
+      } catch (error) {
+        console.error('Error fetching plan usage:', error);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+    
+    fetchPlanUsage();
   }, [user]);
 
   useEffect(() => {
@@ -562,6 +643,94 @@ const SettingsPage = () => {
               </div>
             </div>
           )}
+        </section>
+
+        <Separator className="bg-border/30" />
+
+        {/* Plan Section */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground">Meus Planos</h2>
+          </div>
+          
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Plano Disparador */}
+            <div className="p-4 rounded-lg bg-card border border-border/50 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                <h3 className="text-sm font-medium text-foreground">Disparador</h3>
+              </div>
+              
+              {loadingPlans ? (
+                <div className="space-y-3">
+                  <div className="h-4 bg-muted animate-pulse rounded"></div>
+                  <div className="h-4 bg-muted animate-pulse rounded w-2/3"></div>
+                </div>
+              ) : disparadorPlan ? (
+                <>
+                  <div className="p-3 rounded-md bg-primary/10 border border-primary/20">
+                    <p className="text-primary font-semibold">{disparadorPlan.planoNome || 'Sem plano'}</p>
+                    <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> {disparadorPlan.limiteDisparos ? `${disparadorPlan.limiteDisparos} disparos/mês` : 'Disparos ilimitados'}</p>
+                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> {disparadorPlan.limiteConexoes ? `${disparadorPlan.limiteConexoes} conexões` : 'Conexões ilimitadas'}</p>
+                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> {disparadorPlan.limiteContatos ? `${disparadorPlan.limiteContatos} contatos` : 'Contatos ilimitados'}</p>
+                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> {disparadorPlan.limiteListas ? `${disparadorPlan.limiteListas} listas` : 'Listas ilimitadas'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground">Uso do Plano</p>
+                    <UsageBar label="Disparos" used={disparadorPlan.usadoDisparos} limit={disparadorPlan.limiteDisparos} />
+                    <UsageBar label="Conexões" used={disparadorPlan.usadoConexoes} limit={disparadorPlan.limiteConexoes} />
+                    <UsageBar label="Contatos" used={disparadorPlan.usadoContatos} limit={disparadorPlan.limiteContatos} />
+                    <UsageBar label="Listas" used={disparadorPlan.usadoListas} limit={disparadorPlan.limiteListas} />
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum plano ativo</p>
+              )}
+            </div>
+
+            {/* Plano Extrator */}
+            <div className="p-4 rounded-lg bg-card border border-border/50 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <h3 className="text-sm font-medium text-foreground">Extrator</h3>
+              </div>
+              
+              {loadingPlans ? (
+                <div className="space-y-3">
+                  <div className="h-4 bg-muted animate-pulse rounded"></div>
+                  <div className="h-4 bg-muted animate-pulse rounded w-2/3"></div>
+                </div>
+              ) : extratorPlan ? (
+                <>
+                  <div className="p-3 rounded-md bg-blue-500/10 border border-blue-500/20">
+                    <p className="text-blue-400 font-semibold">{extratorPlan.planoNome || 'Sem plano'}</p>
+                    <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-blue-400" /> {extratorPlan.limitePlaces ? `${extratorPlan.limitePlaces} extrações Places` : 'Places ilimitado'}</p>
+                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-blue-400" /> {extratorPlan.limiteInstagram ? `${extratorPlan.limiteInstagram} extrações Instagram` : 'Instagram ilimitado'}</p>
+                      <p className="flex items-center gap-1"><Check className="w-3 h-3 text-blue-400" /> {extratorPlan.limiteLinkedin ? `${extratorPlan.limiteLinkedin} extrações LinkedIn` : 'LinkedIn ilimitado'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground">Uso do Plano</p>
+                    <UsageBar label="Places" used={extratorPlan.usadoPlaces} limit={extratorPlan.limitePlaces} color="blue" />
+                    <UsageBar label="Instagram" used={extratorPlan.usadoInstagram} limit={extratorPlan.limiteInstagram} color="blue" />
+                    <UsageBar label="LinkedIn" used={extratorPlan.usadoLinkedin} limit={extratorPlan.limiteLinkedin} color="blue" />
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum plano ativo</p>
+              )}
+            </div>
+          </div>
+          
+          <p className="text-xs text-muted-foreground">
+            Caso queira mudar de plano, <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">clique aqui</a> e fale com o suporte.
+          </p>
         </section>
 
         <Separator className="bg-border/30" />
