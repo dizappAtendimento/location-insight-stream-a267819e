@@ -338,27 +338,7 @@ export default function DisparoDetalhesPage() {
   const handleExportExcel = () => {
     if (!disparo) return;
 
-    // Resumo sheet
-    const resumoData = [
-      ["Disparo #", disparo.id],
-      ["Status", disparo.StatusDisparo || "N/A"],
-      ["Tipo", disparo.TipoDisparo || "N/A"],
-      ["Criado em", format(parseISO(disparo.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })],
-      ["Hora Início", getFirstSendTime() || "N/A"],
-      ["Hora Fim", getLastSendTime() || "Em andamento"],
-      ["Total Disparos", disparo.TotalDisparos || 0],
-      ["Mensagens Disparadas", disparo.MensagensDisparadas || 0],
-      ["Enviados", stats.enviados],
-      ["Falhas", stats.falhas],
-      ["Pendentes", stats.pendentes],
-      ["Intervalo", `${disparo.intervaloMin || 5}s - ${disparo.intervaloMax || 15}s`],
-      ["Horário Permitido", `${disparo.StartTime || "08:00"} - ${disparo.EndTime || "18:00"}`],
-      ["Dias da Semana", disparo.DiasSelecionados?.map((d) => diasSemana[d]).join(", ") || "Todos"],
-      ["Listas", listas.map((l) => l.nome).join(", ") || "N/A"],
-      ["Conexões", conexoes.map((c) => c.NomeConexao).join(", ") || "N/A"],
-    ];
-
-    // Detalhes sheet
+    // Detalhes sheet with requested columns
     const detalhesData = detalhes.map(d => ({
       "Destinatário": d.TelefoneContato || d.NomeGrupo || "N/A",
       "Conexão": d.NomeConexao || "N/A",
@@ -368,10 +348,6 @@ export default function DisparoDetalhesPage() {
     }));
 
     const wb = XLSX.utils.book_new();
-    
-    const wsResumo = XLSX.utils.aoa_to_sheet(resumoData);
-    XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo");
-    
     const wsDetalhes = XLSX.utils.json_to_sheet(detalhesData);
     XLSX.utils.book_append_sheet(wb, wsDetalhes, "Detalhes");
 
