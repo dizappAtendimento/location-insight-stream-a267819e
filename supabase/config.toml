@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.maturador-api]
 verify_jwt = false
+
+[functions.crm-webhook]
+verify_jwt = false
