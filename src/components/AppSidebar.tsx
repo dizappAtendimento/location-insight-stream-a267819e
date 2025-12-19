@@ -12,7 +12,6 @@ import {
   Linkedin,
   MapPin,
   Settings,
-  FileCode2,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -46,10 +45,10 @@ const menuItems = [
 ];
 
 const extractorItems = [
-  { title: 'Instagram', url: '/instagram', icon: Instagram, color: 'text-pink-400', bgColor: 'bg-pink-400/10' },
-  { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, color: 'text-[#0A66C2]', bgColor: 'bg-[#0A66C2]/10' },
-  { title: 'Google Places', url: '/places', icon: MapPin, color: 'text-emerald-400', bgColor: 'bg-emerald-400/10' },
-  { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, color: 'text-[#25D366]', bgColor: 'bg-[#25D366]/10' },
+  { title: 'Instagram', url: '/instagram', icon: Instagram, color: 'text-pink-400' },
+  { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, color: 'text-sky-500' },
+  { title: 'Google Places', url: '/places', icon: MapPin, color: 'text-emerald-400' },
+  { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, color: 'text-green-400' },
 ];
 
 const systemItems = [
@@ -66,69 +65,54 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="dark border-r border-white/[0.06] bg-[#0a0a0f]"
+      className="border-r border-zinc-800/50 bg-zinc-950"
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <SidebarHeader className="p-4 border-b border-white/[0.06]">
-        <Link to="/" className="flex items-center justify-center transition-all duration-300 hover:opacity-90">
+      <SidebarHeader className="px-3 py-4 border-b border-zinc-800/50">
+        <Link to="/" className="flex items-center justify-center">
           <img 
             src={logo} 
             alt="Logo" 
             className={cn(
-              "object-contain transition-all duration-300", 
-              collapsed ? "w-8 h-8" : "w-28 h-8"
+              "object-contain transition-all duration-200", 
+              collapsed ? "w-8 h-8" : "w-24 h-7"
             )}
           />
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="py-3 px-2">
+      <SidebarContent className="py-4 px-2">
         {/* Menu Principal */}
-        <SidebarGroup className="py-0 mb-2">
+        <SidebarGroup className="mb-4">
           <SidebarGroupLabel className={cn(
-            "text-[9px] font-semibold uppercase tracking-[0.15em] text-white/30 px-3 mb-1.5",
+            "text-[10px] font-medium uppercase tracking-wider text-zinc-500 px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
+            <SidebarMenu className="space-y-0.5">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className={cn(
-                      "group transition-all duration-200 h-9 rounded-lg mx-0.5",
-                      isActive(item.url) 
-                        ? "bg-white/[0.08] text-white" 
-                        : "hover:bg-white/[0.04] text-white/50 hover:text-white/80"
-                    )}
+                    className="p-0 h-auto"
                   >
-                    <Link to={item.url} className="flex items-center gap-2.5 px-2.5">
-                      <div className={cn(
-                        "w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200",
+                    <Link 
+                      to={item.url} 
+                      className={cn(
+                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-white/[0.08]" 
-                          : "bg-white/[0.03] group-hover:bg-white/[0.06]"
-                      )}>
-                        <item.icon 
-                          className={cn(
-                            "w-4 h-4 transition-all duration-200",
-                            isActive(item.url) ? "text-white" : "text-white/40 group-hover:text-white/70"
-                          )} 
-                          strokeWidth={1.5} 
-                        />
-                      </div>
-                      <span className={cn(
-                        "text-[13px] font-medium transition-colors",
-                        isActive(item.url) ? "text-white" : "text-white/60 group-hover:text-white/90"
-                      )}>
-                        {item.title}
-                      </span>
+                          ? "bg-zinc-800/80 text-zinc-100" 
+                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
+                      )}
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -138,49 +122,37 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Extratores */}
-        <SidebarGroup className="py-0 mb-2">
+        <SidebarGroup className="mb-4">
           <SidebarGroupLabel className={cn(
-            "text-[9px] font-semibold uppercase tracking-[0.15em] text-white/30 px-3 mb-1.5",
+            "text-[10px] font-medium uppercase tracking-wider text-zinc-500 px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Extratores
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
+            <SidebarMenu className="space-y-0.5">
               {extractorItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className={cn(
-                      "group transition-all duration-200 h-9 rounded-lg mx-0.5",
-                      isActive(item.url) 
-                        ? "bg-white/[0.08] text-white" 
-                        : "hover:bg-white/[0.04] text-white/50 hover:text-white/80"
-                    )}
+                    className="p-0 h-auto"
                   >
-                    <Link to={item.url} className="flex items-center gap-2.5 px-2.5">
-                      <div className={cn(
-                        "w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200",
+                    <Link 
+                      to={item.url} 
+                      className={cn(
+                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-white/[0.08]" 
-                          : item.bgColor
-                      )}>
-                        <item.icon 
-                          className={cn(
-                            "w-4 h-4 transition-all duration-200",
-                            isActive(item.url) ? "text-white" : item.color
-                          )} 
-                          strokeWidth={1.5} 
-                        />
-                      </div>
-                      <span className={cn(
-                        "text-[13px] font-medium transition-colors",
-                        isActive(item.url) ? "text-white" : "text-white/60 group-hover:text-white/90"
-                      )}>
-                        {item.title}
-                      </span>
+                          ? "bg-zinc-800/80 text-zinc-100" 
+                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
+                      )}
+                    >
+                      <item.icon 
+                        className={cn("w-4 h-4 shrink-0", isActive(item.url) ? "text-zinc-100" : item.color)} 
+                        strokeWidth={1.5} 
+                      />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -190,49 +162,34 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Sistema */}
-        <SidebarGroup className="py-0">
+        <SidebarGroup>
           <SidebarGroupLabel className={cn(
-            "text-[9px] font-semibold uppercase tracking-[0.15em] text-white/30 px-3 mb-1.5",
+            "text-[10px] font-medium uppercase tracking-wider text-zinc-500 px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Sistema
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
+            <SidebarMenu className="space-y-0.5">
               {systemItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
-                    className={cn(
-                      "group transition-all duration-200 h-9 rounded-lg mx-0.5",
-                      isActive(item.url) 
-                        ? "bg-white/[0.08] text-white" 
-                        : "hover:bg-white/[0.04] text-white/50 hover:text-white/80"
-                    )}
+                    className="p-0 h-auto"
                   >
-                    <Link to={item.url} className="flex items-center gap-2.5 px-2.5">
-                      <div className={cn(
-                        "w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200",
+                    <Link 
+                      to={item.url} 
+                      className={cn(
+                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-white/[0.08]" 
-                          : "bg-white/[0.03] group-hover:bg-white/[0.06]"
-                      )}>
-                        <item.icon 
-                          className={cn(
-                            "w-4 h-4 transition-all duration-200",
-                            isActive(item.url) ? "text-white" : "text-white/40 group-hover:text-white/70"
-                          )} 
-                          strokeWidth={1.5} 
-                        />
-                      </div>
-                      <span className={cn(
-                        "text-[13px] font-medium transition-colors",
-                        isActive(item.url) ? "text-white" : "text-white/60 group-hover:text-white/90"
-                      )}>
-                        {item.title}
-                      </span>
+                          ? "bg-zinc-800/80 text-zinc-100" 
+                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
+                      )}
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -242,19 +199,19 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t border-white/[0.06]">
+      <SidebarFooter className="p-3 border-t border-zinc-800/50">
         {/* User Card */}
         {!collapsed && (
-          <div className="mx-0.5 p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+          <div className="px-2 py-2 rounded-md bg-zinc-900/50 mb-2">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                <span className="text-primary text-xs font-semibold">
+              <div className="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center">
+                <span className="text-zinc-300 text-xs font-medium">
                   {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-white/80 truncate">{user?.nome || 'Usuário'}</p>
-                <p className="text-[10px] text-white/30 truncate">{user?.Email || 'email@exemplo.com'}</p>
+                <p className="text-xs font-medium text-zinc-300 truncate">{user?.nome || 'Usuário'}</p>
+                <p className="text-[10px] text-zinc-500 truncate">{user?.Email || ''}</p>
               </div>
             </div>
           </div>
@@ -263,13 +220,9 @@ export function AppSidebar() {
         {/* Toggle Button */}
         <button 
           onClick={() => setOpen(collapsed)}
-          className="mt-1.5 w-full h-7 rounded-md flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all duration-200"
+          className="w-full py-1.5 rounded-md flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors"
         >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronLeft className="w-4 h-4" />
-          )}
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </SidebarFooter>
     </Sidebar>
