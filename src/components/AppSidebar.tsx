@@ -65,7 +65,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="border-r border-slate-800/50 bg-slate-950"
+      className="border-r border-[#1a1d2e] bg-[#0d0f17]"
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
