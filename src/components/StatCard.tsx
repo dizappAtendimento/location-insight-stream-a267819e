@@ -9,7 +9,7 @@ interface StatCardProps {
   trendPositive?: boolean;
   className?: string;
   delay?: number;
-  accentColor?: 'primary' | 'success' | 'warning' | 'info';
+  accentColor?: 'primary' | 'success' | 'warning' | 'info' | 'highlight';
 }
 
 export function StatCard({
@@ -46,6 +46,12 @@ export function StatCard({
       value: 'text-sky-400',
       icon: 'text-sky-500/70',
       glow: 'hover:shadow-sky-500/10',
+    },
+    highlight: {
+      gradient: 'from-highlight/80 via-highlight/50 to-transparent',
+      value: 'text-highlight',
+      icon: 'text-highlight/70',
+      glow: 'hover:shadow-highlight/10',
     },
   };
 

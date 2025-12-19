@@ -301,7 +301,7 @@ export default function AuthPage() {
 
                 <Button 
                   type="submit" 
-                  className="w-full mt-6" 
+                  className="w-full mt-6 bg-highlight text-highlight-foreground hover:bg-highlight/90" 
                   disabled={isLoading || isGoogleLoading}
                 >
                   {isLoading ? (
@@ -454,7 +454,7 @@ export default function AuthPage() {
 
                 <Button 
                   type="submit" 
-                  className="w-full mt-6" 
+                  className="w-full mt-6 bg-highlight text-highlight-foreground hover:bg-highlight/90" 
                   disabled={isRegistering}
                 >
                   {isRegistering ? (
