@@ -12,6 +12,7 @@ import {
   List,
   Code,
   Kanban,
+  Zap,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +40,7 @@ const menuItems = [
   { title: 'Disparos em Grupo', url: '/disparos-grupo', icon: Users },
   { title: 'Listas', url: '/listas', icon: List },
   { title: 'CRM', url: '/crm', icon: Kanban },
+  { title: 'Maturador', url: '/maturador', icon: Zap },
 ];
 
 const extractorItems = [
