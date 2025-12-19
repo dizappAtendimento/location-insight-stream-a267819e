@@ -75,11 +75,11 @@ export function MessagePreview({ messages, contactName = 'Contato Exemplo' }: Me
                 <p className="text-white text-sm font-semibold tracking-wide">dizapp</p>
                 <p className="text-[#00a884] text-xs font-medium">online</p>
               </div>
-              <div className="flex items-center gap-4">
-                <svg className="w-5 h-5 text-[#aebac1]" viewBox="0 0 24 24" fill="currentColor">
+              <div className="flex items-center gap-3">
+                <svg className="w-4 h-4 text-[#aebac1]" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M15.9 14.3H15l-.3-.3c1-1.1 1.6-2.7 1.6-4.3 0-3.7-3-6.7-6.7-6.7S3 6 3 9.7s3 6.7 6.7 6.7c1.6 0 3.2-.6 4.3-1.6l.3.3v.8l5.1 5.1 1.5-1.5-5-5.2zm-6.2 0c-2.6 0-4.6-2.1-4.6-4.6s2.1-4.6 4.6-4.6 4.6 2.1 4.6 4.6-2 4.6-4.6 4.6z"/>
                 </svg>
-                <svg className="w-5 h-5 text-[#aebac1]" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-4 h-4 text-[#aebac1]" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"/>
                 </svg>
               </div>
@@ -179,21 +179,15 @@ export function MessagePreview({ messages, contactName = 'Contato Exemplo' }: Me
             </div>
 
             {/* Input bar */}
-            <div className="bg-gradient-to-r from-[#1f2c34] to-[#202c33] px-3 py-2.5 flex items-center gap-2 border-t border-white/5">
-              <button className="w-10 h-10 rounded-full hover:bg-white/5 flex items-center justify-center transition-colors">
-                <svg className="w-6 h-6 text-[#8696a0]" viewBox="0 0 24 24" fill="currentColor">
+            <div className="bg-gradient-to-r from-[#1f2c34] to-[#202c33] px-3 py-2 flex items-center gap-2 border-t border-white/5">
+              <button className="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center transition-colors">
+                <svg className="w-5 h-5 text-[#8696a0]" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M9.153 11.603c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962zm-3.204 1.362c-.026-.307-.131 5.218 6.063 5.551 6.066-.25 6.066-5.551 6.066-5.551-6.078 1.416-12.129 0-12.129 0zm11.363 1.108s-.669 1.959-5.051 1.959c-3.505 0-5.388-1.164-5.607-1.959 0 0 5.912 1.055 10.658 0zM11.804 1.011C5.609 1.011.978 6.033.978 12.228s4.826 10.761 11.021 10.761S23.02 18.423 23.02 12.228c.001-6.195-5.021-11.217-11.216-11.217zM12 21.354c-5.273 0-9.381-3.886-9.381-9.159s3.942-9.548 9.215-9.548 9.548 4.275 9.548 9.548c-.001 5.272-4.109 9.159-9.382 9.159zm3.108-9.751c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962z"/>
                 </svg>
               </button>
-              <div className="flex-1 bg-[#2a3942] rounded-full px-4 py-2.5 flex items-center">
+              <div className="flex-1 bg-[#2a3942] rounded-full px-4 py-2 flex items-center">
                 <span className="text-[#8696a0] text-sm">Mensagem</span>
               </div>
-              <button className="w-11 h-11 rounded-full bg-gradient-to-br from-[#00a884] to-[#008f72] flex items-center justify-center shadow-lg shadow-[#00a884]/20 hover:shadow-[#00a884]/30 transition-shadow">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
-                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-                </svg>
-              </button>
             </div>
           </div>
         </div>
