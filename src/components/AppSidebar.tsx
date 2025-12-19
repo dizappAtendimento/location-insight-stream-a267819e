@@ -65,12 +65,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="border-r border-border bg-sidebar"
+      className="border-r border-slate-700/50 bg-slate-900"
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <SidebarHeader className="px-3 py-4 border-b border-border">
+      <SidebarHeader className="px-3 py-4 border-b border-slate-700/50">
         <Link to="/" className="flex items-center justify-center">
           <img 
             src={logo} 
@@ -87,7 +87,7 @@ export function AppSidebar() {
         {/* Menu Principal */}
         <SidebarGroup className="mb-4">
           <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-2 mb-2",
+            "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Menu
@@ -107,8 +107,8 @@ export function AppSidebar() {
                       className={cn(
                         "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-accent text-accent-foreground" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                          ? "bg-slate-800 text-white" 
+                          : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                       )}
                     >
                       <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
@@ -124,7 +124,7 @@ export function AppSidebar() {
         {/* Extratores */}
         <SidebarGroup className="mb-4">
           <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-2 mb-2",
+            "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Extratores
@@ -144,12 +144,12 @@ export function AppSidebar() {
                       className={cn(
                         "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-accent text-accent-foreground" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                          ? "bg-slate-800 text-white" 
+                          : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                       )}
                     >
                       <item.icon 
-                        className={cn("w-4 h-4 shrink-0", isActive(item.url) ? "text-accent-foreground" : item.color)} 
+                        className={cn("w-4 h-4 shrink-0", isActive(item.url) ? "text-white" : item.color)} 
                         strokeWidth={1.5} 
                       />
                       <span className="text-sm">{item.title}</span>
@@ -164,7 +164,7 @@ export function AppSidebar() {
         {/* Sistema */}
         <SidebarGroup>
           <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-2 mb-2",
+            "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Sistema
@@ -184,8 +184,8 @@ export function AppSidebar() {
                       className={cn(
                         "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-accent text-accent-foreground" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                          ? "bg-slate-800 text-white" 
+                          : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                       )}
                     >
                       <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
@@ -199,19 +199,19 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-border">
+      <SidebarFooter className="p-3 border-t border-slate-700/50">
         {/* User Card */}
         {!collapsed && (
-          <div className="px-2 py-2 rounded-md bg-muted/50 mb-2">
+          <div className="px-2 py-2 rounded-md bg-slate-800/50 mb-2">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                <span className="text-muted-foreground text-xs font-medium">
+              <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center">
+                <span className="text-slate-300 text-xs font-medium">
                   {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground truncate">{user?.nome || 'Usuário'}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{user?.Email || ''}</p>
+                <p className="text-xs font-medium text-white truncate">{user?.nome || 'Usuário'}</p>
+                <p className="text-[10px] text-slate-400 truncate">{user?.Email || ''}</p>
               </div>
             </div>
           </div>
@@ -220,7 +220,7 @@ export function AppSidebar() {
         {/* Toggle Button */}
         <button 
           onClick={() => setOpen(collapsed)}
-          className="w-full py-1.5 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+          className="w-full py-1.5 rounded-md flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
