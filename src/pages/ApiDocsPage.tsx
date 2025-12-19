@@ -37,6 +37,7 @@ const endpoints: Endpoint[] = [
   { method: 'GET', name: 'Status Conexão', path: '/evolution-api', body: '{\n  "action": "connection-state",\n  "instanceName": "minha-conexao"\n}' },
   { method: 'POST', name: 'Buscar Google Places', path: '/search-places', body: '{\n  "query": "restaurantes",\n  "location": "São Paulo, SP",\n  "maxResults": 100,\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'GET', name: 'Dados do Plano', path: '/admin-api', body: '{\n  "action": "get-user-plan-usage",\n  "userId": "SEU_USER_ID"\n}' },
+  { method: 'POST', name: 'Gerar Mensagem IA', path: '/disparos-api', body: '{\n  "action": "generate-ai-message",\n  "userId": "SEU_USER_ID",\n  "disparoData": {\n    "prompt": "Crie uma mensagem de boas vindas para um cliente",\n    "context": "Empresa de marketing digital"\n  }\n}' },
 ];
 
 const methodColors: Record<string, string> = {
