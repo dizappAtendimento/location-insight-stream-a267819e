@@ -65,12 +65,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="border-r border-zinc-800/50 bg-zinc-950"
+      className="border-r border-border bg-sidebar"
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <SidebarHeader className="px-3 py-4 border-b border-zinc-800/50">
+      <SidebarHeader className="px-3 py-4 border-b border-border">
         <Link to="/" className="flex items-center justify-center">
           <img 
             src={logo} 
@@ -87,7 +87,7 @@ export function AppSidebar() {
         {/* Menu Principal */}
         <SidebarGroup className="mb-4">
           <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-zinc-500 px-2 mb-2",
+            "text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Menu
@@ -107,8 +107,8 @@ export function AppSidebar() {
                       className={cn(
                         "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-zinc-800/80 text-zinc-100" 
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
+                          ? "bg-accent text-accent-foreground" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                       )}
                     >
                       <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
@@ -124,7 +124,7 @@ export function AppSidebar() {
         {/* Extratores */}
         <SidebarGroup className="mb-4">
           <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-zinc-500 px-2 mb-2",
+            "text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Extratores
@@ -144,12 +144,12 @@ export function AppSidebar() {
                       className={cn(
                         "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-zinc-800/80 text-zinc-100" 
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
+                          ? "bg-accent text-accent-foreground" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                       )}
                     >
                       <item.icon 
-                        className={cn("w-4 h-4 shrink-0", isActive(item.url) ? "text-zinc-100" : item.color)} 
+                        className={cn("w-4 h-4 shrink-0", isActive(item.url) ? "text-accent-foreground" : item.color)} 
                         strokeWidth={1.5} 
                       />
                       <span className="text-sm">{item.title}</span>
@@ -164,7 +164,7 @@ export function AppSidebar() {
         {/* Sistema */}
         <SidebarGroup>
           <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-zinc-500 px-2 mb-2",
+            "text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Sistema
@@ -184,8 +184,8 @@ export function AppSidebar() {
                       className={cn(
                         "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
                         isActive(item.url) 
-                          ? "bg-zinc-800/80 text-zinc-100" 
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
+                          ? "bg-accent text-accent-foreground" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                       )}
                     >
                       <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
@@ -199,19 +199,19 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-zinc-800/50">
+      <SidebarFooter className="p-3 border-t border-border">
         {/* User Card */}
         {!collapsed && (
-          <div className="px-2 py-2 rounded-md bg-zinc-900/50 mb-2">
+          <div className="px-2 py-2 rounded-md bg-muted/50 mb-2">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center">
-                <span className="text-zinc-300 text-xs font-medium">
+              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                <span className="text-muted-foreground text-xs font-medium">
                   {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-zinc-300 truncate">{user?.nome || 'Usuário'}</p>
-                <p className="text-[10px] text-zinc-500 truncate">{user?.Email || ''}</p>
+                <p className="text-xs font-medium text-foreground truncate">{user?.nome || 'Usuário'}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{user?.Email || ''}</p>
               </div>
             </div>
           </div>
@@ -220,7 +220,7 @@ export function AppSidebar() {
         {/* Toggle Button */}
         <button 
           onClick={() => setOpen(collapsed)}
-          className="w-full py-1.5 rounded-md flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors"
+          className="w-full py-1.5 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
