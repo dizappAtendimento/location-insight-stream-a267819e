@@ -45,10 +45,10 @@ const menuItems = [
 ];
 
 const extractorItems = [
-  { title: 'Instagram', url: '/instagram', icon: Instagram, color: 'text-pink-400' },
-  { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, color: 'text-sky-500' },
-  { title: 'Google Places', url: '/places', icon: MapPin, color: 'text-emerald-400' },
-  { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, color: 'text-green-400' },
+  { title: 'Instagram', url: '/instagram', icon: Instagram },
+  { title: 'LinkedIn', url: '/linkedin', icon: Linkedin },
+  { title: 'Google Places', url: '/places', icon: MapPin },
+  { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon },
 ];
 
 const systemItems = [
@@ -154,10 +154,7 @@ export function AppSidebar() {
                       )}
                     >
                       <item.icon 
-                        className={cn(
-                          "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110", 
-                          isActive(item.url) ? "text-white" : item.color
-                        )} 
+                        className="w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
                         strokeWidth={1.5} 
                       />
                       {!collapsed && <span className="text-sm">{item.title}</span>}
