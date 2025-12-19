@@ -23,6 +23,7 @@ import ConexoesPage from "./pages/ConexoesPage";
 import ListasPage from "./pages/ListasPage";
 import ListaDetalhesPage from "./pages/ListaDetalhesPage";
 import ApiDocsPage from "./pages/ApiDocsPage";
+import CrmPage from "./pages/CrmPage";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/grupos" element={<ProtectedRoute><WhatsAppGroupsExtractor /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/api-docs" element={<ProtectedRoute><ApiDocsPage /></ProtectedRoute>} />
+              <Route path="/crm" element={<ProtectedRoute><CrmPage /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
