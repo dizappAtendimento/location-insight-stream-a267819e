@@ -29,6 +29,7 @@ const endpoints: Endpoint[] = [
   { method: 'PUT', name: 'Retomar Disparo', path: '/disparos-api', body: '{\n  "action": "resume-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}' },
   { method: 'DELETE', name: 'Excluir Disparo', path: '/disparos-api', body: '{\n  "action": "delete-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}' },
   { method: 'GET', name: 'Listar Listas', path: '/disparos-api', body: '{\n  "action": "get-listas",\n  "userId": "SEU_USER_ID"\n}' },
+  { method: 'GET', name: 'Listar Contatos', path: '/disparos-api', body: '{\n  "action": "get-contatos",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "idLista": 1 }\n}' },
   { method: 'GET', name: 'Listar Conexões', path: '/disparos-api', body: '{\n  "action": "get-connections",\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'GET', name: 'Instâncias WhatsApp', path: '/evolution-api', body: '{\n  "action": "list-user-instances",\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'POST', name: 'Criar Instância', path: '/evolution-api', body: '{\n  "action": "create-instance",\n  "instanceName": "minha-conexao",\n  "userId": "SEU_USER_ID"\n}' },
