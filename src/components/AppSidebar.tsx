@@ -105,14 +105,15 @@ export function AppSidebar() {
                     <Link 
                       to={item.url} 
                       className={cn(
-                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
+                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors w-full",
+                        collapsed && "justify-center px-0",
                         isActive(item.url) 
                           ? "bg-slate-800 text-white" 
                           : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                       )}
                     >
                       <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
-                      <span className="text-sm">{item.title}</span>
+                      {!collapsed && <span className="text-sm">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -142,7 +143,8 @@ export function AppSidebar() {
                     <Link 
                       to={item.url} 
                       className={cn(
-                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
+                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors w-full",
+                        collapsed && "justify-center px-0",
                         isActive(item.url) 
                           ? "bg-slate-800 text-white" 
                           : "text-slate-400 hover:text-white hover:bg-slate-800/50"
@@ -152,7 +154,7 @@ export function AppSidebar() {
                         className={cn("w-4 h-4 shrink-0", isActive(item.url) ? "text-white" : item.color)} 
                         strokeWidth={1.5} 
                       />
-                      <span className="text-sm">{item.title}</span>
+                      {!collapsed && <span className="text-sm">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -182,14 +184,15 @@ export function AppSidebar() {
                     <Link 
                       to={item.url} 
                       className={cn(
-                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
+                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors w-full",
+                        collapsed && "justify-center px-0",
                         isActive(item.url) 
                           ? "bg-slate-800 text-white" 
                           : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                       )}
                     >
                       <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
-                      <span className="text-sm">{item.title}</span>
+                      {!collapsed && <span className="text-sm">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
