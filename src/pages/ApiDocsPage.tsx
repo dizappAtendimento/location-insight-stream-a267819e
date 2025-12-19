@@ -30,14 +30,18 @@ interface Endpoint {
 
 const endpoints: Endpoint[] = [
   // Disparos
-  { method: 'POST', path: '/disparos-api', name: 'Listar Disparos', description: 'Retorna todos os disparos do usuário', body: '{\n  "action": "list-disparos",\n  "userId": "SEU_USER_ID"\n}', category: 'disparos' },
-  { method: 'POST', path: '/disparos-api', name: 'Criar Disparo', description: 'Cria um novo disparo para envio de mensagens', body: '{\n  "action": "create-disparo",\n  "payload": {\n    "userId": "SEU_USER_ID",\n    "mensagens": [{"text": "Olá!"}],\n    "idLista": [1],\n    "connections": [{"id": 1}]\n  }\n}', category: 'disparos' },
-  { method: 'POST', path: '/disparos-api', name: 'Pausar Disparo', description: 'Pausa um disparo em andamento', body: '{\n  "action": "pause-disparo",\n  "disparoId": 123,\n  "userId": "SEU_USER_ID"\n}', category: 'disparos' },
-  { method: 'POST', path: '/disparos-api', name: 'Retomar Disparo', description: 'Retoma um disparo pausado', body: '{\n  "action": "resume-disparo",\n  "disparoId": 123,\n  "userId": "SEU_USER_ID"\n}', category: 'disparos' },
-  { method: 'POST', path: '/disparos-api', name: 'Excluir Disparo', description: 'Exclui um disparo', body: '{\n  "action": "delete-disparo",\n  "disparoId": 123,\n  "userId": "SEU_USER_ID"\n}', category: 'disparos' },
-  // Conexões
-  { method: 'POST', path: '/evolution-api', name: 'Listar Conexões', description: 'Lista todas as conexões WhatsApp do usuário', body: '{\n  "action": "list-connections",\n  "userId": "SEU_USER_ID"\n}', category: 'conexoes' },
-  { method: 'POST', path: '/evolution-api', name: 'Criar Conexão', description: 'Cria uma nova instância WhatsApp', body: '{\n  "action": "create-instance",\n  "instanceName": "minha-conexao",\n  "userId": "SEU_USER_ID"\n}', category: 'conexoes' },
+  { method: 'POST', path: '/disparos-api', name: 'Listar Disparos', description: 'Retorna todos os disparos do usuário', body: '{\n  "action": "get-disparos",\n  "userId": "SEU_USER_ID"\n}', category: 'disparos' },
+  { method: 'POST', path: '/disparos-api', name: 'Criar Disparo', description: 'Cria um novo disparo para envio de mensagens', body: '{\n  "action": "create-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": {\n    "mensagens": [{"text": "Olá!"}],\n    "idLista": [1],\n    "connections": [{"id": 1}]\n  }\n}', category: 'disparos' },
+  { method: 'POST', path: '/disparos-api', name: 'Detalhes do Disparo', description: 'Obtém detalhes de um disparo específico', body: '{\n  "action": "get-disparo-detalhes",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}', category: 'disparos' },
+  { method: 'POST', path: '/disparos-api', name: 'Pausar Disparo', description: 'Pausa um disparo em andamento', body: '{\n  "action": "pause-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}', category: 'disparos' },
+  { method: 'POST', path: '/disparos-api', name: 'Retomar Disparo', description: 'Retoma um disparo pausado', body: '{\n  "action": "resume-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}', category: 'disparos' },
+  { method: 'POST', path: '/disparos-api', name: 'Excluir Disparo', description: 'Exclui um disparo', body: '{\n  "action": "delete-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}', category: 'disparos' },
+  // Listas
+  { method: 'POST', path: '/disparos-api', name: 'Listar Listas', description: 'Retorna todas as listas do usuário', body: '{\n  "action": "get-listas",\n  "userId": "SEU_USER_ID"\n}', category: 'disparos' },
+  { method: 'POST', path: '/disparos-api', name: 'Listar Conexões', description: 'Retorna todas as conexões do usuário', body: '{\n  "action": "get-connections",\n  "userId": "SEU_USER_ID"\n}', category: 'disparos' },
+  // Conexões WhatsApp
+  { method: 'POST', path: '/evolution-api', name: 'Listar Instâncias', description: 'Lista todas as instâncias WhatsApp do usuário', body: '{\n  "action": "list-user-instances",\n  "userId": "SEU_USER_ID"\n}', category: 'conexoes' },
+  { method: 'POST', path: '/evolution-api', name: 'Criar Instância', description: 'Cria uma nova instância WhatsApp', body: '{\n  "action": "create-instance",\n  "instanceName": "minha-conexao",\n  "userId": "SEU_USER_ID"\n}', category: 'conexoes' },
   { method: 'POST', path: '/evolution-api', name: 'Obter QR Code', description: 'Obtém o QR Code para conectar WhatsApp', body: '{\n  "action": "get-qrcode",\n  "instanceName": "minha-conexao"\n}', category: 'conexoes' },
   { method: 'POST', path: '/evolution-api', name: 'Status da Conexão', description: 'Verifica o status de uma conexão', body: '{\n  "action": "connection-state",\n  "instanceName": "minha-conexao"\n}', category: 'conexoes' },
   // Extrator
