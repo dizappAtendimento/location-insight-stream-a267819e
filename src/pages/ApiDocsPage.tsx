@@ -213,10 +213,27 @@ const ApiDocsPage = () => {
                     />
                   </div>
 
-                  <Button className="w-full" onClick={handleTestEndpoint} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                    Testar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button className="flex-1" onClick={handleTestEndpoint} disabled={isLoading}>
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                      Testar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        const curl = `curl -X POST "${BASE_URL}${selectedEndpoint.path}" \\
+  -H "Content-Type: application/json" \\
+  -H "apikey: ${authToken}" \\
+  -H "Authorization: Bearer ${authToken}" \\
+  -d '${requestBody.replace(/\n/g, '').replace(/'/g, "\\'")}'`;
+                        copyToClipboard(curl);
+                      }}
+                      title="Copiar como cURL"
+                    >
+                      <Code className="w-4 h-4 mr-2" />
+                      cURL
+                    </Button>
+                  </div>
 
                   {response && (
                     <div>
