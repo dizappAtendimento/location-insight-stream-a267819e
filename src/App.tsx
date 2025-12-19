@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import ConexoesPage from "./pages/ConexoesPage";
 import ListasPage from "./pages/ListasPage";
 import ListaDetalhesPage from "./pages/ListaDetalhesPage";
+import ApiDocsPage from "./pages/ApiDocsPage";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/linkedin" element={<ProtectedRoute><LinkedInExtractor /></ProtectedRoute>} />
               <Route path="/grupos" element={<ProtectedRoute><WhatsAppGroupsExtractor /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/api-docs" element={<ProtectedRoute><ApiDocsPage /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -10,6 +10,7 @@ import {
   Smartphone,
   Users,
   List,
+  Code,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -162,6 +163,26 @@ export function AppSidebar() {
                   <Link to="/configuracoes" className="flex items-center gap-3 px-3">
                     <Settings className="w-[18px] h-[18px]" strokeWidth={2} />
                     <span className="text-sm font-medium">Configurações</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* API Docs */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/api-docs')}
+                  tooltip="Documentação API"
+                  className={cn(
+                    "group transition-all duration-200 h-10 rounded-lg mx-1",
+                    isActive('/api-docs') 
+                      ? "bg-primary/10 text-primary border border-primary/20" 
+                      : "hover:bg-muted/30 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Link to="/api-docs" className="flex items-center gap-3 px-3">
+                    <Code className="w-[18px] h-[18px]" strokeWidth={2} />
+                    <span className="text-sm font-medium">API Docs</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
