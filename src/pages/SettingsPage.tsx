@@ -3,8 +3,9 @@ import {
   Settings, Bell, Database, Shield, Moon, Sun, Monitor, 
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
   Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar,
-  Key, Copy, RefreshCw
+  Key, Copy, RefreshCw, Code, FileJson, ExternalLink, ChevronDown
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -836,18 +837,22 @@ const SettingsPage = () => {
 
         <Separator className="bg-border/30" />
 
-        {/* API Keys Section */}
+        {/* API Documentation Section */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <Key className="w-4 h-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium text-foreground">API Keys</h2>
+            <Code className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground">API & Documentação</h2>
           </div>
           
+          {/* API Key */}
           <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">Chave de API</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Use esta chave para integrar com sistemas externos</p>
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Key className="w-4 h-4" />
+                  Chave de Autenticação
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Use esta chave no header Authorization das requisições</p>
               </div>
             </div>
             
@@ -881,12 +886,174 @@ const SettingsPage = () => {
             </div>
           </div>
 
+          {/* API Endpoints Documentation */}
           <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Requisições por Conta</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Histórico de chamadas à API separado por conta</p>
+            <div>
+              <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                <FileJson className="w-4 h-4" />
+                Endpoints da API
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Documentação dos endpoints REST disponíveis</p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Base URL */}
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/20">
+                <p className="text-xs text-muted-foreground mb-1">Base URL</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">
+                    https://egxwzmkdbymxooielidc.supabase.co/functions/v1
+                  </code>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText('https://egxwzmkdbymxooielidc.supabase.co/functions/v1');
+                      toast({ title: "URL copiada!" });
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
+
+              {/* Disparos Endpoints */}
+              <Collapsible>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                      <span className="text-sm font-medium text-foreground">Disparos</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-2">
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-blue-500/20 text-blue-400">GET</span>
+                      <code className="text-xs font-mono text-foreground">/disparos-api</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Lista todos os disparos do usuário</p>
+                    <div className="p-2 rounded bg-muted/30 text-xs font-mono text-muted-foreground">
+                      {`{ "action": "list-disparos", "userId": "seu-id" }`}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-green-500/20 text-green-400">POST</span>
+                      <code className="text-xs font-mono text-foreground">/disparos-api</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Cria um novo disparo</p>
+                    <div className="p-2 rounded bg-muted/30 text-xs font-mono text-muted-foreground">
+                      {`{ "action": "create-disparo", "payload": {...} }`}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-amber-500/20 text-amber-400">PUT</span>
+                      <code className="text-xs font-mono text-foreground">/disparos-api</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Pausa ou retoma um disparo</p>
+                    <div className="p-2 rounded bg-muted/30 text-xs font-mono text-muted-foreground">
+                      {`{ "action": "pause-disparo" | "resume-disparo", "disparoId": 123 }`}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-red-500/20 text-red-400">DELETE</span>
+                      <code className="text-xs font-mono text-foreground">/disparos-api</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Exclui um disparo</p>
+                    <div className="p-2 rounded bg-muted/30 text-xs font-mono text-muted-foreground">
+                      {`{ "action": "delete-disparo", "disparoId": 123 }`}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Conexões Endpoints */}
+              <Collapsible>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <span className="text-sm font-medium text-foreground">Conexões (WhatsApp)</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-2">
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-blue-500/20 text-blue-400">GET</span>
+                      <code className="text-xs font-mono text-foreground">/evolution-api</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Lista conexões WhatsApp do usuário</p>
+                    <div className="p-2 rounded bg-muted/30 text-xs font-mono text-muted-foreground">
+                      {`{ "action": "list-connections", "userId": "seu-id" }`}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-green-500/20 text-green-400">POST</span>
+                      <code className="text-xs font-mono text-foreground">/evolution-api</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Cria nova conexão WhatsApp</p>
+                    <div className="p-2 rounded bg-muted/30 text-xs font-mono text-muted-foreground">
+                      {`{ "action": "create-instance", "instanceName": "nome" }`}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Extrator Endpoints */}
+              <Collapsible>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/15 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                      <span className="text-sm font-medium text-foreground">Extrator de Leads</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-2">
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-green-500/20 text-green-400">POST</span>
+                      <code className="text-xs font-mono text-foreground">/search-places</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Extrai leads do Google Places</p>
+                    <div className="p-2 rounded bg-muted/30 text-xs font-mono text-muted-foreground">
+                      {`{ "query": "restaurantes", "location": "São Paulo" }`}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-green-500/20 text-green-400">POST</span>
+                      <code className="text-xs font-mono text-foreground">/search-instagram</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Extrai perfis do Instagram</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-green-500/20 text-green-400">POST</span>
+                      <code className="text-xs font-mono text-foreground">/search-linkedin</code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Extrai perfis do LinkedIn</p>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          </div>
+
+          {/* Usage Stats per Account */}
+          <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Requisições por Conta</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Total de chamadas à API separado por módulo</p>
             </div>
             
             <div className="space-y-3">
