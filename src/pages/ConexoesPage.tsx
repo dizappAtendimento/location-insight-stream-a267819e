@@ -408,21 +408,21 @@ const ConexoesPage = () => {
     switch (status) {
       case 'open':
         return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
-            <Wifi className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Conectado
           </span>
         );
       case 'close':
         return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30">
-            <WifiOff className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-500/15 text-red-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
             Desconectado
           </span>
         );
       default:
         return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-400">
             <Loader2 className="w-3 h-3 animate-spin" />
             Verificando
           </span>
@@ -492,82 +492,93 @@ const ConexoesPage = () => {
           </div>
         ) : (
           /* Connections Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {connections.map((connection) => (
               <div
                 key={connection.id}
-                className="relative bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1"
+                className="group relative bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 transition-all duration-300"
               >
-                {/* Status Badge */}
-                <div className="absolute top-4 right-4">
-                  {getStatusBadge(connection.status)}
-                </div>
-
-                {/* Header */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 rounded-full border-2 border-primary/30 overflow-hidden bg-primary/10 flex items-center justify-content-center">
-                    {connection.FotoPerfil ? (
-                      <img 
-                        src={connection.FotoPerfil} 
-                        alt={connection.NomeConexao || 'Perfil'} 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-primary text-xl font-bold">
-                        {(connection.NomeConexao || 'W')[0].toUpperCase()}
+                {/* Card Content */}
+                <div className="p-5">
+                  {/* Header Row */}
+                  <div className="flex items-start gap-3.5 mb-5">
+                    {/* Avatar */}
+                    <div className="relative shrink-0">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-muted ring-2 ring-border">
+                        {connection.FotoPerfil ? (
+                          <img 
+                            src={connection.FotoPerfil} 
+                            alt={connection.NomeConexao || 'Perfil'} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-lg font-semibold">
+                            {(connection.NomeConexao || 'W')[0].toUpperCase()}
+                          </div>
+                        )}
                       </div>
-                    )}
+                      {connection.status === 'open' && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-card" />
+                      )}
+                    </div>
+                    
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate text-[15px] mb-0.5">
+                        {connection.NomeConexao || 'Sem nome'}
+                      </h3>
+                      <p className="text-[13px] text-muted-foreground truncate">
+                        {connection.Telefone ? `+${connection.Telefone}` : 'Aguardando conexão'}
+                      </p>
+                    </div>
+                    
+                    {/* Status Badge */}
+                    <div className="shrink-0">
+                      {getStatusBadge(connection.status)}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate">
-                      {connection.NomeConexao || 'Sem nome'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {connection.Telefone ? `+${connection.Telefone}` : 'Telefone não disponível'}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => checkConnectionStatus(connection)}
-                    disabled={checkingStatus[connection.id]}
-                    className="flex-1"
-                  >
-                    {checkingStatus[connection.id] ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                    <span className="ml-2">Verificar</span>
-                  </Button>
-                  
-                  {connection.status === 'close' && (
+                  {/* Actions */}
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => showQrCode(connection)}
-                      className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
+                      onClick={() => checkConnectionStatus(connection)}
+                      disabled={checkingStatus[connection.id]}
+                      className="flex-1 h-9 text-[13px] bg-muted/30 border-border hover:bg-muted/50"
                     >
-                      <QrCode className="w-4 h-4 mr-2" />
-                      QR Code
+                      {checkingStatus[connection.id] ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      Verificar
                     </Button>
-                  )}
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedConnection(connection);
-                      setShowDeleteModal(true);
-                    }}
-                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                    
+                    {connection.status === 'close' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => showQrCode(connection)}
+                        className="flex-1 h-9 text-[13px] border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        <QrCode className="w-3.5 h-3.5 mr-1.5" />
+                        QR Code
+                      </Button>
+                    )}
+                    
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setSelectedConnection(connection);
+                        setShowDeleteModal(true);
+                      }}
+                      className="h-9 w-9 shrink-0 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
