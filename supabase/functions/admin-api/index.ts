@@ -430,10 +430,10 @@ serve(async (req) => {
       }
 
       case 'get-user-plan-usage': {
-        // Get user with plans data
+        // Get user with plans data and API key
         const { data: userData, error: userError } = await supabase
           .from('SAAS_Usuarios')
-          .select('plano, plano_extrator, dataValidade, dataValidade_extrator')
+          .select('plano, plano_extrator, dataValidade, dataValidade_extrator, apikey_gpt')
           .eq('id', userId)
           .single();
 
@@ -443,6 +443,8 @@ serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
+
+        const userApiKey = userData.apikey_gpt || null;
 
         let disparadorData = null;
         let extratorData = null;
@@ -538,7 +540,7 @@ serve(async (req) => {
         }
 
         return new Response(
-          JSON.stringify({ disparador: disparadorData, extrator: extratorData }),
+          JSON.stringify({ disparador: disparadorData, extrator: extratorData, apiKey: userApiKey }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

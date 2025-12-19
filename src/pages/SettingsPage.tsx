@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Bell, Database, Shield, Moon, Sun, Monitor, 
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
-  Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar
+  Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar,
+  Key, Copy, RefreshCw
 } from 'lucide-react';
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -110,6 +111,7 @@ const SettingsPage = () => {
   const [disparadorPlan, setDisparadorPlan] = useState<PlanUsage | null>(null);
   const [extratorPlan, setExtratorPlan] = useState<ExtractorPlanUsage | null>(null);
   const [loadingPlans, setLoadingPlans] = useState(true);
+  const [userApiKey, setUserApiKey] = useState<string | null>(null);
   
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -162,6 +164,9 @@ const SettingsPage = () => {
         }
         if (data?.extrator) {
           setExtratorPlan(data.extrator);
+        }
+        if (data?.apiKey !== undefined) {
+          setUserApiKey(data.apiKey);
         }
       } catch (error) {
         console.error('Error fetching plan usage:', error);
@@ -827,6 +832,123 @@ const SettingsPage = () => {
           <p className="text-xs text-muted-foreground text-center">
             Caso queira mudar de plano, <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">clique aqui</a> e fale com o suporte.
           </p>
+        </section>
+
+        <Separator className="bg-border/30" />
+
+        {/* API Keys Section */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Key className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground">API Keys</h2>
+          </div>
+          
+          <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Chave de API</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Use esta chave para integrar com sistemas externos</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 p-3 rounded-lg bg-muted/50 border border-border/30 font-mono text-xs text-muted-foreground truncate">
+                  {userApiKey ? userApiKey : 'Nenhuma API Key configurada'}
+                </div>
+                {userApiKey && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-10 shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(userApiKey || '');
+                      toast({
+                        title: "Copiado!",
+                        description: "API Key copiada para a área de transferência",
+                      });
+                    }}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+              
+              <p className="text-xs text-amber-500/90 flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Mantenha sua API Key em segurança. Não compartilhe com terceiros.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Requisições por Conta</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Histórico de chamadas à API separado por conta</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Disparador Account */}
+              <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-green-500/5 border border-emerald-500/20">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-emerald-500 to-green-400"></div>
+                    <span className="text-sm font-medium text-foreground">Conta Disparador</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {disparadorPlan?.usadoDisparos?.toLocaleString('pt-BR') || 0} requisições
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="p-2 rounded bg-muted/30">
+                    <p className="text-muted-foreground">Conexões API</p>
+                    <p className="text-foreground font-medium">{disparadorPlan?.usadoConexoes?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
+                  <div className="p-2 rounded bg-muted/30">
+                    <p className="text-muted-foreground">Listas Criadas</p>
+                    <p className="text-foreground font-medium">{disparadorPlan?.usadoListas?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
+                  <div className="p-2 rounded bg-muted/30">
+                    <p className="text-muted-foreground">Contatos Importados</p>
+                    <p className="text-foreground font-medium">{disparadorPlan?.usadoContatos?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
+                  <div className="p-2 rounded bg-muted/30">
+                    <p className="text-muted-foreground">Disparos Enviados</p>
+                    <p className="text-foreground font-medium">{disparadorPlan?.usadoDisparos?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Extrator Account */}
+              <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+                    <span className="text-sm font-medium text-foreground">Conta Extrator</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {((extratorPlan?.usadoPlaces || 0) + (extratorPlan?.usadoInstagram || 0) + (extratorPlan?.usadoLinkedin || 0)).toLocaleString('pt-BR')} requisições
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-xs">
+                  <div className="p-2 rounded bg-muted/30">
+                    <p className="text-muted-foreground">Google Places</p>
+                    <p className="text-foreground font-medium">{extratorPlan?.usadoPlaces?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
+                  <div className="p-2 rounded bg-muted/30">
+                    <p className="text-muted-foreground">Instagram</p>
+                    <p className="text-foreground font-medium">{extratorPlan?.usadoInstagram?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
+                  <div className="p-2 rounded bg-muted/30">
+                    <p className="text-muted-foreground">LinkedIn</p>
+                    <p className="text-foreground font-medium">{extratorPlan?.usadoLinkedin?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <Separator className="bg-border/30" />
