@@ -30,15 +30,15 @@
     --highlight: 225 30% 7%;
     --highlight-foreground: 0 0% 100%;
     
-    /* Unified platform colors - Light */
-    --instagram: 225 30% 7%;
-    --instagram-glow: 225 30% 20%;
-    --linkedin: 225 30% 7%;
-    --linkedin-glow: 225 30% 20%;
-    --whatsapp: 225 30% 7%;
-    --whatsapp-glow: 225 30% 20%;
-    --places: 225 30% 7%;
-    --places-glow: 225 30% 20%;
+    /* Platform brand colors - Light */
+    --instagram: 328 85% 60%;
+    --instagram-glow: 328 85% 70%;
+    --linkedin: 201 100% 45%;
+    --linkedin-glow: 201 100% 55%;
+    --whatsapp: 142 70% 45%;
+    --whatsapp-glow: 142 70% 55%;
+    --places: 150 80% 45%;
+    --places-glow: 150 80% 55%;
     
     /* Sidebar - Light */
     --sidebar-background: 0 0% 98%;
@@ -93,15 +93,15 @@
     --highlight: 210 20% 98%;
     --highlight-foreground: 225 30% 7%;
 
-    /* Unified platform colors - Dark */
-    --instagram: 210 20% 90%;
-    --instagram-glow: 210 20% 98%;
-    --linkedin: 210 20% 90%;
-    --linkedin-glow: 210 20% 98%;
-    --whatsapp: 210 20% 90%;
-    --whatsapp-glow: 210 20% 98%;
-    --places: 210 20% 90%;
-    --places-glow: 210 20% 98%;
+    /* Platform brand colors - Dark */
+    --instagram: 328 85% 60%;
+    --instagram-glow: 328 85% 70%;
+    --linkedin: 201 100% 50%;
+    --linkedin-glow: 201 100% 60%;
+    --whatsapp: 142 70% 50%;
+    --whatsapp-glow: 142 70% 60%;
+    --places: 150 80% 50%;
+    --places-glow: 150 80% 60%;
 
     /* Sidebar - Dark */
     --sidebar-background: 225 30% 7%;
