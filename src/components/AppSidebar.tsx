@@ -105,14 +105,17 @@ export function AppSidebar() {
                     <Link 
                       to={item.url} 
                       className={cn(
-                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors w-full",
+                        "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
                         collapsed && "justify-center px-0",
                         isActive(item.url) 
-                          ? "bg-slate-800 text-white" 
-                          : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                          ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
+                          : "text-slate-400 hover:text-white hover:bg-slate-800/40"
                       )}
                     >
-                      <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                      <item.icon 
+                        className="w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
+                        strokeWidth={1.5} 
+                      />
                       {!collapsed && <span className="text-sm">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
@@ -143,15 +146,18 @@ export function AppSidebar() {
                     <Link 
                       to={item.url} 
                       className={cn(
-                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors w-full",
+                        "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
                         collapsed && "justify-center px-0",
                         isActive(item.url) 
-                          ? "bg-slate-800 text-white" 
-                          : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                          ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
+                          : "text-slate-400 hover:text-white hover:bg-slate-800/40"
                       )}
                     >
                       <item.icon 
-                        className={cn("w-4 h-4 shrink-0", isActive(item.url) ? "text-white" : item.color)} 
+                        className={cn(
+                          "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110", 
+                          isActive(item.url) ? "text-white" : item.color
+                        )} 
                         strokeWidth={1.5} 
                       />
                       {!collapsed && <span className="text-sm">{item.title}</span>}
@@ -184,14 +190,17 @@ export function AppSidebar() {
                     <Link 
                       to={item.url} 
                       className={cn(
-                        "flex items-center gap-3 px-2 py-2 rounded-md transition-colors w-full",
+                        "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
                         collapsed && "justify-center px-0",
                         isActive(item.url) 
-                          ? "bg-slate-800 text-white" 
-                          : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                          ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
+                          : "text-slate-400 hover:text-white hover:bg-slate-800/40"
                       )}
                     >
-                      <item.icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                      <item.icon 
+                        className="w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
+                        strokeWidth={1.5} 
+                      />
                       {!collapsed && <span className="text-sm">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
