@@ -303,6 +303,11 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
     { method: 'GET', name: 'Status Conexão', path: '/evolution-api', body: `{\n  "action": "connection-state",\n  "instanceName": "minha-conexao"\n}` },
     { method: 'POST', name: 'Buscar Google Places', path: '/search-places', body: `{\n  "query": "restaurantes",\n  "location": "São Paulo, SP",\n  "maxResults": 100,\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
     { method: 'GET', name: 'Dados do Plano', path: '/admin-api', body: `{\n  "action": "get-user-plan-usage",\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'GET', name: 'Listar CRM Leads', path: '/disparos-api', body: `{\n  "action": "get-crm-leads",\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'GET', name: 'Detalhes CRM Lead', path: '/disparos-api', body: `{\n  "action": "get-crm-lead",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": { "id": 123 }\n}` },
+    { method: 'POST', name: 'Criar CRM Lead', path: '/disparos-api', body: `{\n  "action": "create-crm-lead",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": {\n    "nome": "João Silva",\n    "telefone": "5511999999999",\n    "valor": 1500.00,\n    "idColuna": 1\n  }\n}` },
+    { method: 'PUT', name: 'Atualizar CRM Lead', path: '/disparos-api', body: `{\n  "action": "update-crm-lead",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": {\n    "id": 123,\n    "nome": "João Silva",\n    "valor": 2000.00,\n    "idColuna": 2\n  }\n}` },
+    { method: 'DELETE', name: 'Excluir CRM Lead', path: '/disparos-api', body: `{\n  "action": "delete-crm-lead",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": { "id": 123 }\n}` },
     { method: 'POST', name: 'Gerar Mensagem IA', path: '/disparos-api', body: `{\n  "action": "generate-ai-message",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": {\n    "prompt": "Crie uma mensagem de boas vindas para um cliente",\n    "context": "Empresa de marketing digital"\n  }\n}` },
   ];
 
