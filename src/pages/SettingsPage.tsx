@@ -355,17 +355,15 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
     toast({ title: "Token removido" });
   };
 
-  const [activeTab, setActiveTab] = useState('perfil');
-
   return (
     <DashboardLayout>
-      <div className={cn("p-6 mx-auto", activeTab === 'api' ? 'max-w-full' : 'max-w-3xl')}>
+      <div className="p-6">
         <div className="flex items-center gap-3 mb-6">
           <Settings className="w-5 h-5 text-muted-foreground" />
           <h1 className="text-xl font-semibold text-foreground">Configurações</h1>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="perfil" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="perfil" className="gap-2">
               <User className="w-4 h-4" />
