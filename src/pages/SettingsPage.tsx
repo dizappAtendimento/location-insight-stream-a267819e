@@ -4,7 +4,7 @@ import {
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
   Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar,
   Key, Copy, Code, FileJson, ExternalLink, ChevronDown, Webhook, MessageSquare,
-  Play, RotateCcw
+  Play, RotateCcw, ArrowDownToLine, ArrowUpFromLine, Plus, RefreshCw, ArrowRight
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -866,88 +866,158 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
 
           {/* WEBHOOK TAB */}
           <TabsContent value="webhook" className="space-y-6">
-            {/* CRM Webhook */}
-            <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Webhook CRM - Cliente Respondeu</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Receba mensagens de clientes automaticamente no CRM</p>
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Webhook className="w-5 h-5" /> Webhooks Inteligentes
+                </h2>
+                <p className="text-sm text-muted-foreground">Receba notificações em tempo real sobre eventos do CRM</p>
               </div>
+            </div>
 
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/5 border border-purple-500/20">
-                  <p className="text-xs text-muted-foreground mb-2">URL do Webhook</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Webhook de Entrada - Cliente Respondeu */}
+              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <ArrowDownToLine className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Webhook de Entrada</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Receba mensagens de clientes no CRM</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20">
+                  <p className="text-xs text-muted-foreground mb-2">URL do Webhook (Cole no Evolution API)</p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs font-mono text-purple-400 bg-purple-500/10 px-3 py-2 rounded break-all">{webhookUrl}</code>
+                    <code className="flex-1 text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded break-all">{webhookUrl}</code>
                     <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => { navigator.clipboard.writeText(webhookUrl); toast({ title: "Copiado!", description: "URL do webhook copiada" }); }}>
                       <Copy className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-foreground">Como configurar</p>
-                  <div className="space-y-2 text-xs text-muted-foreground">
-                    <div className="flex items-start gap-2">
-                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-[10px] font-bold">1</span>
-                      <p>Copie a URL do webhook acima</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-[10px] font-bold">2</span>
-                      <p>Acesse as configurações do Evolution API ou sua plataforma de WhatsApp</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-[10px] font-bold">3</span>
-                      <p>Configure o webhook para receber mensagens (messages.upsert)</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-[10px] font-bold">4</span>
-                      <p>Cole a URL do webhook no campo apropriado</p>
-                    </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Eventos capturados:</p>
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border/20">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    <span className="text-xs text-foreground">Lead criado automaticamente</span>
                   </div>
-                </div>
-
-                <Separator className="bg-border/30" />
-
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-foreground">O que acontece quando um cliente responde?</p>
-                  <div className="grid gap-3">
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/20">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                        <Check className="w-4 h-4 text-emerald-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Lead criado automaticamente</p>
-                        <p className="text-xs text-muted-foreground">O contato é adicionado na primeira coluna do CRM</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/20">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                        <MessageSquare className="w-4 h-4 text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Mensagens acumuladas</p>
-                        <p className="text-xs text-muted-foreground">Cada nova mensagem é anexada ao lead existente</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/20">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
-                        <User className="w-4 h-4 text-purple-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Vinculado à sua conexão</p>
-                        <p className="text-xs text-muted-foreground">O lead é associado à conexão WhatsApp correta</p>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border/20">
+                    <MessageSquare className="w-4 h-4 text-blue-500" />
+                    <span className="text-xs text-foreground">Mensagens acumuladas no lead</span>
                   </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-xs text-amber-500 flex items-center gap-2">
-                    <Shield className="w-4 h-4 shrink-0" />
-                    <span>Para que o webhook funcione, você precisa ter pelo menos uma conexão WhatsApp configurada no sistema.</span>
-                  </p>
                 </div>
               </div>
+
+              {/* Webhooks de Saída */}
+              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                    <ArrowUpFromLine className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Webhooks de Saída</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Envie eventos do CRM para sua aplicação</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">URL de destino</Label>
+                    <Input 
+                      placeholder="https://sua-api.com/webhook" 
+                      className="h-9 mt-1 font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Eventos disponíveis:</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
+                      <div className="flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs text-foreground">Lead adicionado</span>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 text-blue-500" />
+                        <span className="text-xs text-foreground">Card atualizado</span>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
+                      <div className="flex items-center gap-2">
+                        <ArrowRight className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs text-foreground">Card movido de coluna</span>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-purple-500" />
+                        <span className="text-xs text-foreground">Lead respondeu</span>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
+                      <div className="flex items-center gap-2">
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                        <span className="text-xs text-foreground">Lead excluído</span>
+                      </div>
+                      <Switch />
+                    </div>
+                  </div>
+                </div>
+
+                <Button className="w-full" size="sm">
+                  <Save className="w-4 h-4 mr-2" /> Salvar Configurações
+                </Button>
+              </div>
+            </div>
+
+            {/* Payload Examples */}
+            <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
+              <div className="flex items-center gap-2">
+                <Code className="w-4 h-4 text-muted-foreground" />
+                <p className="text-sm font-medium text-foreground">Exemplo de Payload</p>
+              </div>
+              <pre className="p-4 rounded-lg bg-muted/50 border overflow-auto text-xs font-mono text-muted-foreground">
+{`{
+  "event": "lead.updated",
+  "timestamp": "${new Date().toISOString()}",
+  "data": {
+    "id": 123,
+    "nome": "João Silva",
+    "telefone": "5511999999999",
+    "valor": 1500.00,
+    "coluna": {
+      "id": 2,
+      "nome": "Em Negociação"
+    },
+    "mensagem": "Última mensagem do lead..."
+  },
+  "previousData": {
+    "coluna": {
+      "id": 1,
+      "nome": "Novos Leads"
+    }
+  }
+}`}
+              </pre>
+            </div>
+
+            {/* Info Alert */}
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <p className="text-xs text-amber-500 flex items-center gap-2">
+                <Shield className="w-4 h-4 shrink-0" />
+                <span>Os webhooks de saída enviarão dados para a URL configurada sempre que os eventos selecionados ocorrerem no CRM.</span>
+              </p>
             </div>
           </TabsContent>
         </Tabs>
