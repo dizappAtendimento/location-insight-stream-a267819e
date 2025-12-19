@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Bell, Database, Shield, Moon, Sun, Monitor, 
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
-  Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard
+  Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar
 } from 'lucide-react';
+import { format, isPast, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -37,6 +39,7 @@ interface PlanUsage {
   usadoConexoes: number;
   usadoContatos: number;
   usadoListas: number;
+  dataValidade: string | null;
 }
 
 interface ExtractorPlanUsage {
@@ -47,6 +50,7 @@ interface ExtractorPlanUsage {
   usadoPlaces: number;
   usadoInstagram: number;
   usadoLinkedin: number;
+  dataValidade: string | null;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -689,9 +693,26 @@ const SettingsPage = () => {
               ) : disparadorPlan ? (
                 <>
                   <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-green-500/5 border border-emerald-500/20">
-                    <p className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
-                      {disparadorPlan.planoNome || 'Sem plano'}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+                        {disparadorPlan.planoNome || 'Sem plano'}
+                      </p>
+                      {disparadorPlan.dataValidade && (
+                        <div className={cn(
+                          "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
+                          isPast(new Date(disparadorPlan.dataValidade)) 
+                            ? "bg-red-500/20 text-red-400" 
+                            : differenceInDays(new Date(disparadorPlan.dataValidade), new Date()) <= 7
+                              ? "bg-amber-500/20 text-amber-400"
+                              : "bg-emerald-500/20 text-emerald-400"
+                        )}>
+                          <Calendar className="w-3 h-3" />
+                          {isPast(new Date(disparadorPlan.dataValidade)) 
+                            ? 'Expirado'
+                            : format(new Date(disparadorPlan.dataValidade), "dd/MM/yyyy", { locale: ptBR })}
+                        </div>
+                      )}
+                    </div>
                     <div className="mt-2 text-xs text-muted-foreground space-y-1">
                       <p className="flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5 text-emerald-400" /> 
@@ -751,9 +772,26 @@ const SettingsPage = () => {
               ) : extratorPlan ? (
                 <>
                   <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20">
-                    <p className="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                      {extratorPlan.planoNome || 'Sem plano'}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                        {extratorPlan.planoNome || 'Sem plano'}
+                      </p>
+                      {extratorPlan.dataValidade && (
+                        <div className={cn(
+                          "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
+                          isPast(new Date(extratorPlan.dataValidade)) 
+                            ? "bg-red-500/20 text-red-400" 
+                            : differenceInDays(new Date(extratorPlan.dataValidade), new Date()) <= 7
+                              ? "bg-amber-500/20 text-amber-400"
+                              : "bg-blue-500/20 text-blue-400"
+                        )}>
+                          <Calendar className="w-3 h-3" />
+                          {isPast(new Date(extratorPlan.dataValidade)) 
+                            ? 'Expirado'
+                            : format(new Date(extratorPlan.dataValidade), "dd/MM/yyyy", { locale: ptBR })}
+                        </div>
+                      )}
+                    </div>
                     <div className="mt-2 text-xs text-muted-foreground space-y-1">
                       <p className="flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5 text-blue-400" /> 
