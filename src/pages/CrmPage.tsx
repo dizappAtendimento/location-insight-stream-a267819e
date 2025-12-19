@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save } from 'lucide-react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -35,6 +36,11 @@ interface Lead {
   valor: number;
   observacao: string;
 }
+
+const colorOptions = [
+  'bg-blue-500', 'bg-amber-500', 'bg-purple-500', 'bg-green-500', 
+  'bg-red-500', 'bg-pink-500', 'bg-cyan-500', 'bg-orange-500'
+];
 
 const defaultColumns = [
   { id: 'novo', title: 'Novos', color: 'bg-blue-500' },
@@ -168,6 +174,32 @@ const CrmPage = () => {
     toast({ title: "Coluna renomeada!" });
   };
 
+  const addNewColumn = () => {
+    const newId = `col_${Date.now()}`;
+    const usedColors = columns.map(c => c.color);
+    const availableColor = colorOptions.find(c => !usedColors.includes(c)) || colorOptions[0];
+    setColumns(prev => [...prev, { id: newId, title: 'Nova Coluna', color: availableColor }]);
+    toast({ title: "Coluna adicionada!" });
+  };
+
+  const deleteColumn = (columnId: string) => {
+    const leadsInColumn = getLeadsByColumn(columnId);
+    if (leadsInColumn.length > 0) {
+      // Move leads to first column
+      setLeads(prev => prev.map(lead => 
+        lead.status === columnId ? { ...lead, status: columns[0].id } : lead
+      ));
+    }
+    setColumns(prev => prev.filter(col => col.id !== columnId));
+    toast({ title: "Coluna excluída!" });
+  };
+
+  const changeColumnColor = (columnId: string, newColor: string) => {
+    setColumns(prev => prev.map(col => 
+      col.id === columnId ? { ...col, color: newColor } : col
+    ));
+  };
+
   const addNewLead = () => {
     if (!newLead.nome || !newLead.telefone) {
       toast({ title: "Preencha nome e telefone", variant: "destructive" });
@@ -215,6 +247,10 @@ const CrmPage = () => {
               <Plus className="w-4 h-4 mr-2" />
               Novo Lead
             </Button>
+            <Button onClick={addNewColumn} variant="outline" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Coluna
+            </Button>
             <Button onClick={fetchLeads} variant="outline" size="sm">
               Atualizar
             </Button>
@@ -222,7 +258,12 @@ const CrmPage = () => {
         </div>
 
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-h-[600px]">
+        <div className={cn(
+          "grid gap-4 min-h-[600px]",
+          columns.length <= 4 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : 
+          columns.length <= 6 ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-6" :
+          "grid-cols-1 md:grid-cols-4 lg:grid-cols-8"
+        )}>
           {columns.map((column) => (
             <div
               key={column.id}
@@ -260,9 +301,48 @@ const CrmPage = () => {
                       </span>
                     )}
                   </div>
-                  <Badge variant="secondary" className="text-xs">
-                    {getLeadsByColumn(column.id).length}
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <Badge variant="secondary" className="text-xs">
+                      {getLeadsByColumn(column.id).length}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <Settings className="w-3 h-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => startEditColumn(column.id, column.title)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Renomear
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Cor</div>
+                        <div className="flex flex-wrap gap-1 px-2 pb-2">
+                          {colorOptions.map(color => (
+                            <button
+                              key={color}
+                              onClick={() => changeColumnColor(column.id, color)}
+                              className={cn(
+                                "w-5 h-5 rounded-full transition-all",
+                                color,
+                                column.color === color && "ring-2 ring-offset-2 ring-primary"
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => deleteColumn(column.id)}
+                          className="text-red-500 focus:text-red-500"
+                          disabled={columns.length <= 1}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Excluir Coluna
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                   <DollarSign className="w-3 h-3" />
