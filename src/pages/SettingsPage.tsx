@@ -3,7 +3,8 @@ import {
   Settings, Bell, Shield, Moon, Sun, Monitor, 
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
   Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar,
-  Key, Copy, Code, FileJson, ExternalLink, ChevronDown, Webhook, MessageSquare
+  Key, Copy, Code, FileJson, ExternalLink, ChevronDown, Webhook, MessageSquare,
+  Play, RotateCcw
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -271,7 +272,88 @@ const SettingsPage = () => {
     { value: 'system', icon: Monitor, label: 'Sistema' },
   ];
 
-  const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-webhook';
+const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-webhook';
+
+  // API Docs states
+  const BASE_URL = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1';
+  const DEFAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk';
+  
+  interface ApiEndpoint {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    name: string;
+    path: string;
+    body: string;
+  }
+
+  const apiEndpoints: ApiEndpoint[] = [
+    { method: 'GET', name: 'Listar Disparos', path: '/disparos-api', body: `{\n  "action": "get-disparos",\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'GET', name: 'Detalhes Disparo', path: '/disparos-api', body: `{\n  "action": "get-disparo-detalhes",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": { "id": 123 }\n}` },
+    { method: 'POST', name: 'Criar Disparo', path: '/disparos-api', body: `{\n  "action": "create-disparo",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": {\n    "mensagens": [{"text": "Olá!"}],\n    "idLista": [1],\n    "connections": [{"id": 1}]\n  }\n}` },
+    { method: 'POST', name: 'Enviar Mensagem', path: '/evolution-api', body: `{\n  "action": "send-message",\n  "instanceName": "minha-conexao",\n  "to": "5511999999999",\n  "message": "Olá, tudo bem?"\n}` },
+    { method: 'POST', name: 'Criar Disparo Grupo', path: '/disparos-api', body: `{\n  "action": "create-disparo-grupo",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": {\n    "mensagens": [{"text": "Olá grupo!"}],\n    "idLista": [1],\n    "connections": [{"id": 1}]\n  }\n}` },
+    { method: 'PUT', name: 'Pausar Disparo', path: '/disparos-api', body: `{\n  "action": "pause-disparo",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": { "id": 123 }\n}` },
+    { method: 'PUT', name: 'Retomar Disparo', path: '/disparos-api', body: `{\n  "action": "resume-disparo",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": { "id": 123 }\n}` },
+    { method: 'DELETE', name: 'Excluir Disparo', path: '/disparos-api', body: `{\n  "action": "delete-disparo",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": { "id": 123 }\n}` },
+    { method: 'GET', name: 'Listar Listas', path: '/disparos-api', body: `{\n  "action": "get-listas",\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'GET', name: 'Listar Contatos', path: '/disparos-api', body: `{\n  "action": "get-contatos",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": { "idLista": 1 }\n}` },
+    { method: 'GET', name: 'Listar Conexões', path: '/disparos-api', body: `{\n  "action": "get-connections",\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'GET', name: 'Instâncias WhatsApp', path: '/evolution-api', body: `{\n  "action": "list-user-instances",\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'POST', name: 'Criar Instância', path: '/evolution-api', body: `{\n  "action": "create-instance",\n  "instanceName": "minha-conexao",\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'GET', name: 'Obter QR Code', path: '/evolution-api', body: `{\n  "action": "get-qrcode",\n  "instanceName": "minha-conexao"\n}` },
+    { method: 'GET', name: 'Status Conexão', path: '/evolution-api', body: `{\n  "action": "connection-state",\n  "instanceName": "minha-conexao"\n}` },
+    { method: 'POST', name: 'Buscar Google Places', path: '/search-places', body: `{\n  "query": "restaurantes",\n  "location": "São Paulo, SP",\n  "maxResults": 100,\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'GET', name: 'Dados do Plano', path: '/admin-api', body: `{\n  "action": "get-user-plan-usage",\n  "userId": "${user?.id || 'SEU_USER_ID'}"\n}` },
+    { method: 'POST', name: 'Gerar Mensagem IA', path: '/disparos-api', body: `{\n  "action": "generate-ai-message",\n  "userId": "${user?.id || 'SEU_USER_ID'}",\n  "disparoData": {\n    "prompt": "Crie uma mensagem de boas vindas para um cliente",\n    "context": "Empresa de marketing digital"\n  }\n}` },
+  ];
+
+  const methodColors: Record<string, string> = {
+    GET: 'bg-blue-500 text-white',
+    POST: 'bg-green-500 text-white',
+    PUT: 'bg-amber-500 text-white',
+    DELETE: 'bg-red-500 text-white',
+  };
+
+  const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint | null>(null);
+  const [requestBody, setRequestBody] = useState('');
+  const [apiResponse, setApiResponse] = useState<string | null>(null);
+  const [isApiLoading, setIsApiLoading] = useState(false);
+  const [authToken, setAuthToken] = useState(DEFAULT_ANON_KEY);
+  const [isEditingToken, setIsEditingToken] = useState(false);
+
+  const handleSelectEndpoint = (endpoint: ApiEndpoint) => {
+    setSelectedEndpoint(endpoint);
+    setRequestBody(endpoint.body);
+    setApiResponse(null);
+  };
+
+  const handleTestEndpoint = async () => {
+    if (!selectedEndpoint) return;
+    setIsApiLoading(true);
+    setApiResponse(null);
+    
+    try {
+      const parsedBody = JSON.parse(requestBody);
+      const { data, error } = await supabase.functions.invoke(selectedEndpoint.path.replace('/', ''), {
+        body: parsedBody
+      });
+      setApiResponse(JSON.stringify(error ? { error: error.message } : data, null, 2));
+    } catch (error: any) {
+      setApiResponse(JSON.stringify({ error: error.message }, null, 2));
+    } finally {
+      setIsApiLoading(false);
+    }
+  };
+
+  const resetToken = () => {
+    setAuthToken(DEFAULT_ANON_KEY);
+    toast({ title: "Token restaurado para o padrão" });
+  };
+
+  const clearToken = () => {
+    setAuthToken('');
+    setIsEditingToken(true);
+    toast({ title: "Token removido" });
+  };
 
   return (
     <DashboardLayout>
@@ -629,87 +711,149 @@ const SettingsPage = () => {
 
           {/* API DOCS TAB */}
           <TabsContent value="api" className="space-y-6">
-            {/* API Key */}
-            <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
-              <div>
-                <p className="text-sm font-medium text-foreground flex items-center gap-2"><Key className="w-4 h-4" /> Chave de Autenticação</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Use esta chave no header Authorization das requisições</p>
+            {/* Auth Credentials */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Key className="w-4 h-4 text-primary" />
+                  Base URL
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(BASE_URL); toast({ title: "Copiado!" }); }}>
+                  <Copy className="w-4 h-4" />
+                </Button>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 p-3 rounded-lg bg-muted/50 border border-border/30 font-mono text-xs text-muted-foreground truncate">
-                    {userApiKey ? userApiKey : 'Nenhuma API Key configurada'}
-                  </div>
-                  {userApiKey && (
-                    <Button variant="outline" size="sm" className="h-10 shrink-0" onClick={() => { navigator.clipboard.writeText(userApiKey || ''); toast({ title: "Copiado!", description: "API Key copiada para a área de transferência" }); }}>
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  )}
+              <code className="text-xs font-mono text-primary block">{BASE_URL}</code>
+              
+              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                <span className="text-sm font-medium">Authorization Token</span>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setIsEditingToken(!isEditingToken)} title="Editar">
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={clearToken} title="Limpar">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={resetToken} title="Restaurar padrão">
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(authToken); toast({ title: "Copiado!" }); }}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
                 </div>
-                <p className="text-xs text-amber-500/90 flex items-center gap-1"><Shield className="w-3 h-3" /> Mantenha sua API Key em segurança. Não compartilhe com terceiros.</p>
               </div>
+              
+              {isEditingToken ? (
+                <Input
+                  value={authToken}
+                  onChange={(e) => setAuthToken(e.target.value)}
+                  className="font-mono text-xs"
+                  placeholder="Cole seu token aqui..."
+                />
+              ) : (
+                <code className="text-xs font-mono text-muted-foreground break-all">
+                  {authToken ? `${authToken.slice(0, 50)}...` : 'Nenhum token definido'}
+                </code>
+              )}
             </div>
 
-            {/* API Endpoints */}
-            <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground flex items-center gap-2"><FileJson className="w-4 h-4" /> Endpoints da API</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Documentação dos endpoints REST disponíveis</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Endpoints List */}
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold">Endpoints</h2>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {apiEndpoints.map((endpoint, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50 flex items-center gap-3",
+                        selectedEndpoint === endpoint ? "bg-primary/10 border-primary/30" : "bg-card"
+                      )}
+                      onClick={() => handleSelectEndpoint(endpoint)}
+                    >
+                      <span className={cn("px-2 py-0.5 text-xs font-bold rounded w-14 text-center", methodColors[endpoint.method])}>
+                        {endpoint.method}
+                      </span>
+                      <div>
+                        <p className="font-medium text-sm">{endpoint.name}</p>
+                        <code className="text-xs text-muted-foreground">{endpoint.path}</code>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <Link to="/api-docs">
-                  <Button variant="outline" size="sm" className="gap-2"><ExternalLink className="w-4 h-4" /> Abrir Documentação</Button>
-                </Link>
               </div>
 
+              {/* Playground */}
               <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-muted/30 border border-border/20">
-                  <p className="text-xs text-muted-foreground mb-1">Base URL</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">https://egxwzmkdbymxooielidc.supabase.co/functions/v1</code>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { navigator.clipboard.writeText('https://egxwzmkdbymxooielidc.supabase.co/functions/v1'); toast({ title: "URL copiada!" }); }}>
-                      <Copy className="w-3 h-3" />
-                    </Button>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Play className="w-5 h-5" />
+                  Playground
+                </h2>
+
+                {selectedEndpoint ? (
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("px-2 py-0.5 text-xs font-bold rounded", methodColors[selectedEndpoint.method])}>
+                        {selectedEndpoint.method}
+                      </span>
+                      <span className="font-medium text-sm">{selectedEndpoint.name}</span>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium">Body (JSON)</label>
+                        <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(requestBody); toast({ title: "Copiado!" }); }}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={requestBody}
+                        onChange={(e) => setRequestBody(e.target.value)}
+                        className="font-mono text-xs min-h-[150px] bg-muted/30"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button className="flex-1" onClick={handleTestEndpoint} disabled={isApiLoading}>
+                        {isApiLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                        Testar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          const curl = `curl -X POST "${BASE_URL}${selectedEndpoint.path}" \\
+  -H "Content-Type: application/json" \\
+  -H "apikey: ${authToken}" \\
+  -H "Authorization: Bearer ${authToken}" \\
+  -d '${requestBody.replace(/\n/g, '').replace(/'/g, "\\'")}'`;
+                          navigator.clipboard.writeText(curl);
+                          toast({ title: "cURL copiado!" });
+                        }}
+                        title="Copiar como cURL"
+                      >
+                        <Code className="w-4 h-4 mr-2" />
+                        cURL
+                      </Button>
+                    </div>
+
+                    {apiResponse && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium">Resposta</label>
+                          <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(apiResponse); toast({ title: "Copiado!" }); }}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        <pre className="p-3 rounded-lg bg-muted/50 border overflow-auto max-h-[250px] text-xs font-mono">
+                          {apiResponse}
+                        </pre>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                <Collapsible>
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors cursor-pointer">
-                      <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="text-sm font-medium text-foreground">Disparos</span></div>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-2 space-y-2">
-                    <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
-                      <div className="flex items-center gap-2"><span className="px-2 py-0.5 text-xs font-bold rounded bg-blue-500/20 text-blue-400">GET</span><code className="text-xs font-mono text-foreground">/disparos-api</code></div>
-                      <p className="text-xs text-muted-foreground">Lista todos os disparos do usuário</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
-                      <div className="flex items-center gap-2"><span className="px-2 py-0.5 text-xs font-bold rounded bg-green-500/20 text-green-400">POST</span><code className="text-xs font-mono text-foreground">/disparos-api</code></div>
-                      <p className="text-xs text-muted-foreground">Cria um novo disparo</p>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-
-                <Collapsible>
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-colors cursor-pointer">
-                      <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"></div><span className="text-sm font-medium text-foreground">Conexões (WhatsApp)</span></div>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-2 space-y-2">
-                    <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
-                      <div className="flex items-center gap-2"><span className="px-2 py-0.5 text-xs font-bold rounded bg-blue-500/20 text-blue-400">GET</span><code className="text-xs font-mono text-foreground">/evolution-api</code></div>
-                      <p className="text-xs text-muted-foreground">Lista conexões WhatsApp</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/20 border border-border/20 space-y-2">
-                      <div className="flex items-center gap-2"><span className="px-2 py-0.5 text-xs font-bold rounded bg-green-500/20 text-green-400">POST</span><code className="text-xs font-mono text-foreground">/evolution-api</code></div>
-                      <p className="text-xs text-muted-foreground">Cria nova conexão WhatsApp</p>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 text-muted-foreground">
+                    Selecione um endpoint para testar
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
