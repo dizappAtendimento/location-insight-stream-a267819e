@@ -287,11 +287,11 @@ Abraço!
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'running':
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Executando</Badge>;
+        return <Badge className="bg-highlight/20 text-highlight border-highlight/30">Executando</Badge>;
       case 'paused':
         return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Pausado</Badge>;
       case 'completed':
-        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Concluído</Badge>;
+        return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Concluído</Badge>;
       case 'error':
         return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Erro</Badge>;
       default:
@@ -454,7 +454,7 @@ Abraço!
                   </Collapsible>
 
                   <Button 
-                    className="w-full" 
+                    className="w-full bg-highlight text-highlight-foreground hover:bg-highlight/90" 
                     onClick={startMaturador}
                     disabled={starting || !selectedConnection1 || !selectedConnection2}
                   >

@@ -319,7 +319,7 @@
     135deg,
     hsl(var(--background)) 0%,
     hsl(225 28% 9%) 25%,
-    hsl(252 25% 11%) 50%,
+    hsl(263 40% 15%) 50%,
     hsl(225 28% 9%) 75%,
     hsl(var(--background)) 100%
   );
@@ -341,7 +341,7 @@
   left: 10%;
   width: 500px;
   height: 500px;
-  background: hsl(var(--primary) / 0.12);
+  background: hsl(var(--highlight) / 0.15);
   animation: pulse-glow 10s ease-in-out infinite;
 }
 
@@ -350,7 +350,7 @@
   right: 10%;
   width: 400px;
   height: 400px;
-  background: hsl(280 85% 55% / 0.08);
+  background: hsl(var(--highlight) / 0.1);
   animation: pulse-glow 12s ease-in-out infinite 3s;
 }
 
