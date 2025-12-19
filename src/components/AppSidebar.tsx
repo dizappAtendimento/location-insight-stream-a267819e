@@ -104,7 +104,7 @@ export function AppSidebar() {
                     className={cn(
                       "group transition-all duration-200 h-9 rounded-lg mx-0.5",
                       isActive(item.url) 
-                        ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm shadow-primary/10" 
+                        ? "bg-white/[0.08] text-white" 
                         : "hover:bg-white/[0.04] text-white/50 hover:text-white/80"
                     )}
                   >
@@ -112,20 +112,20 @@ export function AppSidebar() {
                       <div className={cn(
                         "w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200",
                         isActive(item.url) 
-                          ? "bg-primary/20" 
+                          ? "bg-white/[0.08]" 
                           : "bg-white/[0.03] group-hover:bg-white/[0.06]"
                       )}>
                         <item.icon 
                           className={cn(
                             "w-4 h-4 transition-all duration-200",
-                            isActive(item.url) ? "text-primary" : "text-white/40 group-hover:text-white/70"
+                            isActive(item.url) ? "text-white" : "text-white/40 group-hover:text-white/70"
                           )} 
                           strokeWidth={1.5} 
                         />
                       </div>
                       <span className={cn(
                         "text-[13px] font-medium transition-colors",
-                        isActive(item.url) ? "text-primary" : "text-white/60 group-hover:text-white/90"
+                        isActive(item.url) ? "text-white" : "text-white/60 group-hover:text-white/90"
                       )}>
                         {item.title}
                       </span>
@@ -156,7 +156,7 @@ export function AppSidebar() {
                     className={cn(
                       "group transition-all duration-200 h-9 rounded-lg mx-0.5",
                       isActive(item.url) 
-                        ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm shadow-primary/10" 
+                        ? "bg-white/[0.08] text-white" 
                         : "hover:bg-white/[0.04] text-white/50 hover:text-white/80"
                     )}
                   >
@@ -164,20 +164,20 @@ export function AppSidebar() {
                       <div className={cn(
                         "w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200",
                         isActive(item.url) 
-                          ? "bg-primary/20" 
+                          ? "bg-white/[0.08]" 
                           : item.bgColor
                       )}>
                         <item.icon 
                           className={cn(
                             "w-4 h-4 transition-all duration-200",
-                            isActive(item.url) ? "text-primary" : item.color
+                            isActive(item.url) ? "text-white" : item.color
                           )} 
                           strokeWidth={1.5} 
                         />
                       </div>
                       <span className={cn(
                         "text-[13px] font-medium transition-colors",
-                        isActive(item.url) ? "text-primary" : "text-white/60 group-hover:text-white/90"
+                        isActive(item.url) ? "text-white" : "text-white/60 group-hover:text-white/90"
                       )}>
                         {item.title}
                       </span>
@@ -208,7 +208,7 @@ export function AppSidebar() {
                     className={cn(
                       "group transition-all duration-200 h-9 rounded-lg mx-0.5",
                       isActive(item.url) 
-                        ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm shadow-primary/10" 
+                        ? "bg-white/[0.08] text-white" 
                         : "hover:bg-white/[0.04] text-white/50 hover:text-white/80"
                     )}
                   >
@@ -216,20 +216,20 @@ export function AppSidebar() {
                       <div className={cn(
                         "w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200",
                         isActive(item.url) 
-                          ? "bg-primary/20" 
+                          ? "bg-white/[0.08]" 
                           : "bg-white/[0.03] group-hover:bg-white/[0.06]"
                       )}>
                         <item.icon 
                           className={cn(
                             "w-4 h-4 transition-all duration-200",
-                            isActive(item.url) ? "text-primary" : "text-white/40 group-hover:text-white/70"
+                            isActive(item.url) ? "text-white" : "text-white/40 group-hover:text-white/70"
                           )} 
                           strokeWidth={1.5} 
                         />
                       </div>
                       <span className={cn(
                         "text-[13px] font-medium transition-colors",
-                        isActive(item.url) ? "text-primary" : "text-white/60 group-hover:text-white/90"
+                        isActive(item.url) ? "text-white" : "text-white/60 group-hover:text-white/90"
                       )}>
                         {item.title}
                       </span>
