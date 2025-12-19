@@ -25,6 +25,8 @@ const endpoints: Endpoint[] = [
   { method: 'GET', name: 'Listar Disparos', path: '/disparos-api', body: '{\n  "action": "get-disparos",\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'GET', name: 'Detalhes Disparo', path: '/disparos-api', body: '{\n  "action": "get-disparo-detalhes",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}' },
   { method: 'POST', name: 'Criar Disparo', path: '/disparos-api', body: '{\n  "action": "create-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": {\n    "mensagens": [{"text": "Olá!"}],\n    "idLista": [1],\n    "connections": [{"id": 1}]\n  }\n}' },
+  { method: 'POST', name: 'Enviar Mensagem', path: '/evolution-api', body: '{\n  "action": "send-message",\n  "instanceName": "minha-conexao",\n  "to": "5511999999999",\n  "message": "Olá, tudo bem?"\n}' },
+  { method: 'POST', name: 'Criar Disparo Grupo', path: '/disparos-api', body: '{\n  "action": "create-disparo-grupo",\n  "userId": "SEU_USER_ID",\n  "disparoData": {\n    "mensagens": [{"text": "Olá grupo!"}],\n    "idLista": [1],\n    "connections": [{"id": 1}]\n  }\n}' },
   { method: 'PUT', name: 'Pausar Disparo', path: '/disparos-api', body: '{\n  "action": "pause-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}' },
   { method: 'PUT', name: 'Retomar Disparo', path: '/disparos-api', body: '{\n  "action": "resume-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}' },
   { method: 'DELETE', name: 'Excluir Disparo', path: '/disparos-api', body: '{\n  "action": "delete-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}' },
