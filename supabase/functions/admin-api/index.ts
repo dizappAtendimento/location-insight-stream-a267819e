@@ -433,7 +433,7 @@ serve(async (req) => {
         // Get user with plans data
         const { data: userData, error: userError } = await supabase
           .from('SAAS_Usuarios')
-          .select('plano, plano_extrator')
+          .select('plano, plano_extrator, dataValidade, dataValidade_extrator')
           .eq('id', userId)
           .single();
 
@@ -502,6 +502,7 @@ serve(async (req) => {
             usadoConexoes: conexoesCount || 0,
             usadoContatos: contatosCount || 0,
             usadoListas: listasCount || 0,
+            dataValidade: userData.dataValidade || null,
           };
         }
 
@@ -532,6 +533,7 @@ serve(async (req) => {
             usadoPlaces: placesCount || 0,
             usadoInstagram: 0, // TODO: Add when Instagram extraction table exists
             usadoLinkedin: 0,  // TODO: Add when LinkedIn extraction table exists
+            dataValidade: userData.dataValidade_extrator || null,
           };
         }
 
