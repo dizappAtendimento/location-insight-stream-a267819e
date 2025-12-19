@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight } from 'lucide-react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +16,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 interface Lead {
   id: number;
@@ -23,9 +32,11 @@ interface Lead {
   dataResposta: string | null;
   status: string;
   disparoId: number | null;
+  valor: number;
+  observacao: string;
 }
 
-const columns = [
+const defaultColumns = [
   { id: 'novo', title: 'Novos', color: 'bg-blue-500' },
   { id: 'contato', title: 'Em Contato', color: 'bg-amber-500' },
   { id: 'negociacao', title: 'Negociação', color: 'bg-purple-500' },
@@ -36,8 +47,15 @@ const CrmPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [columns, setColumns] = useState(defaultColumns);
   const [isLoading, setIsLoading] = useState(true);
   const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [editingColumn, setEditingColumn] = useState<string | null>(null);
+  const [columnTitle, setColumnTitle] = useState('');
+  const [isAddingLead, setIsAddingLead] = useState(false);
+  const [newLead, setNewLead] = useState({ nome: '', telefone: '', valor: 0, observacao: '' });
 
   useEffect(() => {
     if (user?.id) {
@@ -48,8 +66,6 @@ const CrmPage = () => {
   const fetchLeads = async () => {
     setIsLoading(true);
     try {
-      // Buscar detalhes de disparos que tiveram resposta (simulado por enquanto)
-      // Na prática, você teria uma tabela de respostas/leads no CRM
       const { data, error } = await supabase
         .from('vw_Detalhes_Completo')
         .select('*')
@@ -60,7 +76,6 @@ const CrmPage = () => {
 
       if (error) throw error;
 
-      // Transformar em leads (simulando status do CRM)
       const leadsData: Lead[] = (data || []).map((item: any, index: number) => ({
         id: item.id || index,
         nome: item.NomeGrupo || `Contato ${item.TelefoneContato?.slice(-4) || index}`,
@@ -69,16 +84,13 @@ const CrmPage = () => {
         dataResposta: item.dataEnvio,
         status: ['novo', 'contato', 'negociacao', 'fechado'][index % 4],
         disparoId: item.idDisparo,
+        valor: 0,
+        observacao: '',
       }));
 
       setLeads(leadsData);
     } catch (error: any) {
       console.error('Erro ao carregar leads:', error);
-      toast({
-        title: "Erro ao carregar leads",
-        description: error.message,
-        variant: "destructive"
-      });
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +100,7 @@ const CrmPage = () => {
     setLeads(prev => prev.map(lead => 
       lead.id === leadId ? { ...lead, status: newStatus } : lead
     ));
-    toast({ title: "Lead movido com sucesso!" });
+    toast({ title: "Lead movido!" });
   };
 
   const handleDragStart = (lead: Lead) => {
@@ -110,6 +122,10 @@ const CrmPage = () => {
     return leads.filter(lead => lead.status === columnId);
   };
 
+  const getTotalValueByColumn = (columnId: string) => {
+    return getLeadsByColumn(columnId).reduce((sum, lead) => sum + (lead.valor || 0), 0);
+  };
+
   const formatDate = (date: string | null) => {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('pt-BR', { 
@@ -120,6 +136,60 @@ const CrmPage = () => {
     });
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const openLeadDetails = (lead: Lead) => {
+    setSelectedLead({ ...lead });
+    setIsDetailOpen(true);
+  };
+
+  const saveLeadChanges = () => {
+    if (selectedLead) {
+      setLeads(prev => prev.map(lead => 
+        lead.id === selectedLead.id ? selectedLead : lead
+      ));
+      toast({ title: "Lead atualizado!" });
+      setIsDetailOpen(false);
+    }
+  };
+
+  const startEditColumn = (columnId: string, currentTitle: string) => {
+    setEditingColumn(columnId);
+    setColumnTitle(currentTitle);
+  };
+
+  const saveColumnTitle = (columnId: string) => {
+    setColumns(prev => prev.map(col => 
+      col.id === columnId ? { ...col, title: columnTitle } : col
+    ));
+    setEditingColumn(null);
+    toast({ title: "Coluna renomeada!" });
+  };
+
+  const addNewLead = () => {
+    if (!newLead.nome || !newLead.telefone) {
+      toast({ title: "Preencha nome e telefone", variant: "destructive" });
+      return;
+    }
+    const lead: Lead = {
+      id: Date.now(),
+      nome: newLead.nome,
+      telefone: newLead.telefone,
+      mensagem: null,
+      dataResposta: new Date().toISOString(),
+      status: 'novo',
+      disparoId: null,
+      valor: newLead.valor,
+      observacao: newLead.observacao,
+    };
+    setLeads(prev => [lead, ...prev]);
+    setNewLead({ nome: '', telefone: '', valor: 0, observacao: '' });
+    setIsAddingLead(false);
+    toast({ title: "Lead adicionado!" });
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
@@ -128,16 +198,23 @@ const CrmPage = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Kanban className="w-6 h-6 text-primary" />
-              CRM - Respostas
+              CRM - Leads
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Gerencie as respostas dos seus disparos
+              Gerencie seus leads e oportunidades
             </p>
           </div>
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="px-3 py-1">
               {leads.length} leads
             </Badge>
+            <Badge variant="secondary" className="px-3 py-1">
+              {formatCurrency(leads.reduce((sum, l) => sum + (l.valor || 0), 0))}
+            </Badge>
+            <Button onClick={() => setIsAddingLead(true)} size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Lead
+            </Button>
             <Button onClick={fetchLeads} variant="outline" size="sm">
               Atualizar
             </Button>
@@ -155,14 +232,41 @@ const CrmPage = () => {
             >
               {/* Column Header */}
               <div className="p-4 border-b border-border/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 flex-1">
                     <div className={cn("w-3 h-3 rounded-full", column.color)} />
-                    <span className="font-semibold text-sm">{column.title}</span>
+                    {editingColumn === column.id ? (
+                      <div className="flex items-center gap-1 flex-1">
+                        <Input
+                          value={columnTitle}
+                          onChange={(e) => setColumnTitle(e.target.value)}
+                          className="h-7 text-sm"
+                          autoFocus
+                        />
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => saveColumnTitle(column.id)}>
+                          <Save className="w-3 h-3" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingColumn(null)}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span 
+                        className="font-semibold text-sm cursor-pointer hover:text-primary flex items-center gap-1"
+                        onClick={() => startEditColumn(column.id, column.title)}
+                      >
+                        {column.title}
+                        <Pencil className="w-3 h-3 opacity-0 hover:opacity-100" />
+                      </span>
+                    )}
                   </div>
                   <Badge variant="secondary" className="text-xs">
                     {getLeadsByColumn(column.id).length}
                   </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" />
+                  {formatCurrency(getTotalValueByColumn(column.id))}
                 </div>
               </div>
 
@@ -183,9 +287,10 @@ const CrmPage = () => {
                       key={lead.id}
                       draggable
                       onDragStart={() => handleDragStart(lead)}
-                      className="cursor-grab active:cursor-grabbing bg-card hover:bg-muted/30 transition-all border-border/50 hover:border-primary/30 hover:shadow-lg"
+                      onClick={() => openLeadDetails(lead)}
+                      className="cursor-pointer active:cursor-grabbing bg-card hover:bg-muted/30 transition-all border-border/50 hover:border-primary/30 hover:shadow-lg"
                     >
-                      <CardContent className="p-3 space-y-3">
+                      <CardContent className="p-3 space-y-2">
                         {/* Lead Header */}
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
@@ -203,7 +308,7 @@ const CrmPage = () => {
                             </div>
                           </div>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <Button variant="ghost" size="icon" className="h-6 w-6">
                                 <MoreHorizontal className="w-4 h-4" />
                               </Button>
@@ -212,7 +317,10 @@ const CrmPage = () => {
                               {columns.filter(c => c.id !== lead.status).map(col => (
                                 <DropdownMenuItem 
                                   key={col.id}
-                                  onClick={() => moveLeadToColumn(lead.id, col.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveLeadToColumn(lead.id, col.id);
+                                  }}
                                 >
                                   <ArrowRight className="w-4 h-4 mr-2" />
                                   Mover para {col.title}
@@ -222,14 +330,24 @@ const CrmPage = () => {
                           </DropdownMenu>
                         </div>
 
-                        {/* Message Preview */}
-                        <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-2">
-                          <MessageSquare className="w-3 h-3 inline mr-1" />
-                          {lead.mensagem?.slice(0, 60)}...
-                        </div>
+                        {/* Value */}
+                        {lead.valor > 0 && (
+                          <div className="flex items-center gap-1 text-xs font-medium text-green-500">
+                            <DollarSign className="w-3 h-3" />
+                            {formatCurrency(lead.valor)}
+                          </div>
+                        )}
+
+                        {/* Observation */}
+                        {lead.observacao && (
+                          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-2 flex items-start gap-1">
+                            <StickyNote className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            <span className="line-clamp-2">{lead.observacao}</span>
+                          </div>
+                        )}
 
                         {/* Footer */}
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {formatDate(lead.dataResposta)}
@@ -248,6 +366,137 @@ const CrmPage = () => {
             </div>
           ))}
         </div>
+
+        {/* Lead Detail Modal */}
+        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" />
+                Detalhes do Lead
+              </DialogTitle>
+            </DialogHeader>
+            {selectedLead && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input
+                    value={selectedLead.nome || ''}
+                    onChange={(e) => setSelectedLead({ ...selectedLead, nome: e.target.value })}
+                    placeholder="Nome do lead"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input
+                    value={selectedLead.telefone || ''}
+                    onChange={(e) => setSelectedLead({ ...selectedLead, telefone: e.target.value })}
+                    placeholder="Telefone"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor (R$)</Label>
+                  <Input
+                    type="number"
+                    value={selectedLead.valor}
+                    onChange={(e) => setSelectedLead({ ...selectedLead, valor: parseFloat(e.target.value) || 0 })}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Observação</Label>
+                  <Textarea
+                    value={selectedLead.observacao}
+                    onChange={(e) => setSelectedLead({ ...selectedLead, observacao: e.target.value })}
+                    placeholder="Adicione uma observação..."
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {columns.map(col => (
+                      <Button
+                        key={col.id}
+                        variant={selectedLead.status === col.id ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedLead({ ...selectedLead, status: col.id })}
+                      >
+                        <div className={cn("w-2 h-2 rounded-full mr-2", col.color)} />
+                        {col.title}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                {selectedLead.mensagem && (
+                  <div className="space-y-2">
+                    <Label>Última Mensagem</Label>
+                    <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+                      <MessageSquare className="w-4 h-4 inline mr-2" />
+                      {selectedLead.mensagem}
+                    </div>
+                  </div>
+                )}
+                <Button onClick={saveLeadChanges} className="w-full">
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvar Alterações
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Lead Modal */}
+        <Dialog open={isAddingLead} onOpenChange={setIsAddingLead}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Plus className="w-5 h-5 text-primary" />
+                Novo Lead
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome *</Label>
+                <Input
+                  value={newLead.nome}
+                  onChange={(e) => setNewLead({ ...newLead, nome: e.target.value })}
+                  placeholder="Nome do lead"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone *</Label>
+                <Input
+                  value={newLead.telefone}
+                  onChange={(e) => setNewLead({ ...newLead, telefone: e.target.value })}
+                  placeholder="5511999999999"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor (R$)</Label>
+                <Input
+                  type="number"
+                  value={newLead.valor}
+                  onChange={(e) => setNewLead({ ...newLead, valor: parseFloat(e.target.value) || 0 })}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Observação</Label>
+                <Textarea
+                  value={newLead.observacao}
+                  onChange={(e) => setNewLead({ ...newLead, observacao: e.target.value })}
+                  placeholder="Adicione uma observação..."
+                  rows={3}
+                />
+              </div>
+              <Button onClick={addNewLead} className="w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Lead
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
