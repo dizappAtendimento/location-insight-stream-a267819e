@@ -4,114 +4,114 @@
 
 @layer base {
   :root {
-    /* Light theme - clean minimal */
+    /* Light theme - clean minimal with dark accent */
     --background: 210 20% 98%;
-    --foreground: 220 25% 10%;
+    --foreground: 225 30% 7%;
     --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
+    --card-foreground: 225 30% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 10%;
-    --primary: 172 66% 50%;
+    --popover-foreground: 225 30% 7%;
+    --primary: 225 30% 7%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 15% 93%;
-    --secondary-foreground: 220 25% 10%;
+    --secondary-foreground: 225 30% 7%;
     --muted: 210 15% 96%;
     --muted-foreground: 215 15% 45%;
-    --accent: 172 50% 95%;
-    --accent-foreground: 172 66% 35%;
+    --accent: 225 20% 95%;
+    --accent-foreground: 225 30% 7%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 210 15% 90%;
     --input: 210 15% 90%;
-    --ring: 172 66% 50%;
+    --ring: 225 30% 7%;
     --radius: 0.75rem;
     
-    /* Unified platform colors - Light (all using primary teal) */
-    --instagram: 172 66% 50%;
-    --instagram-glow: 172 80% 60%;
-    --linkedin: 172 66% 50%;
-    --linkedin-glow: 172 80% 60%;
-    --whatsapp: 172 66% 50%;
-    --whatsapp-glow: 172 80% 60%;
-    --places: 172 66% 50%;
-    --places-glow: 172 80% 60%;
+    /* Unified platform colors - Light */
+    --instagram: 225 30% 7%;
+    --instagram-glow: 225 30% 20%;
+    --linkedin: 225 30% 7%;
+    --linkedin-glow: 225 30% 20%;
+    --whatsapp: 225 30% 7%;
+    --whatsapp-glow: 225 30% 20%;
+    --places: 225 30% 7%;
+    --places-glow: 225 30% 20%;
     
     /* Sidebar - Light */
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 25% 10%;
-    --sidebar-primary: 172 66% 50%;
+    --sidebar-foreground: 225 30% 7%;
+    --sidebar-primary: 225 30% 7%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 172 50% 95%;
-    --sidebar-accent-foreground: 172 66% 35%;
+    --sidebar-accent: 225 20% 95%;
+    --sidebar-accent-foreground: 225 30% 7%;
     --sidebar-border: 210 15% 90%;
-    --sidebar-ring: 172 66% 50%;
+    --sidebar-ring: 225 30% 7%;
 
     /* Success / Info colors - Light */
-    --success: 172 66% 45%;
+    --success: 225 30% 7%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
-    --info: 172 66% 50%;
+    --info: 225 30% 7%;
     --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    /* Dark theme - clean minimal with teal accent */
-    --background: 220 25% 7%;
+    /* Dark theme - clean minimal with dark accent */
+    --background: 225 30% 7%;
     --foreground: 210 20% 96%;
 
-    --card: 220 22% 10%;
+    --card: 225 25% 10%;
     --card-foreground: 210 20% 96%;
 
-    --popover: 220 22% 12%;
+    --popover: 225 25% 12%;
     --popover-foreground: 210 20% 96%;
 
-    --primary: 172 66% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 210 20% 96%;
+    --primary-foreground: 225 30% 7%;
 
-    --secondary: 220 18% 14%;
+    --secondary: 225 20% 14%;
     --secondary-foreground: 210 20% 92%;
 
-    --muted: 220 18% 16%;
+    --muted: 225 20% 16%;
     --muted-foreground: 215 15% 50%;
 
-    --accent: 220 20% 14%;
-    --accent-foreground: 172 66% 55%;
+    --accent: 225 20% 14%;
+    --accent-foreground: 210 20% 96%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 18% 14%;
-    --input: 220 18% 12%;
-    --ring: 172 66% 50%;
+    --border: 225 20% 14%;
+    --input: 225 20% 12%;
+    --ring: 210 20% 96%;
 
-    /* Unified platform colors - Dark (all using primary teal) */
-    --instagram: 172 66% 55%;
-    --instagram-glow: 172 80% 65%;
-    --linkedin: 172 66% 55%;
-    --linkedin-glow: 172 80% 65%;
-    --whatsapp: 172 66% 55%;
-    --whatsapp-glow: 172 80% 65%;
-    --places: 172 66% 55%;
-    --places-glow: 172 80% 65%;
+    /* Unified platform colors - Dark */
+    --instagram: 210 20% 85%;
+    --instagram-glow: 210 20% 95%;
+    --linkedin: 210 20% 85%;
+    --linkedin-glow: 210 20% 95%;
+    --whatsapp: 210 20% 85%;
+    --whatsapp-glow: 210 20% 95%;
+    --places: 210 20% 85%;
+    --places-glow: 210 20% 95%;
 
     /* Sidebar - Dark */
-    --sidebar-background: 220 28% 7%;
+    --sidebar-background: 225 30% 7%;
     --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 172 66% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 18% 12%;
-    --sidebar-accent-foreground: 172 66% 55%;
-    --sidebar-border: 220 18% 12%;
-    --sidebar-ring: 172 66% 55%;
+    --sidebar-primary: 210 20% 96%;
+    --sidebar-primary-foreground: 225 30% 7%;
+    --sidebar-accent: 225 20% 12%;
+    --sidebar-accent-foreground: 210 20% 96%;
+    --sidebar-border: 225 20% 12%;
+    --sidebar-ring: 210 20% 96%;
 
     /* Success / Info colors - Dark */
-    --success: 172 66% 50%;
-    --success-foreground: 0 0% 100%;
+    --success: 210 20% 85%;
+    --success-foreground: 225 30% 7%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
-    --info: 172 66% 55%;
-    --info-foreground: 0 0% 100%;
+    --info: 210 20% 85%;
+    --info-foreground: 225 30% 7%;
   }
 }
 
