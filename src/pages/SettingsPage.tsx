@@ -888,12 +888,20 @@ const SettingsPage = () => {
 
           {/* API Endpoints Documentation */}
           <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
-            <div>
-              <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                <FileJson className="w-4 h-4" />
-                Endpoints da API
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Documentação dos endpoints REST disponíveis</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <FileJson className="w-4 h-4" />
+                  Endpoints da API
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Documentação dos endpoints REST disponíveis</p>
+              </div>
+              <Link to="/api-docs">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <ExternalLink className="w-4 h-4" />
+                  Abrir Documentação Completa
+                </Button>
+              </Link>
             </div>
 
             <div className="space-y-3">
