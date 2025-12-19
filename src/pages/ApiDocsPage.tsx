@@ -262,6 +262,56 @@ print(response.json())`;
               API Playground
             </h2>
 
+            {/* Credenciais de Autenticação */}
+            <Card className="bg-amber-500/5 border-amber-500/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Key className="w-4 h-4 text-amber-500" />
+                  Credenciais de Autenticação
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Use estas credenciais nos headers de suas requisições
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-muted-foreground">apikey</label>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2"
+                      onClick={() => copyToClipboard('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk')}
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <code className="text-xs font-mono text-amber-500 break-all bg-muted/30 p-2 rounded block">
+                    eyJhbGciOi...XJB9t5brPc...
+                  </code>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-muted-foreground">Authorization: Bearer</label>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2"
+                      onClick={() => copyToClipboard('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk')}
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <code className="text-xs font-mono text-amber-500 break-all bg-muted/30 p-2 rounded block">
+                    Bearer eyJhbGciOi...XJB9t5brPc...
+                  </code>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Clique no botão copiar para obter o token completo
+                </p>
+              </CardContent>
+            </Card>
+
             {selectedEndpoint ? (
               <Card>
                 <CardHeader className="pb-3">
