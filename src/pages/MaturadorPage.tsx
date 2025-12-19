@@ -465,6 +465,32 @@ export default function MaturadorPage() {
                         <p className="text-xs text-red-400">{session.mensagemErro}</p>
                       )}
 
+                      {/* Mensagens trocadas */}
+                      {session.mensagens && session.mensagens.length > 0 && (
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          <p className="text-xs text-muted-foreground font-medium">Conversa:</p>
+                          <div className="space-y-1">
+                            {session.mensagens.map((msg: any, idx: number) => (
+                              <div 
+                                key={idx} 
+                                className={`text-xs p-2 rounded ${
+                                  msg.from === session.instanceName1 
+                                    ? 'bg-primary/10 text-primary ml-4' 
+                                    : 'bg-muted text-muted-foreground mr-4'
+                                }`}
+                              >
+                                <span className="font-medium">
+                                  {msg.from === session.instanceName1 
+                                    ? getConnectionName(session.instanceName1) 
+                                    : getConnectionName(session.instanceName2)}:
+                                </span>{' '}
+                                {msg.text}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex gap-2">
                         {session.status === 'running' ? (
                           <Button 
