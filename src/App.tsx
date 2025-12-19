@@ -24,6 +24,7 @@ import ListasPage from "./pages/ListasPage";
 import ListaDetalhesPage from "./pages/ListaDetalhesPage";
 import ApiDocsPage from "./pages/ApiDocsPage";
 import CrmPage from "./pages/CrmPage";
+import MaturadorPage from "./pages/MaturadorPage";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/api-docs" element={<ProtectedRoute><ApiDocsPage /></ProtectedRoute>} />
               <Route path="/crm" element={<ProtectedRoute><CrmPage /></ProtectedRoute>} />
+              <Route path="/maturador" element={<ProtectedRoute><MaturadorPage /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
