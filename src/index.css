@@ -26,8 +26,8 @@
     --ring: 225 30% 7%;
     --radius: 0.75rem;
     
-    /* Highlight color for values and numbers */
-    --highlight: 225 30% 7%;
+    /* Highlight/Accent purple color */
+    --highlight: 263 70% 50%;
     --highlight-foreground: 0 0% 100%;
     
     /* Platform brand colors - Light */
@@ -89,9 +89,9 @@
     --input: 225 20% 14%;
     --ring: 0 0% 100%;
     
-    /* Highlight color for values and numbers - slightly brighter */
-    --highlight: 210 20% 98%;
-    --highlight-foreground: 225 30% 7%;
+    /* Highlight/Accent purple color */
+    --highlight: 263 70% 55%;
+    --highlight-foreground: 0 0% 100%;
 
     /* Platform brand colors - Dark */
     --instagram: 328 85% 60%;
