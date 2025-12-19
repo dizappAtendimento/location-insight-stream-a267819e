@@ -54,7 +54,6 @@ const extractorItems = [
 
 const systemItems = [
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
-  { title: 'API Docs', url: '/api-docs', icon: FileCode2 },
 ];
 
 export function AppSidebar() {
