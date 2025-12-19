@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Code, Copy, Play, Key, Loader2 } from 'lucide-react';
+import { Code, Copy, Play, Key, Loader2, Pencil, Trash2, RotateCcw } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 const BASE_URL = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk';
+const DEFAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk';
 
 interface Endpoint {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -51,10 +52,23 @@ const ApiDocsPage = () => {
   const [requestBody, setRequestBody] = useState('');
   const [response, setResponse] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [authToken, setAuthToken] = useState(DEFAULT_ANON_KEY);
+  const [isEditingToken, setIsEditingToken] = useState(false);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado!" });
+  };
+
+  const resetToken = () => {
+    setAuthToken(DEFAULT_ANON_KEY);
+    toast({ title: "Token restaurado para o padrão" });
+  };
+
+  const clearToken = () => {
+    setAuthToken('');
+    setIsEditingToken(true);
+    toast({ title: "Token removido" });
   };
 
   const handleSelectEndpoint = (endpoint: Endpoint) => {
@@ -109,12 +123,35 @@ const ApiDocsPage = () => {
             <code className="text-xs font-mono text-primary block">{BASE_URL}</code>
             
             <div className="flex items-center justify-between pt-2 border-t border-border/50">
-              <span className="text-sm font-medium">API Key / Bearer Token</span>
-              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(ANON_KEY)}>
-                <Copy className="w-4 h-4" />
-              </Button>
+              <span className="text-sm font-medium">Authorization Token</span>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" onClick={() => setIsEditingToken(!isEditingToken)} title="Editar">
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={clearToken} title="Limpar">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={resetToken} title="Restaurar padrão">
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => copyToClipboard(authToken)}>
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-            <code className="text-xs font-mono text-muted-foreground break-all">{ANON_KEY.slice(0, 50)}...</code>
+            
+            {isEditingToken ? (
+              <Input
+                value={authToken}
+                onChange={(e) => setAuthToken(e.target.value)}
+                className="font-mono text-xs"
+                placeholder="Cole seu token aqui..."
+              />
+            ) : (
+              <code className="text-xs font-mono text-muted-foreground break-all">
+                {authToken ? `${authToken.slice(0, 50)}...` : 'Nenhum token definido'}
+              </code>
+            )}
           </CardContent>
         </Card>
 
