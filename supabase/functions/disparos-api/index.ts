@@ -92,6 +92,42 @@ serve(async (req) => {
         );
       }
 
+      case 'get-contatos': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const idLista = disparoData?.idLista;
+        if (!idLista) {
+          return new Response(
+            JSON.stringify({ error: 'idLista is required in disparoData' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { data, error } = await supabase
+          .from('SAAS_Contatos')
+          .select('*')
+          .eq('idLista', idLista)
+          .eq('idUsuario', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('[Disparos API] Error fetching contatos:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Found ${data?.length || 0} contatos for lista ${idLista}`);
+        
+        return new Response(
+          JSON.stringify({ contatos: data || [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'create-lista': {
         if (!userId) {
           return new Response(
