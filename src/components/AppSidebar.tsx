@@ -11,6 +11,7 @@ import {
   Users,
   List,
   Code,
+  Kanban,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +38,7 @@ const menuItems = [
   { title: 'Disparos', url: '/disparos', icon: Send },
   { title: 'Disparos em Grupo', url: '/disparos-grupo', icon: Users },
   { title: 'Listas', url: '/listas', icon: List },
+  { title: 'CRM', url: '/crm', icon: Kanban },
 ];
 
 const extractorItems = [
