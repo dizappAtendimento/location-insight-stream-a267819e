@@ -380,6 +380,72 @@ export type Database = {
           },
         ]
       }
+      SAAS_Maturador: {
+        Row: {
+          created_at: string
+          id: number
+          idConexao1: number
+          idConexao2: number
+          instanceName1: string
+          instanceName2: string
+          intervaloMax: number
+          intervaloMin: number
+          mensagemErro: string | null
+          mensagens: Json | null
+          mensagensEnviadas: number
+          proximoEnvio: string | null
+          status: string
+          telefone1: string | null
+          telefone2: string | null
+          totalMensagens: number
+          ultimaMensagem: string | null
+          updated_at: string
+          userId: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          idConexao1: number
+          idConexao2: number
+          instanceName1: string
+          instanceName2: string
+          intervaloMax?: number
+          intervaloMin?: number
+          mensagemErro?: string | null
+          mensagens?: Json | null
+          mensagensEnviadas?: number
+          proximoEnvio?: string | null
+          status?: string
+          telefone1?: string | null
+          telefone2?: string | null
+          totalMensagens?: number
+          ultimaMensagem?: string | null
+          updated_at?: string
+          userId: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          idConexao1?: number
+          idConexao2?: number
+          instanceName1?: string
+          instanceName2?: string
+          intervaloMax?: number
+          intervaloMin?: number
+          mensagemErro?: string | null
+          mensagens?: Json | null
+          mensagensEnviadas?: number
+          proximoEnvio?: string | null
+          status?: string
+          telefone1?: string | null
+          telefone2?: string | null
+          totalMensagens?: number
+          ultimaMensagem?: string | null
+          updated_at?: string
+          userId?: string
+        }
+        Relationships: []
+      }
       SAAS_Planos: {
         Row: {
           created_at: string
