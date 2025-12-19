@@ -318,11 +318,18 @@ serve(async (req) => {
           .select('*')
           .eq('id', disparoId)
           .eq('userId', userId)
-          .single();
+          .maybeSingle();
 
         if (disparoError) {
           console.error('[Disparos API] Error fetching disparo:', disparoError);
           throw disparoError;
+        }
+
+        if (!disparo) {
+          return new Response(
+            JSON.stringify({ error: 'Disparo não encontrado' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
 
         // Get detalhes from view
@@ -617,9 +624,14 @@ serve(async (req) => {
           .from('SAAS_Usuarios')
           .select('apikey_gpt')
           .eq('id', userId)
-          .single();
+          .maybeSingle();
 
-        if (userError || !userData?.apikey_gpt) {
+        if (userError) {
+          console.error('[Disparos API] Error fetching user:', userError);
+          throw userError;
+        }
+
+        if (!userData?.apikey_gpt) {
           console.log('[Disparos API] User has no OpenAI API key configured');
           return new Response(
             JSON.stringify({ error: 'Configure sua API key do ChatGPT em Conexões antes de usar a IA' }),
