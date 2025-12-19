@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { MessagePreview } from '@/components/MessagePreview';
 import {
   Send,
   Plus,
@@ -30,6 +31,7 @@ import {
   Italic,
   Strikethrough,
   Code,
+  Smartphone,
 } from 'lucide-react';
 
 interface Connection {
@@ -419,9 +421,11 @@ export default function DisparosPage() {
           </p>
         </div>
 
-        <div className="grid gap-6">
-          {/* Conexões */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <div className="grid gap-6 lg:grid-cols-[1fr,320px]">
+          {/* Left Column - Form */}
+          <div className="space-y-6">
+            {/* Conexões */}
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Conexões WhatsApp</CardTitle>
@@ -904,6 +908,24 @@ export default function DisparosPage() {
               </>
             )}
           </Button>
+          </div>
+
+          {/* Right Column - Preview */}
+          <div className="hidden lg:block">
+            <div className="sticky top-6">
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Smartphone className="w-5 h-5" />
+                    Preview da Mensagem
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MessagePreview messages={messages} />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </DashboardLayout>
