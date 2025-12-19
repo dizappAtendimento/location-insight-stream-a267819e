@@ -4,18 +4,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, Lock, LogIn, User, Phone, UserPlus } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight, Eye, EyeOff, User, Phone, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function AuthPage() {
+  const [isLoginView, setIsLoginView] = useState(true);
+  
   // Login state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
@@ -25,6 +28,7 @@ export default function AuthPage() {
   const [registerTelefone, setRegisterTelefone] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   
   // Reset password state
@@ -121,7 +125,6 @@ export default function AuthPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate fields
     if (!registerNome.trim() || !registerEmail.trim() || !registerPassword.trim()) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
@@ -168,12 +171,12 @@ export default function AuthPage() {
 
       if (data?.success) {
         toast.success(data.message || 'Cadastro realizado com sucesso!');
-        // Clear form
         setRegisterNome('');
         setRegisterEmail('');
         setRegisterTelefone('');
         setRegisterPassword('');
         setRegisterConfirmPassword('');
+        setIsLoginView(true);
       }
     } catch (err) {
       toast.error('Erro inesperado. Tente novamente.');
@@ -184,46 +187,76 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center login-bg relative overflow-hidden p-4">
-      {/* Floating orbs */}
-      <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-primary/40 rounded-full animate-float" style={{ animationDelay: '0s' }} />
-      <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-primary/30 rounded-full animate-float" style={{ animationDelay: '2s' }} />
-      <div className="absolute bottom-1/3 left-1/3 w-2 h-2 bg-primary/50 rounded-full animate-float" style={{ animationDelay: '4s' }} />
-      <div className="absolute top-2/3 right-1/4 w-4 h-4 bg-primary/20 rounded-full animate-float" style={{ animationDelay: '1s' }} />
+    <div className="min-h-screen flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#0d0f17] relative overflow-hidden flex-col justify-center px-12 xl:px-20">
+        {/* Diagonal lines background */}
+        <div className="absolute inset-0 opacity-20">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute h-[1px] bg-gradient-to-r from-transparent via-highlight/30 to-transparent"
+              style={{
+                width: '200%',
+                top: `${i * 8}%`,
+                left: '-50%',
+                transform: 'rotate(-15deg)',
+              }}
+            />
+          ))}
+        </div>
+        
+        {/* Glow effects */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-highlight/10 rounded-full filter blur-[100px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-highlight/5 rounded-full filter blur-[80px]" />
+        
+        {/* Content */}
+        <div className="relative z-10">
+          <img src={logo} alt="DizApp" className="h-10 w-auto mb-12" />
+          
+          <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4">
+            Bem-vindo ao DizApp
+          </h1>
+          
+          <p className="text-lg text-slate-400 max-w-md">
+            Gerencie suas extrações, disparos e conexões em um só lugar
+          </p>
+        </div>
 
-      {/* Logo outside card */}
-      <div className="mb-8 animate-fade-in">
-        <img src={logo} alt="Logo" className="h-14 w-auto" />
+        {/* Version */}
+        <p className="absolute bottom-8 left-12 xl:left-20 text-xs text-slate-600">
+          v1.0.0
+        </p>
       </div>
 
-      <Card className="w-full max-w-md relative z-10 border-border/50 bg-card/90 backdrop-blur-md animate-scale-in">
-        <Tabs defaultValue="login" className="w-full">
-          <CardHeader className="text-center space-y-2 pt-6 pb-2">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="register">Cadastrar</TabsTrigger>
-            </TabsList>
-          </CardHeader>
-          
-          <CardContent className="pb-8">
-            {/* Login Tab */}
-            <TabsContent value="login" className="mt-4">
-              <CardDescription className="text-center text-muted-foreground mb-6">
-                Entre com suas credenciais para acessar o sistema
-              </CardDescription>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Right Side - Form */}
+      <div className="w-full lg:w-1/2 bg-[#111318] flex items-center justify-center p-6 sm:p-12">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex justify-center mb-8">
+            <img src={logo} alt="DizApp" className="h-10 w-auto" />
+          </div>
+
+          {isLoginView ? (
+            /* Login Form */
+            <div className="animate-fade-in">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-white mb-2">Entrar na sua conta</h2>
+                <p className="text-slate-400">Informe seus dados para acessar</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-slate-300">Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="seu@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 bg-[#1a1d24] border-slate-700/50 text-white placeholder:text-slate-500 focus:border-highlight"
                       disabled={isLoading}
                       autoComplete="email"
                     />
@@ -231,77 +264,100 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Senha</Label>
-                    <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="link"
-                          className="px-0 h-auto text-xs text-muted-foreground hover:text-primary"
-                        >
-                          Esqueceu a senha?
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Recuperar senha</DialogTitle>
-                          <DialogDescription>
-                            Digite seu email para receber um link de recuperação de senha.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handlePasswordReset} className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="reset-email">Email</Label>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                id="reset-email"
-                                type="email"
-                                placeholder="seu@email.com"
-                                value={resetEmail}
-                                onChange={(e) => setResetEmail(e.target.value)}
-                                className="pl-10"
-                                disabled={isResetLoading}
-                                autoComplete="email"
-                              />
-                            </div>
-                          </div>
-                          <Button type="submit" className="w-full" disabled={isResetLoading}>
-                            {isResetLoading ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Enviando...
-                              </>
-                            ) : (
-                              <>
-                                <Mail className="mr-2 h-4 w-4" />
-                                Enviar link de recuperação
-                              </>
-                            )}
-                          </Button>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                  <Label htmlFor="password" className="text-slate-300">Senha</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="password"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 pr-11 h-12 bg-[#1a1d24] border-slate-700/50 text-white placeholder:text-slate-500 focus:border-highlight"
                       disabled={isLoading}
                       autoComplete="current-password"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="remember"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                      className="border-slate-600 data-[state=checked]:bg-highlight data-[state=checked]:border-highlight"
+                    />
+                    <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer">
+                      Lembrar-me
+                    </label>
+                  </div>
+                  
+                  <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-sm text-highlight hover:text-highlight/80 transition-colors"
+                      >
+                        Esqueci a senha
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md bg-[#1a1d24] border-slate-700">
+                      <DialogHeader>
+                        <DialogTitle className="text-white">Recuperar senha</DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                          Digite seu email para receber um link de recuperação de senha.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handlePasswordReset} className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="reset-email" className="text-slate-300">Email</Label>
+                          <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                            <Input
+                              id="reset-email"
+                              type="email"
+                              placeholder="seu@email.com"
+                              value={resetEmail}
+                              onChange={(e) => setResetEmail(e.target.value)}
+                              className="pl-11 h-12 bg-[#111318] border-slate-700/50 text-white placeholder:text-slate-500"
+                              disabled={isResetLoading}
+                              autoComplete="email"
+                            />
+                          </div>
+                        </div>
+                        <Button 
+                          type="submit" 
+                          className="w-full h-12 bg-highlight text-white hover:bg-highlight/90" 
+                          disabled={isResetLoading}
+                        >
+                          {isResetLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Enviando...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="mr-2 h-4 w-4" />
+                              Enviar link de recuperação
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <Button 
                   type="submit" 
-                  className="w-full mt-6 bg-highlight text-highlight-foreground hover:bg-highlight/90" 
+                  className="w-full h-12 bg-highlight text-white hover:bg-highlight/90 font-medium text-base" 
                   disabled={isLoading || isGoogleLoading}
                 >
                   {isLoading ? (
@@ -311,46 +367,46 @@ export default function AuthPage() {
                     </>
                   ) : (
                     <>
-                      <LogIn className="mr-2 h-4 w-4" />
                       Entrar
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
                 </Button>
 
-                <div className="relative my-4">
+                <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
+                    <span className="w-full border-t border-slate-700" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">ou</span>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-[#111318] px-3 text-slate-500">ou continue com</span>
                   </div>
                 </div>
 
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-12 bg-white hover:bg-slate-100 text-slate-900 border-0 font-medium"
                   onClick={handleGoogleLogin}
                   disabled={isLoading || isGoogleLoading}
                 >
                   {isGoogleLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                    <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                       <path
-                        fill="currentColor"
+                        fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                       />
                       <path
-                        fill="currentColor"
+                        fill="#34A853"
                         d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                       />
                       <path
-                        fill="currentColor"
+                        fill="#FBBC05"
                         d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
                       />
                       <path
-                        fill="currentColor"
+                        fill="#EA4335"
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                       />
                     </svg>
@@ -358,26 +414,37 @@ export default function AuthPage() {
                   Entrar com Google
                 </Button>
               </form>
-            </TabsContent>
 
-            {/* Register Tab */}
-            <TabsContent value="register" className="mt-4">
-              <CardDescription className="text-center text-muted-foreground mb-6">
-                Crie sua conta para começar a usar o sistema
-              </CardDescription>
-              
+              <p className="text-center text-slate-400 mt-8">
+                Não tem uma conta?{' '}
+                <button
+                  onClick={() => setIsLoginView(false)}
+                  className="text-highlight hover:text-highlight/80 font-medium transition-colors"
+                >
+                  Cadastre-se
+                </button>
+              </p>
+            </div>
+          ) : (
+            /* Register Form */
+            <div className="animate-fade-in">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-white mb-2">Criar sua conta</h2>
+                <p className="text-slate-400">Preencha os dados para se cadastrar</p>
+              </div>
+
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="register-nome">Nome *</Label>
+                  <Label htmlFor="register-nome" className="text-slate-300">Nome *</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="register-nome"
                       type="text"
                       placeholder="Seu nome completo"
                       value={registerNome}
                       onChange={(e) => setRegisterNome(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 bg-[#1a1d24] border-slate-700/50 text-white placeholder:text-slate-500 focus:border-highlight"
                       disabled={isRegistering}
                       autoComplete="name"
                     />
@@ -385,16 +452,16 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="register-email">Email *</Label>
+                  <Label htmlFor="register-email" className="text-slate-300">Email *</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="register-email"
                       type="email"
                       placeholder="seu@email.com"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 bg-[#1a1d24] border-slate-700/50 text-white placeholder:text-slate-500 focus:border-highlight"
                       disabled={isRegistering}
                       autoComplete="email"
                     />
@@ -402,16 +469,16 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="register-telefone">Telefone</Label>
+                  <Label htmlFor="register-telefone" className="text-slate-300">Telefone</Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="register-telefone"
                       type="tel"
                       placeholder="(11) 99999-9999"
                       value={registerTelefone}
                       onChange={(e) => setRegisterTelefone(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 bg-[#1a1d24] border-slate-700/50 text-white placeholder:text-slate-500 focus:border-highlight"
                       disabled={isRegistering}
                       autoComplete="tel"
                     />
@@ -419,33 +486,40 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="register-password">Senha *</Label>
+                  <Label htmlFor="register-password" className="text-slate-300">Senha *</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="register-password"
-                      type="password"
+                      type={showRegisterPassword ? 'text' : 'password'}
                       placeholder="Mínimo 6 caracteres"
                       value={registerPassword}
                       onChange={(e) => setRegisterPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 pr-11 h-12 bg-[#1a1d24] border-slate-700/50 text-white placeholder:text-slate-500 focus:border-highlight"
                       disabled={isRegistering}
                       autoComplete="new-password"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="register-confirm-password">Confirmar Senha *</Label>
+                  <Label htmlFor="register-confirm-password" className="text-slate-300">Confirmar Senha *</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <Input
                       id="register-confirm-password"
-                      type="password"
-                      placeholder="Repita a senha"
+                      type={showRegisterPassword ? 'text' : 'password'}
+                      placeholder="Confirme sua senha"
                       value={registerConfirmPassword}
                       onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 bg-[#1a1d24] border-slate-700/50 text-white placeholder:text-slate-500 focus:border-highlight"
                       disabled={isRegistering}
                       autoComplete="new-password"
                     />
@@ -454,7 +528,7 @@ export default function AuthPage() {
 
                 <Button 
                   type="submit" 
-                  className="w-full mt-6 bg-highlight text-highlight-foreground hover:bg-highlight/90" 
+                  className="w-full h-12 bg-highlight text-white hover:bg-highlight/90 font-medium text-base mt-2" 
                   disabled={isRegistering}
                 >
                   {isRegistering ? (
@@ -470,19 +544,24 @@ export default function AuthPage() {
                   )}
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center mt-4">
+                <p className="text-xs text-slate-500 text-center mt-2">
                   Após o cadastro, sua conta precisará ser ativada por um administrador.
                 </p>
               </form>
-            </TabsContent>
-          </CardContent>
-        </Tabs>
-      </Card>
 
-      {/* Version */}
-      <p className="text-xs text-muted-foreground/50 mt-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
-        v1.0.0
-      </p>
+              <p className="text-center text-slate-400 mt-6">
+                Já tem uma conta?{' '}
+                <button
+                  onClick={() => setIsLoginView(true)}
+                  className="text-highlight hover:text-highlight/80 font-medium transition-colors"
+                >
+                  Entrar
+                </button>
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
