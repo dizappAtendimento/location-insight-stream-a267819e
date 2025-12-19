@@ -49,66 +49,34 @@ const Dashboard = () => {
   const [disparoChartData, setDisparoChartData] = useState<DisparoChartData[]>([]);
   const [loadingDisparo, setLoadingDisparo] = useState(false);
 
-  // Fetch disparo stats
+  // Fetch disparo stats via edge function (bypasses RLS)
   useEffect(() => {
     const fetchDisparoStats = async () => {
       if (!user?.id) return;
       
       setLoadingDisparo(true);
       try {
-        // Fetch connections
-        const { data: conexoes, error: conexoesError } = await supabase
-          .from('SAAS_Conexões')
-          .select('*')
-          .eq('idUsuario', user.id);
-        
-        if (conexoesError) throw conexoesError;
-
-        const totalConexoes = conexoes?.length || 0;
-        const conexoesAtivas = conexoes?.filter(c => c.Telefone)?.length || 0;
-
-        // Fetch disparos within date range
         const startISO = startDate.toISOString();
         const endISO = new Date(endDate.setHours(23, 59, 59, 999)).toISOString();
         
-        const { data: disparos, error: disparosError } = await supabase
-          .from('SAAS_Disparos')
-          .select('*')
-          .eq('userId', user.id)
-          .gte('created_at', startISO)
-          .lte('created_at', endISO);
+        const { data, error } = await supabase.functions.invoke('admin-api', {
+          body: { 
+            action: 'get-dashboard-stats', 
+            userId: user.id,
+            startDate: startISO,
+            endDate: endISO
+          }
+        });
         
-        if (disparosError) throw disparosError;
+        if (error) throw error;
 
-        const totalDisparos = disparos?.reduce((acc, d) => acc + (d.MensagensDisparadas || 0), 0) || 0;
-        const mediaPorConexao = totalConexoes > 0 ? Math.round(totalDisparos / totalConexoes) : 0;
+        if (data?.stats) {
+          setDisparoStats(data.stats);
+        }
 
-        setDisparoStats({
-          totalDisparos,
-          conexoesAtivas,
-          totalConexoes,
-          mediaPorConexao
-        });
-
-        // Build chart data
-        const days = eachDayOfInterval({ start: startDate, end: endDate });
-        const chartData = days.map(day => {
-          const dayStart = startOfDay(day);
-          const dayEnd = new Date(day);
-          dayEnd.setHours(23, 59, 59, 999);
-          
-          const dayDisparos = disparos?.filter(d => {
-            const recordDate = new Date(d.created_at);
-            return recordDate >= dayStart && recordDate <= dayEnd;
-          }) || [];
-          
-          return {
-            date: format(day, 'dd/MM', { locale: ptBR }),
-            disparos: dayDisparos.reduce((acc, d) => acc + (d.MensagensDisparadas || 0), 0)
-          };
-        });
-
-        setDisparoChartData(chartData);
+        if (data?.chartData) {
+          setDisparoChartData(data.chartData);
+        }
       } catch (error) {
         console.error('Error fetching disparo stats:', error);
       } finally {
