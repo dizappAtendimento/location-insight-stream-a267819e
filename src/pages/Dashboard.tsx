@@ -178,7 +178,7 @@ const Dashboard = () => {
                 onClick={() => handlePeriodChange(period)}
                 className={cn(
                   "min-w-[70px]",
-                  periodFilter === period && "bg-primary text-primary-foreground"
+                  periodFilter === period && "bg-highlight text-highlight-foreground hover:bg-highlight/90"
                 )}
               >
                 {period} dias
