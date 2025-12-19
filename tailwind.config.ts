@@ -65,6 +65,11 @@ export default {
         linkedin: "hsl(var(--linkedin))",
         whatsapp: "hsl(var(--whatsapp))",
         places: "hsl(var(--places))",
+        // Highlight color for values
+        highlight: {
+          DEFAULT: "hsl(var(--highlight))",
+          foreground: "hsl(var(--highlight-foreground))",
+        },
         // Status colors
         success: {
           DEFAULT: "hsl(var(--success))",
