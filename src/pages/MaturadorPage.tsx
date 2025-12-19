@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Play, Square, MessageSquare, Smartphone, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { Play, Square, MessageSquare, Smartphone, Loader2, RefreshCw, Trash2, Edit } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Connection {
   id: number;
@@ -55,6 +57,33 @@ export default function MaturadorPage() {
   const [intervalMax, setIntervalMax] = useState<number>(120);
   const [starting, setStarting] = useState(false);
   const [processingAction, setProcessingAction] = useState<number | null>(null);
+  const [customMessages, setCustomMessages] = useState<string>("");
+  const [showCustomMessages, setShowCustomMessages] = useState(false);
+
+  const DEFAULT_MESSAGES = `Oi, tudo bem?
+E aí, como vai?
+Olá! Como você está?
+Opa, beleza?
+Bom dia!
+Boa tarde!
+Boa noite!
+Como estão as coisas?
+Tudo tranquilo por aí?
+O que você está fazendo?
+Hoje o dia está corrido!
+Estou trabalhando aqui
+Legal, que bom!
+Entendi, valeu!
+Ok, combinado!
+Perfeito!
+Show de bola!
+Beleza, depois a gente se fala
+Até mais!
+Tchau!
+Abraço!
+😊
+👍
+✅`;
 
   const fetchConnections = useCallback(async () => {
     if (!user?.id) return;
@@ -147,6 +176,11 @@ export default function MaturadorPage() {
 
     setStarting(true);
     try {
+      // Parse custom messages
+      const messagesToSend = customMessages.trim() 
+        ? customMessages.split('\n').filter(m => m.trim())
+        : undefined;
+
       const { data, error } = await supabase.functions.invoke('maturador-api', {
         body: {
           action: 'create-session',
@@ -157,6 +191,7 @@ export default function MaturadorPage() {
             totalMessages: messageCount,
             intervalMin,
             intervalMax,
+            customMessages: messagesToSend,
           }
         }
       });
@@ -390,6 +425,33 @@ export default function MaturadorPage() {
                       />
                     </div>
                   </div>
+
+                  {/* Custom Messages Section */}
+                  <Collapsible open={showCustomMessages} onOpenChange={setShowCustomMessages}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between" type="button">
+                        <span className="flex items-center gap-2">
+                          <Edit className="h-4 w-4" />
+                          Personalizar Mensagens
+                        </span>
+                        <span className="text-muted-foreground text-xs">
+                          {showCustomMessages ? '▲' : '▼'}
+                        </span>
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-3 space-y-2">
+                      <Label>Mensagens (uma por linha)</Label>
+                      <Textarea
+                        placeholder={DEFAULT_MESSAGES}
+                        value={customMessages}
+                        onChange={(e) => setCustomMessages(e.target.value)}
+                        className="min-h-[150px] text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe vazio para usar as mensagens padrão. Cada linha será uma mensagem separada.
+                      </p>
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   <Button 
                     className="w-full" 

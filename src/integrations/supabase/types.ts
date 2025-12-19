@@ -393,6 +393,7 @@ export type Database = {
           mensagemErro: string | null
           mensagens: Json | null
           mensagensEnviadas: number
+          mensagensPersonalizadas: string[] | null
           proximoEnvio: string | null
           status: string
           telefone1: string | null
@@ -414,6 +415,7 @@ export type Database = {
           mensagemErro?: string | null
           mensagens?: Json | null
           mensagensEnviadas?: number
+          mensagensPersonalizadas?: string[] | null
           proximoEnvio?: string | null
           status?: string
           telefone1?: string | null
@@ -435,6 +437,7 @@ export type Database = {
           mensagemErro?: string | null
           mensagens?: Json | null
           mensagensEnviadas?: number
+          mensagensPersonalizadas?: string[] | null
           proximoEnvio?: string | null
           status?: string
           telefone1?: string | null

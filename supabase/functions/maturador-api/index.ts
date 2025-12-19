@@ -76,7 +76,7 @@ serve(async (req) => {
 
     switch (action) {
       case "create-session": {
-        const { connection1Id, connection2Id, totalMessages, intervalMin, intervalMax } = data || {};
+        const { connection1Id, connection2Id, totalMessages, intervalMin, intervalMax, customMessages } = data || {};
         
         if (!connection1Id || !connection2Id || !totalMessages) {
           return new Response(
@@ -110,6 +110,11 @@ serve(async (req) => {
         const randomInterval = Math.floor(Math.random() * ((intervalMax || 120) - (intervalMin || 30) + 1)) + (intervalMin || 30);
         const proximoEnvio = new Date(Date.now() + randomInterval * 1000);
 
+        // Usa mensagens personalizadas ou padrão
+        const mensagensPersonalizadas = customMessages && customMessages.length > 0 
+          ? customMessages 
+          : MENSAGENS_MATURADOR;
+
         // Cria a sessão no banco
         const { data: session, error: insertError } = await supabase
           .from("SAAS_Maturador")
@@ -127,6 +132,7 @@ serve(async (req) => {
             intervaloMax: intervalMax || 120,
             status: 'running',
             proximoEnvio: proximoEnvio.toISOString(),
+            mensagensPersonalizadas: mensagensPersonalizadas,
           })
           .select()
           .single();
@@ -298,8 +304,11 @@ serve(async (req) => {
             const senderInstance = isConnection1Turn ? session.instanceName1 : session.instanceName2;
             const receiverPhone = isConnection1Turn ? session.telefone2 : session.telefone1;
 
-            // Seleciona mensagem aleatória
-            const mensagem = MENSAGENS_MATURADOR[Math.floor(Math.random() * MENSAGENS_MATURADOR.length)];
+            // Seleciona mensagem aleatória (usa personalizadas se disponível)
+            const availableMessages = session.mensagensPersonalizadas && session.mensagensPersonalizadas.length > 0 
+              ? session.mensagensPersonalizadas 
+              : MENSAGENS_MATURADOR;
+            const mensagem = availableMessages[Math.floor(Math.random() * availableMessages.length)];
 
             // Formata o número para o WhatsApp
             const formattedPhone = receiverPhone?.replace(/\D/g, '');
