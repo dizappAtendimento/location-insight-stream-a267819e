@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Play, Square, MessageSquare, Smartphone, Loader2, RefreshCw } from "lucide-react";
+import { Play, Square, MessageSquare, Smartphone, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface Connection {
@@ -22,32 +22,41 @@ interface Connection {
 }
 
 interface MaturadorSession {
-  id: string;
-  connection1: Connection;
-  connection2: Connection;
-  totalMessages: number;
-  sentMessages: number;
+  id: number;
+  userId: string;
+  idConexao1: number;
+  idConexao2: number;
+  telefone1: string | null;
+  telefone2: string | null;
+  instanceName1: string;
+  instanceName2: string;
+  totalMensagens: number;
+  mensagensEnviadas: number;
+  intervaloMin: number;
+  intervaloMax: number;
   status: 'running' | 'paused' | 'completed' | 'error';
-  startedAt: Date;
+  mensagens: any[];
+  ultimaMensagem: string | null;
+  proximoEnvio: string | null;
+  mensagemErro: string | null;
+  created_at: string;
 }
 
 export default function MaturadorPage() {
   const { user } = useAuth();
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [sessions, setSessions] = useState<MaturadorSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSessions, setLoadingSessions] = useState(true);
   const [selectedConnection1, setSelectedConnection1] = useState<string>("");
   const [selectedConnection2, setSelectedConnection2] = useState<string>("");
   const [messageCount, setMessageCount] = useState<number>(10);
   const [intervalMin, setIntervalMin] = useState<number>(30);
   const [intervalMax, setIntervalMax] = useState<number>(120);
-  const [sessions, setSessions] = useState<MaturadorSession[]>([]);
   const [starting, setStarting] = useState(false);
+  const [processingAction, setProcessingAction] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchConnections();
-  }, [user]);
-
-  const fetchConnections = async () => {
+  const fetchConnections = useCallback(async () => {
     if (!user?.id) return;
     
     setLoading(true);
@@ -70,7 +79,42 @@ export default function MaturadorPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  const fetchSessions = useCallback(async () => {
+    if (!user?.id) return;
+    
+    setLoadingSessions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('maturador-api', {
+        body: { action: 'get-sessions', userId: user.id }
+      });
+
+      if (error) throw error;
+      setSessions(data?.sessions || []);
+    } catch (error) {
+      console.error('Erro ao carregar sessões:', error);
+      toast.error('Erro ao carregar sessões');
+    } finally {
+      setLoadingSessions(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchConnections();
+    fetchSessions();
+  }, [fetchConnections, fetchSessions]);
+
+  // Auto-refresh sessions every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (sessions.some(s => s.status === 'running')) {
+        fetchSessions();
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [sessions, fetchSessions]);
 
   const startMaturador = async () => {
     if (!selectedConnection1 || !selectedConnection2) {
@@ -103,18 +147,21 @@ export default function MaturadorPage() {
 
     setStarting(true);
     try {
-      // Create a new session
-      const newSession: MaturadorSession = {
-        id: Date.now().toString(),
-        connection1: conn1,
-        connection2: conn2,
-        totalMessages: messageCount,
-        sentMessages: 0,
-        status: 'running',
-        startedAt: new Date()
-      };
+      const { data, error } = await supabase.functions.invoke('maturador-api', {
+        body: {
+          action: 'create-session',
+          userId: user?.id,
+          data: {
+            connection1Id: parseInt(selectedConnection1),
+            connection2Id: parseInt(selectedConnection2),
+            totalMessages: messageCount,
+            intervalMin,
+            intervalMax,
+          }
+        }
+      });
 
-      setSessions(prev => [...prev, newSession]);
+      if (error) throw error;
       
       toast.success('Maturador iniciado com sucesso!');
       
@@ -122,6 +169,9 @@ export default function MaturadorPage() {
       setSelectedConnection1("");
       setSelectedConnection2("");
       setMessageCount(10);
+      
+      // Refresh sessions
+      fetchSessions();
     } catch (error) {
       console.error('Erro ao iniciar maturador:', error);
       toast.error('Erro ao iniciar maturador');
@@ -130,23 +180,73 @@ export default function MaturadorPage() {
     }
   };
 
-  const stopSession = (sessionId: string) => {
-    setSessions(prev => 
-      prev.map(s => s.id === sessionId ? { ...s, status: 'paused' as const } : s)
-    );
-    toast.info('Sessão pausada');
+  const pauseSession = async (sessionId: number) => {
+    setProcessingAction(sessionId);
+    try {
+      const { error } = await supabase.functions.invoke('maturador-api', {
+        body: {
+          action: 'pause-session',
+          userId: user?.id,
+          data: { sessionId }
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.info('Sessão pausada');
+      fetchSessions();
+    } catch (error) {
+      console.error('Erro ao pausar sessão:', error);
+      toast.error('Erro ao pausar sessão');
+    } finally {
+      setProcessingAction(null);
+    }
   };
 
-  const resumeSession = (sessionId: string) => {
-    setSessions(prev => 
-      prev.map(s => s.id === sessionId ? { ...s, status: 'running' as const } : s)
-    );
-    toast.success('Sessão retomada');
+  const resumeSession = async (sessionId: number) => {
+    setProcessingAction(sessionId);
+    try {
+      const { error } = await supabase.functions.invoke('maturador-api', {
+        body: {
+          action: 'resume-session',
+          userId: user?.id,
+          data: { sessionId }
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success('Sessão retomada');
+      fetchSessions();
+    } catch (error) {
+      console.error('Erro ao retomar sessão:', error);
+      toast.error('Erro ao retomar sessão');
+    } finally {
+      setProcessingAction(null);
+    }
   };
 
-  const removeSession = (sessionId: string) => {
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
-    toast.info('Sessão removida');
+  const deleteSession = async (sessionId: number) => {
+    setProcessingAction(sessionId);
+    try {
+      const { error } = await supabase.functions.invoke('maturador-api', {
+        body: {
+          action: 'delete-session',
+          userId: user?.id,
+          data: { sessionId }
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.info('Sessão removida');
+      fetchSessions();
+    } catch (error) {
+      console.error('Erro ao excluir sessão:', error);
+      toast.error('Erro ao excluir sessão');
+    } finally {
+      setProcessingAction(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -164,6 +264,11 @@ export default function MaturadorPage() {
     }
   };
 
+  const getConnectionName = (instanceName: string) => {
+    const conn = connections.find(c => c.instanceName === instanceName);
+    return conn?.NomeConexao || instanceName;
+  };
+
   const availableConnections1 = connections.filter(c => c.id.toString() !== selectedConnection2);
   const availableConnections2 = connections.filter(c => c.id.toString() !== selectedConnection1);
 
@@ -177,8 +282,8 @@ export default function MaturadorPage() {
               Configure duas conexões para conversarem entre si automaticamente
             </p>
           </div>
-          <Button variant="outline" onClick={fetchConnections} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" onClick={() => { fetchConnections(); fetchSessions(); }} disabled={loading || loadingSessions}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${(loading || loadingSessions) ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
@@ -315,27 +420,31 @@ export default function MaturadorPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {sessions.length === 0 ? (
+              {loadingSessions ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : sessions.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Nenhuma sessão ativa</p>
                   <p className="text-sm">Configure uma nova sessão ao lado</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[400px] overflow-y-auto">
                   {sessions.map(session => (
                     <div 
                       key={session.id} 
                       className="p-4 rounded-lg border border-border/50 bg-background/50 space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {session.connection1.NomeConexao || session.connection1.instanceName}
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium">
+                            {getConnectionName(session.instanceName1)}
                           </span>
                           <span className="text-muted-foreground">↔</span>
-                          <span className="font-medium text-sm">
-                            {session.connection2.NomeConexao || session.connection2.instanceName}
+                          <span className="font-medium">
+                            {getConnectionName(session.instanceName2)}
                           </span>
                         </div>
                         {getStatusBadge(session.status)}
@@ -344,41 +453,67 @@ export default function MaturadorPage() {
                       <div className="space-y-1">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Progresso</span>
-                          <span>{session.sentMessages}/{session.totalMessages} mensagens</span>
+                          <span>{session.mensagensEnviadas}/{session.totalMensagens} mensagens</span>
                         </div>
                         <Progress 
-                          value={(session.sentMessages / session.totalMessages) * 100} 
+                          value={(session.mensagensEnviadas / session.totalMensagens) * 100} 
                           className="h-2"
                         />
                       </div>
+
+                      {session.mensagemErro && (
+                        <p className="text-xs text-red-400">{session.mensagemErro}</p>
+                      )}
 
                       <div className="flex gap-2">
                         {session.status === 'running' ? (
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => stopSession(session.id)}
+                            onClick={() => pauseSession(session.id)}
+                            disabled={processingAction === session.id}
                           >
-                            <Square className="h-3 w-3 mr-1" />
-                            Pausar
+                            {processingAction === session.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Square className="h-3 w-3 mr-1" />
+                                Pausar
+                              </>
+                            )}
                           </Button>
                         ) : session.status === 'paused' ? (
                           <Button 
                             variant="outline" 
                             size="sm"
                             onClick={() => resumeSession(session.id)}
+                            disabled={processingAction === session.id}
                           >
-                            <Play className="h-3 w-3 mr-1" />
-                            Retomar
+                            {processingAction === session.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Play className="h-3 w-3 mr-1" />
+                                Retomar
+                              </>
+                            )}
                           </Button>
                         ) : null}
                         <Button 
                           variant="ghost" 
                           size="sm"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => removeSession(session.id)}
+                          onClick={() => deleteSession(session.id)}
+                          disabled={processingAction === session.id}
                         >
-                          Remover
+                          {processingAction === session.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Remover
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>

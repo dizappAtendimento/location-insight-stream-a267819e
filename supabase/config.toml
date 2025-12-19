@@ -14,3 +14,15 @@ verify_jwt = false
 
 [functions.admin-api]
 verify_jwt = false
+
+[functions.evolution-api]
+verify_jwt = false
+
+[functions.disparos-api]
+verify_jwt = false
+
+[functions.search-whatsapp-groups]
+verify_jwt = false
+
+[functions.maturador-api]
+verify_jwt = false
