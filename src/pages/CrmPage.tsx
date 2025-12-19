@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,16 +25,21 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-interface Lead {
+interface CrmColuna {
   id: number;
+  nome: string;
+  cor: string;
+  ordem: number;
+}
+
+interface CrmLead {
+  id: number;
+  idColuna: number;
   nome: string | null;
   telefone: string | null;
   mensagem: string | null;
-  dataResposta: string | null;
-  status: string;
-  disparoId: number | null;
   valor: number;
-  observacao: string;
+  created_at: string;
 }
 
 const colorOptions = [
@@ -43,73 +48,101 @@ const colorOptions = [
 ];
 
 const defaultColumns = [
-  { id: 'novo', title: 'Novos', color: 'bg-blue-500' },
-  { id: 'contato', title: 'Em Contato', color: 'bg-amber-500' },
-  { id: 'negociacao', title: 'Negociação', color: 'bg-purple-500' },
-  { id: 'fechado', title: 'Fechado', color: 'bg-green-500' },
+  { nome: 'Novos', cor: 'bg-blue-500', ordem: 0 },
+  { nome: 'Em Contato', cor: 'bg-amber-500', ordem: 1 },
+  { nome: 'Negociação', cor: 'bg-purple-500', ordem: 2 },
+  { nome: 'Fechado', cor: 'bg-green-500', ordem: 3 },
 ];
 
 const CrmPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [columns, setColumns] = useState(defaultColumns);
+  const [leads, setLeads] = useState<CrmLead[]>([]);
+  const [columns, setColumns] = useState<CrmColuna[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [draggedLead, setDraggedLead] = useState<CrmLead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<CrmLead | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [editingColumn, setEditingColumn] = useState<string | null>(null);
+  const [editingColumn, setEditingColumn] = useState<number | null>(null);
   const [columnTitle, setColumnTitle] = useState('');
   const [isAddingLead, setIsAddingLead] = useState(false);
-  const [newLead, setNewLead] = useState({ nome: '', telefone: '', valor: 0, observacao: '' });
+  const [newLead, setNewLead] = useState({ nome: '', telefone: '', valor: 0, mensagem: '' });
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchLeads();
-    }
-  }, [user?.id]);
-
-  const fetchLeads = async () => {
+  const fetchData = useCallback(async () => {
+    if (!user?.id) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('vw_Detalhes_Completo')
+      // Buscar colunas
+      const { data: colunasData, error: colunasError } = await supabase
+        .from('SAAS_CRM_Colunas')
         .select('*')
-        .eq('UserId', user?.id)
-        .in('Status', ['sent', 'replied'])
-        .order('dataEnvio', { ascending: false })
-        .limit(50);
+        .eq('idUsuario', user.id)
+        .order('ordem', { ascending: true });
 
-      if (error) throw error;
+      if (colunasError) throw colunasError;
 
-      const leadsData: Lead[] = (data || []).map((item: any, index: number) => ({
-        id: item.id || index,
-        nome: item.NomeGrupo || `Contato ${item.TelefoneContato?.slice(-4) || index}`,
-        telefone: item.TelefoneContato || item.WhatsAppIdGrupo,
-        mensagem: item.Mensagem?.slice(0, 100) || 'Sem mensagem',
-        dataResposta: item.dataEnvio,
-        status: ['novo', 'contato', 'negociacao', 'fechado'][index % 4],
-        disparoId: item.idDisparo,
-        valor: 0,
-        observacao: '',
-      }));
+      // Se não houver colunas, criar as padrão
+      if (!colunasData || colunasData.length === 0) {
+        const { data: newColunas, error: insertError } = await supabase
+          .from('SAAS_CRM_Colunas')
+          .insert(defaultColumns.map(c => ({ ...c, idUsuario: user.id })))
+          .select();
 
-      setLeads(leadsData);
+        if (insertError) throw insertError;
+        setColumns(newColunas || []);
+      } else {
+        setColumns(colunasData);
+      }
+
+      // Buscar leads
+      const { data: leadsData, error: leadsError } = await supabase
+        .from('SAAS_CRM_Leads')
+        .select('*')
+        .eq('idUsuario', user.id)
+        .order('created_at', { ascending: false });
+
+      if (leadsError) throw leadsError;
+      setLeads(leadsData?.map(l => ({
+        id: l.id,
+        idColuna: l.idColuna,
+        nome: l.nome,
+        telefone: l.telefone,
+        mensagem: l.mensagem,
+        valor: Number(l.valor) || 0,
+        created_at: l.created_at,
+      })) || []);
     } catch (error: any) {
-      console.error('Erro ao carregar leads:', error);
+      console.error('Erro ao carregar CRM:', error);
+      toast({ title: "Erro ao carregar dados", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
+  }, [user?.id, toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const moveLeadToColumn = async (leadId: number, newColunaId: number) => {
+    try {
+      const { error } = await supabase
+        .from('SAAS_CRM_Leads')
+        .update({ idColuna: newColunaId })
+        .eq('id', leadId);
+
+      if (error) throw error;
+
+      setLeads(prev => prev.map(lead => 
+        lead.id === leadId ? { ...lead, idColuna: newColunaId } : lead
+      ));
+      toast({ title: "Lead movido!" });
+    } catch (error) {
+      console.error('Erro ao mover lead:', error);
+      toast({ title: "Erro ao mover lead", variant: "destructive" });
+    }
   };
 
-  const moveLeadToColumn = (leadId: number, newStatus: string) => {
-    setLeads(prev => prev.map(lead => 
-      lead.id === leadId ? { ...lead, status: newStatus } : lead
-    ));
-    toast({ title: "Lead movido!" });
-  };
-
-  const handleDragStart = (lead: Lead) => {
+  const handleDragStart = (lead: CrmLead) => {
     setDraggedLead(lead);
   };
 
@@ -117,19 +150,19 @@ const CrmPage = () => {
     e.preventDefault();
   };
 
-  const handleDrop = (columnId: string) => {
+  const handleDrop = (colunaId: number) => {
     if (draggedLead) {
-      moveLeadToColumn(draggedLead.id, columnId);
+      moveLeadToColumn(draggedLead.id, colunaId);
       setDraggedLead(null);
     }
   };
 
-  const getLeadsByColumn = (columnId: string) => {
-    return leads.filter(lead => lead.status === columnId);
+  const getLeadsByColumn = (colunaId: number) => {
+    return leads.filter(lead => lead.idColuna === colunaId);
   };
 
-  const getTotalValueByColumn = (columnId: string) => {
-    return getLeadsByColumn(columnId).reduce((sum, lead) => sum + (lead.valor || 0), 0);
+  const getTotalValueByColumn = (colunaId: number) => {
+    return getLeadsByColumn(colunaId).reduce((sum, lead) => sum + (lead.valor || 0), 0);
   };
 
   const formatDate = (date: string | null) => {
@@ -146,80 +179,204 @@ const CrmPage = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  const openLeadDetails = (lead: Lead) => {
+  const openLeadDetails = (lead: CrmLead) => {
     setSelectedLead({ ...lead });
     setIsDetailOpen(true);
   };
 
-  const saveLeadChanges = () => {
-    if (selectedLead) {
+  const saveLeadChanges = async () => {
+    if (!selectedLead) return;
+    try {
+      const { error } = await supabase
+        .from('SAAS_CRM_Leads')
+        .update({
+          nome: selectedLead.nome,
+          telefone: selectedLead.telefone,
+          valor: selectedLead.valor,
+          mensagem: selectedLead.mensagem,
+          idColuna: selectedLead.idColuna,
+        })
+        .eq('id', selectedLead.id);
+
+      if (error) throw error;
+
       setLeads(prev => prev.map(lead => 
         lead.id === selectedLead.id ? selectedLead : lead
       ));
       toast({ title: "Lead atualizado!" });
       setIsDetailOpen(false);
+    } catch (error) {
+      console.error('Erro ao atualizar lead:', error);
+      toast({ title: "Erro ao atualizar", variant: "destructive" });
     }
   };
 
-  const startEditColumn = (columnId: string, currentTitle: string) => {
-    setEditingColumn(columnId);
+  const deleteLead = async (leadId: number) => {
+    try {
+      const { error } = await supabase
+        .from('SAAS_CRM_Leads')
+        .delete()
+        .eq('id', leadId);
+
+      if (error) throw error;
+
+      setLeads(prev => prev.filter(lead => lead.id !== leadId));
+      setIsDetailOpen(false);
+      toast({ title: "Lead excluído!" });
+    } catch (error) {
+      console.error('Erro ao excluir lead:', error);
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    }
+  };
+
+  const startEditColumn = (colunaId: number, currentTitle: string) => {
+    setEditingColumn(colunaId);
     setColumnTitle(currentTitle);
   };
 
-  const saveColumnTitle = (columnId: string) => {
-    setColumns(prev => prev.map(col => 
-      col.id === columnId ? { ...col, title: columnTitle } : col
-    ));
-    setEditingColumn(null);
-    toast({ title: "Coluna renomeada!" });
-  };
+  const saveColumnTitle = async (colunaId: number) => {
+    try {
+      const { error } = await supabase
+        .from('SAAS_CRM_Colunas')
+        .update({ nome: columnTitle })
+        .eq('id', colunaId);
 
-  const addNewColumn = () => {
-    const newId = `col_${Date.now()}`;
-    const usedColors = columns.map(c => c.color);
-    const availableColor = colorOptions.find(c => !usedColors.includes(c)) || colorOptions[0];
-    setColumns(prev => [...prev, { id: newId, title: 'Nova Coluna', color: availableColor }]);
-    toast({ title: "Coluna adicionada!" });
-  };
+      if (error) throw error;
 
-  const deleteColumn = (columnId: string) => {
-    const leadsInColumn = getLeadsByColumn(columnId);
-    if (leadsInColumn.length > 0) {
-      // Move leads to first column
-      setLeads(prev => prev.map(lead => 
-        lead.status === columnId ? { ...lead, status: columns[0].id } : lead
+      setColumns(prev => prev.map(col => 
+        col.id === colunaId ? { ...col, nome: columnTitle } : col
       ));
+      setEditingColumn(null);
+      toast({ title: "Coluna renomeada!" });
+    } catch (error) {
+      console.error('Erro ao renomear coluna:', error);
+      toast({ title: "Erro ao renomear", variant: "destructive" });
     }
-    setColumns(prev => prev.filter(col => col.id !== columnId));
-    toast({ title: "Coluna excluída!" });
   };
 
-  const changeColumnColor = (columnId: string, newColor: string) => {
-    setColumns(prev => prev.map(col => 
-      col.id === columnId ? { ...col, color: newColor } : col
-    ));
+  const addNewColumn = async () => {
+    if (!user?.id) return;
+    try {
+      const usedColors = columns.map(c => c.cor);
+      const availableColor = colorOptions.find(c => !usedColors.includes(c)) || colorOptions[0];
+      const maxOrdem = Math.max(...columns.map(c => c.ordem), -1);
+
+      const { data, error } = await supabase
+        .from('SAAS_CRM_Colunas')
+        .insert({ 
+          idUsuario: user.id, 
+          nome: 'Nova Coluna', 
+          cor: availableColor,
+          ordem: maxOrdem + 1 
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setColumns(prev => [...prev, data]);
+      toast({ title: "Coluna adicionada!" });
+    } catch (error) {
+      console.error('Erro ao adicionar coluna:', error);
+      toast({ title: "Erro ao adicionar coluna", variant: "destructive" });
+    }
   };
 
-  const addNewLead = () => {
-    if (!newLead.nome || !newLead.telefone) {
+  const deleteColumn = async (colunaId: number) => {
+    if (columns.length <= 1) {
+      toast({ title: "Precisa ter pelo menos uma coluna", variant: "destructive" });
+      return;
+    }
+    try {
+      // Move leads para primeira coluna
+      const firstColumn = columns.find(c => c.id !== colunaId);
+      if (firstColumn) {
+        await supabase
+          .from('SAAS_CRM_Leads')
+          .update({ idColuna: firstColumn.id })
+          .eq('idColuna', colunaId);
+
+        setLeads(prev => prev.map(lead => 
+          lead.idColuna === colunaId ? { ...lead, idColuna: firstColumn.id } : lead
+        ));
+      }
+
+      const { error } = await supabase
+        .from('SAAS_CRM_Colunas')
+        .delete()
+        .eq('id', colunaId);
+
+      if (error) throw error;
+
+      setColumns(prev => prev.filter(col => col.id !== colunaId));
+      toast({ title: "Coluna excluída!" });
+    } catch (error) {
+      console.error('Erro ao excluir coluna:', error);
+      toast({ title: "Erro ao excluir coluna", variant: "destructive" });
+    }
+  };
+
+  const changeColumnColor = async (colunaId: number, newColor: string) => {
+    try {
+      const { error } = await supabase
+        .from('SAAS_CRM_Colunas')
+        .update({ cor: newColor })
+        .eq('id', colunaId);
+
+      if (error) throw error;
+
+      setColumns(prev => prev.map(col => 
+        col.id === colunaId ? { ...col, cor: newColor } : col
+      ));
+    } catch (error) {
+      console.error('Erro ao alterar cor:', error);
+    }
+  };
+
+  const addNewLead = async () => {
+    if (!user?.id || !newLead.nome || !newLead.telefone) {
       toast({ title: "Preencha nome e telefone", variant: "destructive" });
       return;
     }
-    const lead: Lead = {
-      id: Date.now(),
-      nome: newLead.nome,
-      telefone: newLead.telefone,
-      mensagem: null,
-      dataResposta: new Date().toISOString(),
-      status: 'novo',
-      disparoId: null,
-      valor: newLead.valor,
-      observacao: newLead.observacao,
-    };
-    setLeads(prev => [lead, ...prev]);
-    setNewLead({ nome: '', telefone: '', valor: 0, observacao: '' });
-    setIsAddingLead(false);
-    toast({ title: "Lead adicionado!" });
+
+    const firstColumn = columns[0];
+    if (!firstColumn) {
+      toast({ title: "Crie uma coluna primeiro", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('SAAS_CRM_Leads')
+        .insert({
+          idUsuario: user.id,
+          idColuna: firstColumn.id,
+          nome: newLead.nome,
+          telefone: newLead.telefone,
+          valor: newLead.valor,
+          mensagem: newLead.mensagem || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setLeads(prev => [{
+        id: data.id,
+        idColuna: data.idColuna,
+        nome: data.nome,
+        telefone: data.telefone,
+        mensagem: data.mensagem,
+        valor: Number(data.valor) || 0,
+        created_at: data.created_at,
+      }, ...prev]);
+      setNewLead({ nome: '', telefone: '', valor: 0, mensagem: '' });
+      setIsAddingLead(false);
+      toast({ title: "Lead adicionado!" });
+    } catch (error) {
+      console.error('Erro ao adicionar lead:', error);
+      toast({ title: "Erro ao adicionar lead", variant: "destructive" });
+    }
   };
 
   return (
@@ -251,7 +408,7 @@ const CrmPage = () => {
               <Plus className="w-4 h-4 mr-2" />
               Nova Coluna
             </Button>
-            <Button onClick={fetchLeads} variant="outline" size="sm">
+            <Button onClick={fetchData} variant="outline" size="sm">
               Atualizar
             </Button>
           </div>
@@ -275,7 +432,7 @@ const CrmPage = () => {
               <div className="p-4 border-b border-border/30">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 flex-1">
-                    <div className={cn("w-3 h-3 rounded-full", column.color)} />
+                    <div className={cn("w-3 h-3 rounded-full", column.cor)} />
                     {editingColumn === column.id ? (
                       <div className="flex items-center gap-1 flex-1">
                         <Input
@@ -294,9 +451,9 @@ const CrmPage = () => {
                     ) : (
                       <span 
                         className="font-semibold text-sm cursor-pointer hover:text-primary flex items-center gap-1"
-                        onClick={() => startEditColumn(column.id, column.title)}
+                        onClick={() => startEditColumn(column.id, column.nome)}
                       >
-                        {column.title}
+                        {column.nome}
                         <Pencil className="w-3 h-3 opacity-0 hover:opacity-100" />
                       </span>
                     )}
@@ -312,7 +469,7 @@ const CrmPage = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => startEditColumn(column.id, column.title)}>
+                        <DropdownMenuItem onClick={() => startEditColumn(column.id, column.nome)}>
                           <Pencil className="w-4 h-4 mr-2" />
                           Renomear
                         </DropdownMenuItem>
@@ -326,7 +483,7 @@ const CrmPage = () => {
                               className={cn(
                                 "w-5 h-5 rounded-full transition-all",
                                 color,
-                                column.color === color && "ring-2 ring-offset-2 ring-primary"
+                                column.cor === color && "ring-2 ring-offset-2 ring-primary"
                               )}
                             />
                           ))}
@@ -394,7 +551,7 @@ const CrmPage = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {columns.filter(c => c.id !== lead.status).map(col => (
+                              {columns.filter(c => c.id !== lead.idColuna).map(col => (
                                 <DropdownMenuItem 
                                   key={col.id}
                                   onClick={(e) => {
@@ -403,9 +560,20 @@ const CrmPage = () => {
                                   }}
                                 >
                                   <ArrowRight className="w-4 h-4 mr-2" />
-                                  Mover para {col.title}
+                                  Mover para {col.nome}
                                 </DropdownMenuItem>
                               ))}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteLead(lead.id);
+                                }}
+                                className="text-red-500 focus:text-red-500"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -418,11 +586,11 @@ const CrmPage = () => {
                           </div>
                         )}
 
-                        {/* Observation */}
-                        {lead.observacao && (
+                        {/* Message */}
+                        {lead.mensagem && (
                           <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-2 flex items-start gap-1">
                             <StickyNote className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                            <span className="line-clamp-2">{lead.observacao}</span>
+                            <span className="line-clamp-2">{lead.mensagem}</span>
                           </div>
                         )}
 
@@ -430,13 +598,8 @@ const CrmPage = () => {
                         <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {formatDate(lead.dataResposta)}
+                            {formatDate(lead.created_at)}
                           </span>
-                          {lead.disparoId && (
-                            <Badge variant="outline" className="text-[10px]">
-                              #{lead.disparoId}
-                            </Badge>
-                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -486,8 +649,8 @@ const CrmPage = () => {
                 <div className="space-y-2">
                   <Label>Observação</Label>
                   <Textarea
-                    value={selectedLead.observacao}
-                    onChange={(e) => setSelectedLead({ ...selectedLead, observacao: e.target.value })}
+                    value={selectedLead.mensagem || ''}
+                    onChange={(e) => setSelectedLead({ ...selectedLead, mensagem: e.target.value })}
                     placeholder="Adicione uma observação..."
                     rows={3}
                   />
@@ -498,29 +661,25 @@ const CrmPage = () => {
                     {columns.map(col => (
                       <Button
                         key={col.id}
-                        variant={selectedLead.status === col.id ? "default" : "outline"}
+                        variant={selectedLead.idColuna === col.id ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setSelectedLead({ ...selectedLead, status: col.id })}
+                        onClick={() => setSelectedLead({ ...selectedLead, idColuna: col.id })}
                       >
-                        <div className={cn("w-2 h-2 rounded-full mr-2", col.color)} />
-                        {col.title}
+                        <div className={cn("w-2 h-2 rounded-full mr-2", col.cor)} />
+                        {col.nome}
                       </Button>
                     ))}
                   </div>
                 </div>
-                {selectedLead.mensagem && (
-                  <div className="space-y-2">
-                    <Label>Última Mensagem</Label>
-                    <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-                      <MessageSquare className="w-4 h-4 inline mr-2" />
-                      {selectedLead.mensagem}
-                    </div>
-                  </div>
-                )}
-                <Button onClick={saveLeadChanges} className="w-full">
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Alterações
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={saveLeadChanges} className="flex-1">
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar
+                  </Button>
+                  <Button onClick={() => deleteLead(selectedLead.id)} variant="destructive" size="icon">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </DialogContent>
@@ -564,8 +723,8 @@ const CrmPage = () => {
               <div className="space-y-2">
                 <Label>Observação</Label>
                 <Textarea
-                  value={newLead.observacao}
-                  onChange={(e) => setNewLead({ ...newLead, observacao: e.target.value })}
+                  value={newLead.mensagem}
+                  onChange={(e) => setNewLead({ ...newLead, mensagem: e.target.value })}
                   placeholder="Adicione uma observação..."
                   rows={3}
                 />

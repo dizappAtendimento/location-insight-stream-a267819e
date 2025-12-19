@@ -114,6 +114,77 @@ export type Database = {
           },
         ]
       }
+      SAAS_CRM_Colunas: {
+        Row: {
+          cor: string
+          created_at: string
+          id: number
+          idUsuario: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          id?: number
+          idUsuario: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          id?: number
+          idUsuario?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      SAAS_CRM_Leads: {
+        Row: {
+          created_at: string
+          id: number
+          idColuna: number
+          idUsuario: string
+          mensagem: string | null
+          nome: string | null
+          telefone: string | null
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          idColuna: number
+          idUsuario: string
+          mensagem?: string | null
+          nome?: string | null
+          telefone?: string | null
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          idColuna?: number
+          idUsuario?: string
+          mensagem?: string | null
+          nome?: string | null
+          telefone?: string | null
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "SAAS_CRM_Leads_idColuna_fkey"
+            columns: ["idColuna"]
+            isOneToOne: false
+            referencedRelation: "SAAS_CRM_Colunas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       SAAS_Detalhes_Disparos: {
         Row: {
           dataEnvio: string | null
