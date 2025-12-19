@@ -545,6 +545,79 @@ serve(async (req) => {
         );
       }
 
+      case 'get-dashboard-stats': {
+        const { startDate, endDate } = await req.json().catch(() => ({}));
+        
+        // Get connections for user
+        const { data: conexoes, error: conexoesError } = await supabase
+          .from('SAAS_Conexões')
+          .select('*')
+          .eq('idUsuario', userId);
+        
+        if (conexoesError) {
+          console.error('[Admin API] Error fetching connections:', conexoesError);
+        }
+
+        const totalConexoes = conexoes?.length || 0;
+        const conexoesAtivas = conexoes?.filter(c => c.Telefone)?.length || 0;
+
+        // Build date filters
+        const startISO = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const endISO = endDate || new Date().toISOString();
+
+        // Get disparos within date range
+        const { data: disparos, error: disparosError } = await supabase
+          .from('SAAS_Disparos')
+          .select('*')
+          .eq('userId', userId)
+          .gte('created_at', startISO)
+          .lte('created_at', endISO);
+        
+        if (disparosError) {
+          console.error('[Admin API] Error fetching disparos:', disparosError);
+        }
+
+        const totalDisparos = disparos?.reduce((acc, d) => acc + (d.MensagensDisparadas || 0), 0) || 0;
+        const mediaPorConexao = totalConexoes > 0 ? Math.round(totalDisparos / totalConexoes) : 0;
+
+        // Build chart data by day
+        const start = new Date(startISO);
+        const end = new Date(endISO);
+        const chartData = [];
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const dayStart = new Date(d);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(d);
+          dayEnd.setHours(23, 59, 59, 999);
+          
+          const dayDisparos = disparos?.filter(disp => {
+            const recordDate = new Date(disp.created_at);
+            return recordDate >= dayStart && recordDate <= dayEnd;
+          }) || [];
+          
+          chartData.push({
+            date: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+            disparos: dayDisparos.reduce((acc, disp) => acc + (disp.MensagensDisparadas || 0), 0)
+          });
+        }
+
+        console.log(`[Admin API] Dashboard stats for user ${userId}: ${totalDisparos} disparos, ${totalConexoes} conexoes`);
+
+        return new Response(
+          JSON.stringify({
+            stats: {
+              totalDisparos,
+              conexoesAtivas,
+              totalConexoes,
+              mediaPorConexao
+            },
+            chartData
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Ação inválida' }),
