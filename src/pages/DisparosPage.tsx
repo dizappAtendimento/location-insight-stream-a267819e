@@ -914,13 +914,7 @@ export default function DisparosPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6">
               <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Smartphone className="w-5 h-5" />
-                    Preview da Mensagem
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                   <MessagePreview messages={messages} />
                 </CardContent>
               </Card>
