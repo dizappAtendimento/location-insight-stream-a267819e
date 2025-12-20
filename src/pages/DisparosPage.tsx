@@ -366,7 +366,6 @@ export default function DisparosPage() {
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64 = reader.result as string;
-          // Remove the data:*/*;base64, prefix to get just the base64 string
           resolve(base64);
         };
         reader.onerror = reject;
@@ -396,14 +395,34 @@ export default function DisparosPage() {
     try {
       // Get selected connections data with all fields including Apikey
       const selectedConnectionsData = connections.filter(c => selectedConnections.includes(c.id));
-      
-      // Get selected listas data
-      const selectedListasData = listas.filter(l => selectedListas.includes(l.id));
 
-      // Base payload with common data
-      const basePayload = {
+      // Prepare messages array with base64 media
+      const messagesForWebhook = await Promise.all(
+        messages
+          .filter(m => m.text.trim() || m.mediaUrl)
+          .map(async (m) => {
+            let mediaLink: string | null = null;
+            
+            if (m.mediaUrl) {
+              // Convert to base64
+              mediaLink = await urlToBase64(m.mediaUrl);
+            }
+
+            return {
+              text: m.text,
+              media: {
+                type: m.mediaType || '',
+                filename: m.mediaName || '',
+                link: mediaLink || ''
+              }
+            };
+          })
+      );
+
+      // Prepare payload matching n8n workflow expected format
+      const webhookPayload = {
         userId: user?.id,
-        conexoes: selectedConnectionsData.map(c => ({
+        connections: selectedConnectionsData.map(c => ({
           id: c.id,
           instanceName: c.instanceName,
           nomeConexao: c.NomeConexao,
@@ -412,60 +431,31 @@ export default function DisparosPage() {
           apikey: c.Apikey,
           status: c.status
         })),
-        listas: selectedListasData.map(l => ({
-          id: l.id,
-          nome: l.nome,
-          tipo: l.tipo,
-          campos: l.campos
-        })),
-        configuracoes: {
+        idLista: selectedListas,
+        messages: messagesForWebhook,
+        settings: {
           intervaloMin,
           intervaloMax,
           startTime,
           endTime,
           enableMissedCall,
           tipoDisparo: 'contatos'
-        },
-        timestamp: new Date().toISOString()
+        }
       };
 
-      // Send each message separately
-      for (let i = 0; i < messages.length; i++) {
-        const m = messages[i];
-        
-        // Skip empty messages
-        if (!m.text.trim() && !m.mediaUrl) continue;
+      console.log('Enviando para webhook SALVAR DISPAROS:', webhookPayload);
+      
+      // Send to SALVAR DISPAROS webhook
+      await fetch('https://n8n.dizapp.com.br/webhook/db56b0fb-cc58-4d51-8755-d7e04ccaa120', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        mode: 'no-cors',
+        body: JSON.stringify(webhookPayload),
+      });
 
-        // Convert media to base64 if exists
-        let mediaBase64: string | null = null;
-        if (m.mediaUrl) {
-          mediaBase64 = await urlToBase64(m.mediaUrl);
-        }
-
-        const webhookPayload = {
-          ...basePayload,
-          mensagem: {
-            ordem: i + 1,
-            texto: m.text,
-            mediaType: m.mediaType,
-            mediaBase64: mediaBase64,
-            mediaName: m.mediaName
-          }
-        };
-
-        console.log(`Enviando mensagem ${i + 1} para webhook:`, webhookPayload);
-        
-        await fetch('https://n8n.dizapp.com.br/webhook-test/disparar-novo', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          mode: 'no-cors',
-          body: JSON.stringify(webhookPayload),
-        });
-      }
-
-      toast.success('Todas as mensagens enviadas para o webhook!');
+      toast.success('Disparo enviado com sucesso!');
       
       // Reset form
       setSelectedConnections([]);
