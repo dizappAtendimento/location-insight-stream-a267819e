@@ -58,9 +58,7 @@ export function MessagePreview({ messages, contactName = 'Contato Exemplo' }: Me
             {/* Status bar with notch */}
             <div className="relative h-[32px] bg-[#0b141a] flex items-center justify-center">
               {/* Dynamic Island / Notch */}
-              <div className="absolute top-[8px] left-1/2 -translate-x-1/2 w-[90px] h-[22px] bg-black rounded-full flex items-center justify-center">
-                <div className="w-[10px] h-[10px] rounded-full bg-zinc-800 mr-[30px]" />
-              </div>
+              <div className="absolute top-[8px] left-1/2 -translate-x-1/2 w-[90px] h-[22px] bg-black rounded-full" />
               {/* Status icons */}
               <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <div className="w-[18px] h-[9px] border border-white/40 rounded-[2px] flex items-center justify-end pr-[2px]">
