@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FileText, Users, Mail, Phone, TrendingUp, Calendar, RefreshCw, BarChart3, AreaChart as AreaChartIcon, Send, Link2, Zap } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatCard } from '@/components/StatCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useExtractionStats } from '@/hooks/useExtractionStats';
-import { format, subDays } from 'date-fns';
+import { useExtractionHistory } from '@/hooks/useExtractionHistory';
+import { format, subDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -38,8 +38,64 @@ const Dashboard = () => {
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<'extrator' | 'disparo'>('extrator');
   
-  // Extraction stats from database
-  const { stats, chartData, history: recentExtractions, loading: loadingExtraction, refetch: refetchExtraction } = useExtractionStats(startDate, endDate);
+  // Extraction stats from localStorage
+  const { history, getStats } = useExtractionHistory();
+  
+  // Calculate stats based on period filter
+  const extractionStats = useMemo(() => {
+    const baseStats = getStats();
+    const start = startOfDay(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    
+    // Filter history by date range
+    const filteredHistory = history.filter(r => {
+      const recordDate = new Date(r.createdAt);
+      return recordDate >= start && recordDate <= end;
+    });
+    
+    return {
+      totalExtractions: filteredHistory.length,
+      todayExtractions: baseStats.todayExtractions,
+      totalLeads: filteredHistory.reduce((acc, r) => acc + r.totalResults, 0),
+      todayLeads: baseStats.todayLeads,
+      totalEmails: filteredHistory.reduce((acc, r) => acc + r.emailsFound, 0),
+      totalPhones: filteredHistory.reduce((acc, r) => acc + r.phonesFound, 0),
+    };
+  }, [history, startDate, endDate, getStats]);
+  
+  // Chart data from localStorage
+  const extractionChartData = useMemo(() => {
+    const start = startOfDay(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    
+    // Create date buckets
+    const daysBetween = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const chartData: { date: string; extractions: number; leads: number }[] = [];
+    
+    for (let i = 0; i <= daysBetween; i++) {
+      const date = new Date(start);
+      date.setDate(date.getDate() + i);
+      const dateStr = format(date, 'dd/MM');
+      
+      const dayRecords = history.filter(r => {
+        const recordDate = new Date(r.createdAt);
+        return format(recordDate, 'dd/MM/yyyy') === format(date, 'dd/MM/yyyy');
+      });
+      
+      chartData.push({
+        date: dateStr,
+        extractions: dayRecords.length,
+        leads: dayRecords.reduce((acc, r) => acc + r.totalResults, 0),
+      });
+    }
+    
+    return chartData;
+  }, [history, startDate, endDate]);
+  
+  const recentExtractions = history.slice(0, 5);
+  const loadingExtraction = false;
   
   // Disparo stats
   const [disparoStats, setDisparoStats] = useState<DisparoStats>({
@@ -99,11 +155,11 @@ const Dashboard = () => {
   };
 
   const handleRefresh = () => {
-    refetchExtraction();
+    // localStorage data is reactive, just trigger re-render via period change
     handlePeriodChange(periodFilter);
   };
 
-  const displayedExtractions = recentExtractions.slice(0, 5);
+  const displayedExtractions = recentExtractions;
 
   const typeLabels: Record<string, string> = { instagram: 'Instagram', linkedin: 'LinkedIn', places: 'Google Places', 'whatsapp-groups': 'WhatsApp' };
   const typeColors: Record<string, string> = { instagram: 'text-pink-500', linkedin: 'text-[#0A66C2]', places: 'text-green-500', 'whatsapp-groups': 'text-[#25D366]' };
@@ -203,32 +259,32 @@ const Dashboard = () => {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Total de Extrações"
-                value={stats.totalExtractions}
+                value={extractionStats.totalExtractions}
                 icon={FileText}
-                trend={`+${stats.todayExtractions} hoje`}
-                trendPositive={stats.todayExtractions > 0}
+                trend={`+${extractionStats.todayExtractions} hoje`}
+                trendPositive={extractionStats.todayExtractions > 0}
                 accentColor="primary"
                 delay={100}
               />
               <StatCard
                 title="Total de Leads"
-                value={stats.totalLeads}
+                value={extractionStats.totalLeads}
                 icon={Users}
-                trend={`+${stats.todayLeads} hoje`}
-                trendPositive={stats.todayLeads > 0}
+                trend={`+${extractionStats.todayLeads} hoje`}
+                trendPositive={extractionStats.todayLeads > 0}
                 accentColor="success"
                 delay={150}
               />
               <StatCard
                 title="Emails Encontrados"
-                value={stats.totalEmails}
+                value={extractionStats.totalEmails}
                 icon={Mail}
                 accentColor="info"
                 delay={200}
               />
               <StatCard
                 title="Telefones Encontrados"
-                value={stats.totalPhones}
+                value={extractionStats.totalPhones}
                 icon={Phone}
                 accentColor="success"
                 delay={250}
@@ -272,7 +328,7 @@ const Dashboard = () => {
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     {chartType === 'area' ? (
-                      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <AreaChart data={extractionChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorExtractions" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
@@ -324,7 +380,7 @@ const Dashboard = () => {
                         />
                       </AreaChart>
                     ) : (
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={extractionChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                         <XAxis 
                           dataKey="date" 
