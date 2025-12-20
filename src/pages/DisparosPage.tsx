@@ -698,23 +698,6 @@ export default function DisparosPage() {
                     >
                       <Code className="w-4 h-4" />
                     </Button>
-                    
-                    <div className="flex-1" />
-                    
-                    {/* AI Toggle */}
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">IA</span>
-                      <Switch
-                        checked={message.enableAI}
-                        onCheckedChange={(checked) => {
-                          setMessages(messages.map(m => 
-                            m.id === message.id ? { ...m, enableAI: checked } : m
-                          ));
-                        }}
-                        disabled={!message.text.trim()}
-                      />
-                    </div>
                   </div>
 
                   <Textarea
