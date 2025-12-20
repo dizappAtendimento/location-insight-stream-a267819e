@@ -378,33 +378,62 @@ export default function DisparosPage() {
         mediaUrl: m.mediaUrl,
       }));
 
-      const { data, error } = await supabase.rpc('create_disparo', {
-        p_payload: {
-          userId: user?.id,
-          idConexoes: selectedConnections,
-          idListas: selectedListas,
-          Mensagens: mensagens,
+      // Get selected connections data
+      const selectedConnectionsData = connections.filter(c => selectedConnections.includes(c.id));
+      
+      // Get selected listas data
+      const selectedListasData = listas.filter(l => selectedListas.includes(l.id));
+
+      // Prepare payload for webhook
+      const webhookPayload = {
+        userId: user?.id,
+        conexoes: selectedConnectionsData.map(c => ({
+          id: c.id,
+          instanceName: c.instanceName,
+          nomeConexao: c.NomeConexao,
+          telefone: c.Telefone,
+          fotoPerfil: c.FotoPerfil,
+          status: c.status
+        })),
+        listas: selectedListasData.map(l => ({
+          id: l.id,
+          nome: l.nome,
+          tipo: l.tipo,
+          campos: l.campos
+        })),
+        mensagens: mensagens,
+        configuracoes: {
           intervaloMin,
           intervaloMax,
-          StartTime: startTime,
-          EndTime: endTime,
-          TipoDisparo: 'contatos',
-          StatusDisparo: 'pendente',
-          FakeCall: enableMissedCall,
+          startTime,
+          endTime,
+          enableMissedCall,
+          tipoDisparo: 'contatos'
         },
+        timestamp: new Date().toISOString()
+      };
+
+      // Send to webhook
+      console.log('Enviando para webhook:', webhookPayload);
+      
+      await fetch('https://n8n.dizapp.com.br/webhook-test/disparar-novo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        mode: 'no-cors',
+        body: JSON.stringify(webhookPayload),
       });
 
-      if (error) throw error;
-
-      toast.success('Disparo criado com sucesso!');
+      toast.success('Disparo enviado para o webhook com sucesso!');
       
       // Reset form
       setSelectedConnections([]);
       setSelectedListas([]);
       setMessages([{ id: 1, text: '', mediaType: null, mediaUrl: null, mediaName: null, enableAI: false }]);
     } catch (error) {
-      console.error('Error creating disparo:', error);
-      toast.error('Erro ao criar disparo');
+      console.error('Error sending to webhook:', error);
+      toast.error('Erro ao enviar para o webhook');
     } finally {
       setIsSubmitting(false);
     }
