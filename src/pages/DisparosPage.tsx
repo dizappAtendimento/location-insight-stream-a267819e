@@ -40,6 +40,7 @@ interface Connection {
   NomeConexao: string | null;
   Telefone: string | null;
   FotoPerfil: string | null;
+  Apikey: string | null;
   status?: 'open' | 'close';
 }
 
@@ -356,6 +357,27 @@ export default function DisparosPage() {
     }
   };
 
+  // Helper function to convert URL to base64
+  const urlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          // Remove the data:*/*;base64, prefix to get just the base64 string
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting to base64:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async () => {
     if (selectedConnections.length === 0) {
       toast.error('Selecione pelo menos uma conexão');
@@ -372,20 +394,14 @@ export default function DisparosPage() {
 
     setIsSubmitting(true);
     try {
-      const mensagens = messages.map(m => ({
-        texto: m.text,
-        mediaType: m.mediaType,
-        mediaUrl: m.mediaUrl,
-      }));
-
-      // Get selected connections data
+      // Get selected connections data with all fields including Apikey
       const selectedConnectionsData = connections.filter(c => selectedConnections.includes(c.id));
       
       // Get selected listas data
       const selectedListasData = listas.filter(l => selectedListas.includes(l.id));
 
-      // Prepare payload for webhook
-      const webhookPayload = {
+      // Base payload with common data
+      const basePayload = {
         userId: user?.id,
         conexoes: selectedConnectionsData.map(c => ({
           id: c.id,
@@ -393,6 +409,7 @@ export default function DisparosPage() {
           nomeConexao: c.NomeConexao,
           telefone: c.Telefone,
           fotoPerfil: c.FotoPerfil,
+          apikey: c.Apikey,
           status: c.status
         })),
         listas: selectedListasData.map(l => ({
@@ -401,7 +418,6 @@ export default function DisparosPage() {
           tipo: l.tipo,
           campos: l.campos
         })),
-        mensagens: mensagens,
         configuracoes: {
           intervaloMin,
           intervaloMax,
@@ -413,19 +429,43 @@ export default function DisparosPage() {
         timestamp: new Date().toISOString()
       };
 
-      // Send to webhook
-      console.log('Enviando para webhook:', webhookPayload);
-      
-      await fetch('https://n8n.dizapp.com.br/webhook-test/disparar-novo', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        mode: 'no-cors',
-        body: JSON.stringify(webhookPayload),
-      });
+      // Send each message separately
+      for (let i = 0; i < messages.length; i++) {
+        const m = messages[i];
+        
+        // Skip empty messages
+        if (!m.text.trim() && !m.mediaUrl) continue;
 
-      toast.success('Disparo enviado para o webhook com sucesso!');
+        // Convert media to base64 if exists
+        let mediaBase64: string | null = null;
+        if (m.mediaUrl) {
+          mediaBase64 = await urlToBase64(m.mediaUrl);
+        }
+
+        const webhookPayload = {
+          ...basePayload,
+          mensagem: {
+            ordem: i + 1,
+            texto: m.text,
+            mediaType: m.mediaType,
+            mediaBase64: mediaBase64,
+            mediaName: m.mediaName
+          }
+        };
+
+        console.log(`Enviando mensagem ${i + 1} para webhook:`, webhookPayload);
+        
+        await fetch('https://n8n.dizapp.com.br/webhook-test/disparar-novo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          mode: 'no-cors',
+          body: JSON.stringify(webhookPayload),
+        });
+      }
+
+      toast.success('Todas as mensagens enviadas para o webhook!');
       
       // Reset form
       setSelectedConnections([]);
