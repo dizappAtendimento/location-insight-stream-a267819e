@@ -697,7 +697,50 @@ export default function DisparosPage() {
                     >
                       <Code className="w-4 h-4" />
                     </Button>
+                    
+                    <div className="flex-1" />
+                    
+                    {/* AI Button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEnableAI(!enableAI)}
+                      className={`h-8 px-3 gap-1.5 ${enableAI ? 'border-primary bg-primary/10 text-primary' : ''}`}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      IA
+                    </Button>
                   </div>
+
+                  {/* AI Input */}
+                  {enableAI && index === 0 && (
+                    <div className="mb-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                      <Label className="text-xs text-muted-foreground mb-2 block">
+                        Descreva a mensagem que deseja gerar
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          placeholder="Ex: Mensagem de promoção para clínica odontológica..."
+                          className="flex-1 text-sm"
+                        />
+                        <Button
+                          onClick={generateWithAI}
+                          disabled={isGeneratingAI || !aiPrompt.trim()}
+                          size="sm"
+                          className="gap-1.5"
+                        >
+                          {isGeneratingAI ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-4 h-4" />
+                          )}
+                          Gerar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   <Textarea
                     ref={(el) => { textareaRefs.current[message.id] = el; }}
