@@ -621,10 +621,13 @@ serve(async (req) => {
 
       case 'get-extraction-stats': {
         // Use startDate and endDate from the already parsed body
+        console.log(`[Admin API] get-extraction-stats - startDate: ${startDate}, endDate: ${endDate}`);
 
         // Build date filters
         const startISO = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const endISO = endDate || new Date().toISOString();
+
+        console.log(`[Admin API] Querying search_jobs for user ${userId} from ${startISO} to ${endISO}`);
 
         // Get search jobs (Google Places extractions) within date range
         const { data: searchJobs, error: searchJobsError } = await supabase
@@ -638,6 +641,8 @@ serve(async (req) => {
         if (searchJobsError) {
           console.error('[Admin API] Error fetching search_jobs:', searchJobsError);
         }
+
+        console.log(`[Admin API] Found ${searchJobs?.length || 0} search jobs`);
 
         // Calculate stats from search_jobs
         const totalExtractions = searchJobs?.length || 0;

@@ -66,22 +66,36 @@ const HistoryPage = () => {
     
     setLoadingExtraction(true);
     try {
+      // Use a very wide date range to get all historical data
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      const startDateISO = oneYearAgo.toISOString();
+      const endDateISO = new Date().toISOString();
+      
+      console.log('[HistoryPage] Fetching extraction history:', { startDateISO, endDateISO, userId: user.id });
+      
       const { data, error } = await supabase.functions.invoke('admin-api', {
         body: { 
           action: 'get-extraction-stats', 
           userId: user.id,
-          startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(), // Last year
-          endDate: new Date().toISOString()
+          startDate: startDateISO,
+          endDate: endDateISO
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[HistoryPage] Error invoking function:', error);
+        throw error;
+      }
+
+      console.log('[HistoryPage] Received data:', data);
 
       if (data?.history) {
         setExtractionHistory(data.history);
+        console.log('[HistoryPage] Set extraction history:', data.history.length, 'records');
       }
     } catch (error) {
-      console.error('Error fetching extraction history:', error);
+      console.error('[HistoryPage] Error fetching extraction history:', error);
     } finally {
       setLoadingExtraction(false);
     }
@@ -327,7 +341,7 @@ const HistoryPage = () => {
                   Exportar
                 </Button>
               )}
-              {history.length > 0 && (
+              {extractionHistory.length > 0 && (
                 <Button variant="outline" size="sm" onClick={handleClearHistory} className="text-destructive hover:text-destructive">
                   <Trash2 className="w-4 h-4 mr-2" />
                   Limpar
@@ -494,7 +508,7 @@ const HistoryPage = () => {
               Extrações
             </CardTitle>
             <CardDescription>
-              {filteredHistory.length} de {history.length} extrações
+              {filteredHistory.length} de {extractionHistory.length} extrações
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -577,10 +591,10 @@ const HistoryPage = () => {
                   <History className="w-8 h-8 text-primary/50" />
                 </div>
                 <p className="text-muted-foreground font-medium">
-                  {history.length === 0 ? 'Nenhuma extração registrada' : 'Nenhum resultado encontrado'}
+                  {extractionHistory.length === 0 ? 'Nenhuma extração registrada' : 'Nenhum resultado encontrado'}
                 </p>
                 <p className="text-muted-foreground/70 text-sm mt-1">
-                  {history.length === 0 
+                  {extractionHistory.length === 0 
                     ? 'O histórico aparecerá aqui após realizar extrações'
                     : 'Tente ajustar os filtros'
                   }

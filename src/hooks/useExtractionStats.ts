@@ -49,7 +49,12 @@ export const useExtractionStats = (startDate: Date, endDate: Date) => {
     setLoading(true);
     try {
       const startISO = startDate.toISOString();
-      const endISO = new Date(endDate.setHours(23, 59, 59, 999)).toISOString();
+      // Create a new Date object to avoid mutating the original
+      const endDateCopy = new Date(endDate);
+      endDateCopy.setHours(23, 59, 59, 999);
+      const endISO = endDateCopy.toISOString();
+      
+      console.log('[useExtractionStats] Fetching stats for:', { startISO, endISO, userId: user.id });
       
       const { data, error } = await supabase.functions.invoke('admin-api', {
         body: { 
