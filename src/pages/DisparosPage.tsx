@@ -705,6 +705,7 @@ export default function DisparosPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setEnableAI(!enableAI)}
+                      disabled={!message.text.trim()}
                       className={`h-8 px-3 gap-1.5 ${enableAI ? 'border-primary bg-primary/10 text-primary' : ''}`}
                     >
                       <Sparkles className="w-4 h-4" />
