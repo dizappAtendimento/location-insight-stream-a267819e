@@ -16,7 +16,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, userId, userData, planData, statusType, currentPassword, newPassword } = await req.json();
+    const body = await req.json();
+    const { action, userId, userData, planData, statusType, currentPassword, newPassword, startDate, endDate } = body;
 
     console.log(`[Admin API] Action: ${action}, UserId: ${userId || 'N/A'}, StatusType: ${statusType || 'N/A'}`);
 
@@ -546,9 +547,7 @@ serve(async (req) => {
       }
 
       case 'get-dashboard-stats': {
-        const body = await req.json().catch(() => ({}));
-        const startDate = body.startDate;
-        const endDate = body.endDate;
+        // Use startDate and endDate from the already parsed body
         
         // Get connections for user
         const { data: conexoes, error: conexoesError } = await supabase
@@ -621,9 +620,7 @@ serve(async (req) => {
       }
 
       case 'get-extraction-stats': {
-        const body = await req.json().catch(() => ({}));
-        const startDate = body.startDate;
-        const endDate = body.endDate;
+        // Use startDate and endDate from the already parsed body
 
         // Build date filters
         const startISO = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
