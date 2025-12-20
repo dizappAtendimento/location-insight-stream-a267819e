@@ -700,17 +700,16 @@ export default function DisparosPage() {
                     
                     <div className="flex-1" />
                     
-                    {/* AI Toggle Button */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEnableAI(!enableAI)}
-                      disabled={!message.text.trim()}
-                      className={`h-8 px-3 gap-1.5 ${enableAI ? 'border-primary bg-primary/10 text-primary' : ''}`}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      IA
-                    </Button>
+                    {/* AI Toggle */}
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">IA</span>
+                      <Switch
+                        checked={enableAI}
+                        onCheckedChange={setEnableAI}
+                        disabled={!message.text.trim()}
+                      />
+                    </div>
                   </div>
 
                   <Textarea
