@@ -913,11 +913,7 @@ export default function DisparosPage() {
           {/* Right Column - Preview */}
           <div className="hidden lg:block">
             <div className="sticky top-6">
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <MessagePreview messages={messages} />
-                </CardContent>
-              </Card>
+              <MessagePreview messages={messages} />
             </div>
           </div>
         </div>

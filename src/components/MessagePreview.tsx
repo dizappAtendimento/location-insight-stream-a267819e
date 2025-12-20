@@ -45,8 +45,8 @@ export function MessagePreview({ messages, contactName = 'Contato Exemplo' }: Me
     <div className="flex flex-col h-full">
       {/* iPhone Frame */}
       <div className="relative w-[280px] mx-auto">
-        {/* Phone outer frame */}
-        <div className="relative rounded-[40px] bg-black p-[4px] shadow-xl">
+        {/* Phone outer frame with pronounced shadow */}
+        <div className="relative rounded-[40px] bg-black p-[4px] shadow-[0_25px_60px_-12px_rgba(0,0,0,0.7),0_10px_40px_-8px_rgba(0,0,0,0.5),0_0_20px_rgba(0,0,0,0.4)]">
           {/* Side buttons */}
           <div className="absolute -left-[3px] top-[80px] w-[3px] h-[30px] bg-zinc-700 rounded-l-sm" />
           <div className="absolute -left-[3px] top-[120px] w-[3px] h-[50px] bg-zinc-700 rounded-l-sm" />
