@@ -546,7 +546,9 @@ serve(async (req) => {
       }
 
       case 'get-dashboard-stats': {
-        const { startDate, endDate } = await req.json().catch(() => ({}));
+        const body = await req.json().catch(() => ({}));
+        const startDate = body.startDate;
+        const endDate = body.endDate;
         
         // Get connections for user
         const { data: conexoes, error: conexoesError } = await supabase
@@ -613,6 +615,107 @@ serve(async (req) => {
               mediaPorConexao
             },
             chartData
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'get-extraction-stats': {
+        const body = await req.json().catch(() => ({}));
+        const startDate = body.startDate;
+        const endDate = body.endDate;
+
+        // Build date filters
+        const startISO = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const endISO = endDate || new Date().toISOString();
+
+        // Get search jobs (Google Places extractions) within date range
+        const { data: searchJobs, error: searchJobsError } = await supabase
+          .from('search_jobs')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('created_at', startISO)
+          .lte('created_at', endISO)
+          .order('created_at', { ascending: false });
+
+        if (searchJobsError) {
+          console.error('[Admin API] Error fetching search_jobs:', searchJobsError);
+        }
+
+        // Calculate stats from search_jobs
+        const totalExtractions = searchJobs?.length || 0;
+        const totalLeads = searchJobs?.reduce((acc, job) => acc + (job.total_found || 0), 0) || 0;
+        
+        // Count emails and phones from results
+        let totalEmails = 0;
+        let totalPhones = 0;
+        
+        searchJobs?.forEach(job => {
+          const results = job.results as any[] || [];
+          results.forEach((r: any) => {
+            if (r?.email) totalEmails++;
+            if (r?.phone) totalPhones++;
+          });
+        });
+
+        // Get today's stats
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const todayJobs = searchJobs?.filter(job => new Date(job.created_at) >= today) || [];
+        const todayExtractions = todayJobs.length;
+        const todayLeads = todayJobs.reduce((acc, job) => acc + (job.total_found || 0), 0);
+
+        // Build chart data by day
+        const start = new Date(startISO);
+        const end = new Date(endISO);
+        const chartData = [];
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const dayStart = new Date(d);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(d);
+          dayEnd.setHours(23, 59, 59, 999);
+          
+          const dayJobs = searchJobs?.filter(job => {
+            const recordDate = new Date(job.created_at);
+            return recordDate >= dayStart && recordDate <= dayEnd;
+          }) || [];
+          
+          chartData.push({
+            date: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+            extractions: dayJobs.length,
+            leads: dayJobs.reduce((acc, job) => acc + (job.total_found || 0), 0)
+          });
+        }
+
+        // Transform search_jobs to extraction history format
+        const extractionHistory = searchJobs?.map(job => ({
+          id: job.id,
+          type: 'places' as const,
+          segment: job.query,
+          location: job.location || '',
+          totalResults: job.total_found || 0,
+          emailsFound: ((job.results as any[]) || []).filter((r: any) => r?.email).length,
+          phonesFound: ((job.results as any[]) || []).filter((r: any) => r?.phone).length,
+          createdAt: job.created_at,
+          status: job.status,
+        })) || [];
+
+        console.log(`[Admin API] Extraction stats for user ${userId}: ${totalExtractions} extractions, ${totalLeads} leads`);
+
+        return new Response(
+          JSON.stringify({
+            stats: {
+              totalExtractions,
+              todayExtractions,
+              totalLeads,
+              todayLeads,
+              totalEmails,
+              totalPhones
+            },
+            chartData,
+            history: extractionHistory
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

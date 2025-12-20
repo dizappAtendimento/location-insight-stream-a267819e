@@ -1,11 +1,10 @@
-import { useState, useMemo } from 'react';
-import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, Download, FileSpreadsheet, MessageCircle, FileDown, Database } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, Download, FileSpreadsheet, MessageCircle, FileDown, Database, RefreshCw, Send } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useExtractionHistory, ExtractionRecord } from '@/hooks/useExtractionHistory';
 import { format, subDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -13,19 +12,110 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 type TypeFilter = 'all' | 'instagram' | 'linkedin' | 'places' | 'whatsapp-groups';
 type PeriodFilter = '7' | '14' | '30' | 'all' | 'custom';
 
+interface ExtractionRecord {
+  id: string;
+  type: 'instagram' | 'linkedin' | 'places' | 'whatsapp-groups';
+  segment: string;
+  location?: string;
+  totalResults: number;
+  emailsFound: number;
+  phonesFound: number;
+  createdAt: string;
+  status?: string;
+}
+
+interface DisparoRecord {
+  id: number;
+  created_at: string;
+  TipoDisparo: string;
+  TotalDisparos: number;
+  MensagensDisparadas: number;
+  StatusDisparo: string;
+  idListas: number[];
+}
+
 const HistoryPage = () => {
-  const { history, clearHistory, deleteRecord, getResults } = useExtractionHistory();
+  const { user } = useAuth();
   const { toast } = useToast();
   
+  const [activeTab, setActiveTab] = useState<'extracao' | 'disparo'>('extracao');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 7));
   const [endDate, setEndDate] = useState<Date>(new Date());
+  
+  // Extraction data from database
+  const [extractionHistory, setExtractionHistory] = useState<ExtractionRecord[]>([]);
+  const [loadingExtraction, setLoadingExtraction] = useState(false);
+  
+  // Disparo data from database
+  const [disparoHistory, setDisparoHistory] = useState<DisparoRecord[]>([]);
+  const [loadingDisparo, setLoadingDisparo] = useState(false);
+
+  // Fetch extraction history from database
+  const fetchExtractionHistory = async () => {
+    if (!user?.id) return;
+    
+    setLoadingExtraction(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { 
+          action: 'get-extraction-stats', 
+          userId: user.id,
+          startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(), // Last year
+          endDate: new Date().toISOString()
+        }
+      });
+      
+      if (error) throw error;
+
+      if (data?.history) {
+        setExtractionHistory(data.history);
+      }
+    } catch (error) {
+      console.error('Error fetching extraction history:', error);
+    } finally {
+      setLoadingExtraction(false);
+    }
+  };
+
+  // Fetch disparo history from database
+  const fetchDisparoHistory = async () => {
+    if (!user?.id) return;
+    
+    setLoadingDisparo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: { 
+          action: 'get-disparos', 
+          userId: user.id
+        }
+      });
+      
+      if (error) throw error;
+
+      if (data?.disparos) {
+        setDisparoHistory(data.disparos);
+      }
+    } catch (error) {
+      console.error('Error fetching disparo history:', error);
+    } finally {
+      setLoadingDisparo(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExtractionHistory();
+    fetchDisparoHistory();
+  }, [user?.id]);
 
   const typeLabels: Record<string, string> = {
     instagram: 'Instagram',
@@ -56,7 +146,7 @@ const HistoryPage = () => {
   };
 
   const filteredHistory = useMemo(() => {
-    return history.filter((record) => {
+    return extractionHistory.filter((record) => {
       // Type filter
       if (typeFilter !== 'all' && record.type !== typeFilter) return false;
       
@@ -86,7 +176,28 @@ const HistoryPage = () => {
       
       return true;
     });
-  }, [history, typeFilter, searchTerm, periodFilter, startDate, endDate]);
+  }, [extractionHistory, typeFilter, searchTerm, periodFilter, startDate, endDate]);
+
+  const filteredDisparos = useMemo(() => {
+    return disparoHistory.filter((record) => {
+      // Period filter
+      if (periodFilter !== 'all') {
+        const recordDate = new Date(record.created_at);
+        if (periodFilter === 'custom') {
+          const start = startOfDay(startDate);
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (recordDate < start || recordDate > end) return false;
+        } else {
+          const days = parseInt(periodFilter);
+          const cutoff = subDays(new Date(), days);
+          if (recordDate < cutoff) return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [disparoHistory, periodFilter, startDate, endDate]);
 
   const stats = useMemo(() => {
     return {
@@ -97,11 +208,20 @@ const HistoryPage = () => {
     };
   }, [filteredHistory]);
 
+  const disparoStats = useMemo(() => {
+    return {
+      total: filteredDisparos.length,
+      mensagens: filteredDisparos.reduce((acc, r) => acc + (r.MensagensDisparadas || 0), 0),
+      finalizados: filteredDisparos.filter(r => r.StatusDisparo === 'Finalizado').length,
+      emAndamento: filteredDisparos.filter(r => r.StatusDisparo === 'Em andamento').length,
+    };
+  }, [filteredDisparos]);
+
   const handleClearHistory = () => {
-    clearHistory();
+    // Now we only show a message since data is in database
     toast({
-      title: "Histórico limpo",
-      description: "Todo o histórico de extrações foi removido",
+      title: "Histórico",
+      description: "Os dados de extração são armazenados no banco de dados",
     });
   };
 
@@ -112,6 +232,11 @@ const HistoryPage = () => {
       setStartDate(subDays(new Date(), days));
       setEndDate(new Date());
     }
+  };
+
+  const handleRefresh = () => {
+    fetchExtractionHistory();
+    fetchDisparoHistory();
   };
 
   const exportToExcel = (records: ExtractionRecord[], filename: string) => {
@@ -136,78 +261,31 @@ const HistoryPage = () => {
     });
   };
 
-  const exportResultsToExcel = (record: ExtractionRecord) => {
-    const results = getResults(record.id);
-    if (!results || results.length === 0) {
-      toast({
-        title: "Sem dados",
-        description: "Não há dados salvos para esta extração",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Determine columns based on extraction type
-    let data: any[] = [];
+  const exportDisparosToExcel = (records: DisparoRecord[], filename: string) => {
+    const data = records.map(r => ({
+      'Tipo': r.TipoDisparo,
+      'Total': r.TotalDisparos,
+      'Disparadas': r.MensagensDisparadas,
+      'Status': r.StatusDisparo,
+      'Data': format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+    }));
     
-    if (record.type === 'places') {
-      data = results.map(r => ({
-        'Nome': r.name || '',
-        'Endereço': r.address || '',
-        'Telefone': r.phone || '',
-        'Email': r.email || '',
-        'Website': r.website || '',
-        'Avaliação': r.rating || '',
-        'Reviews': r.reviews || '',
-        'Categoria': r.category || '',
-      }));
-    } else if (record.type === 'instagram') {
-      data = results.map(r => ({
-        'Nome': r.name || '',
-        'Username': r.username || '',
-        'Bio': r.bio || '',
-        'Email': r.email || '',
-        'Telefone': r.phone || '',
-        'Seguidores': r.followers || '',
-        'Link': r.link || '',
-      }));
-    } else if (record.type === 'linkedin') {
-      data = results.map(r => ({
-        'Nome': r.name || '',
-        'Título': r.title || '',
-        'Empresa': r.company || '',
-        'Localização': r.location || '',
-        'Email': r.email || '',
-        'Telefone': r.phone || '',
-        'Link': r.link || '',
-      }));
-    } else if (record.type === 'whatsapp-groups') {
-      data = results.map(r => ({
-        'Nome do Grupo': r.name || '',
-        'Descrição': r.description || '',
-        'Link': r.link || '',
-      }));
-    } else {
-      // Generic export
-      data = results;
-    }
-
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Resultados');
-    XLSX.writeFile(wb, `${record.segment.replace(/\s+/g, '_')}_${format(new Date(record.createdAt), 'yyyy-MM-dd')}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'Disparos');
+    XLSX.writeFile(wb, `${filename}.xlsx`);
     
     toast({
-      title: "Dados exportados",
-      description: `${results.length} leads exportados para Excel`,
+      title: "Exportado com sucesso",
+      description: `${records.length} disparos exportados para Excel`,
     });
   };
 
   const handleDeleteRecord = (recordId: string) => {
-    deleteRecord(recordId);
+    // Database records cannot be deleted from frontend
     toast({
-      title: "Registro removido",
-      description: "A extração foi removida do histórico",
+      title: "Informação",
+      description: "Os registros são armazenados permanentemente no banco de dados",
     });
   };
 
@@ -472,9 +550,9 @@ const HistoryPage = () => {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => exportResultsToExcel(record)}
+                            onClick={() => handleExportSingle(record)}
                             className="h-8 w-8 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
-                            title="Baixar dados completos"
+                            title="Baixar dados"
                           >
                             <FileDown className="w-4 h-4" />
                           </Button>

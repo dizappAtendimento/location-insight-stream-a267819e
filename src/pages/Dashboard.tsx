@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Users, Mail, Phone, TrendingUp, Calendar, RefreshCw, BarChart3, AreaChart as AreaChartIcon, Send, Link2, Zap } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatCard } from '@/components/StatCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useExtractionHistory } from '@/hooks/useExtractionHistory';
-import { format, subDays, isAfter, startOfDay, eachDayOfInterval } from 'date-fns';
+import { useExtractionStats } from '@/hooks/useExtractionStats';
+import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -31,13 +31,15 @@ interface DisparoChartData {
 }
 
 const Dashboard = () => {
-  const { history } = useExtractionHistory();
   const { user } = useAuth();
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('7');
   const [chartType, setChartType] = useState<ChartType>('area');
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 7));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<'extrator' | 'disparo'>('extrator');
+  
+  // Extraction stats from database
+  const { stats, chartData, history: recentExtractions, loading: loadingExtraction, refetch: refetchExtraction } = useExtractionStats(startDate, endDate);
   
   // Disparo stats
   const [disparoStats, setDisparoStats] = useState<DisparoStats>({
@@ -87,54 +89,6 @@ const Dashboard = () => {
     fetchDisparoStats();
   }, [user?.id, startDate, endDate]);
 
-  const filteredHistory = useMemo(() => {
-    const start = startOfDay(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    
-    return history.filter(record => {
-      const recordDate = new Date(record.createdAt);
-      return recordDate >= start && recordDate <= end;
-    });
-  }, [history, startDate, endDate]);
-
-  const stats = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const todayRecords = filteredHistory.filter(r => isAfter(new Date(r.createdAt), today));
-    
-    return {
-      totalExtractions: filteredHistory.length,
-      todayExtractions: todayRecords.length,
-      totalLeads: filteredHistory.reduce((acc, r) => acc + r.totalResults, 0),
-      todayLeads: todayRecords.reduce((acc, r) => acc + r.totalResults, 0),
-      totalEmails: filteredHistory.reduce((acc, r) => acc + r.emailsFound, 0),
-      totalPhones: filteredHistory.reduce((acc, r) => acc + r.phonesFound, 0),
-    };
-  }, [filteredHistory]);
-
-  const chartData = useMemo(() => {
-    const days = eachDayOfInterval({ start: startDate, end: endDate });
-    
-    return days.map(day => {
-      const dayStart = startOfDay(day);
-      const dayEnd = new Date(day);
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      const dayRecords = filteredHistory.filter(r => {
-        const recordDate = new Date(r.createdAt);
-        return recordDate >= dayStart && recordDate <= dayEnd;
-      });
-      
-      return {
-        date: format(day, 'dd/MM', { locale: ptBR }),
-        extractions: dayRecords.length,
-        leads: dayRecords.reduce((acc, r) => acc + r.totalResults, 0),
-      };
-    });
-  }, [filteredHistory, startDate, endDate]);
-
   const handlePeriodChange = (period: PeriodFilter) => {
     setPeriodFilter(period);
     if (period !== 'custom') {
@@ -144,10 +98,15 @@ const Dashboard = () => {
     }
   };
 
-  const recentExtractions = filteredHistory.slice(0, 5);
+  const handleRefresh = () => {
+    refetchExtraction();
+    handlePeriodChange(periodFilter);
+  };
 
-  const typeLabels = { instagram: 'Instagram', linkedin: 'LinkedIn', places: 'Google Places' };
-  const typeColors = { instagram: 'text-pink-500', linkedin: 'text-[#0A66C2]', places: 'text-green-500' };
+  const displayedExtractions = recentExtractions.slice(0, 5);
+
+  const typeLabels: Record<string, string> = { instagram: 'Instagram', linkedin: 'LinkedIn', places: 'Google Places', 'whatsapp-groups': 'WhatsApp' };
+  const typeColors: Record<string, string> = { instagram: 'text-pink-500', linkedin: 'text-[#0A66C2]', places: 'text-green-500', 'whatsapp-groups': 'text-[#25D366]' };
 
   return (
     <DashboardLayout>
@@ -160,8 +119,8 @@ const Dashboard = () => {
               Acompanhe suas métricas e performance em tempo real
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => handlePeriodChange(periodFilter)}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loadingExtraction || loadingDisparo}>
+            <RefreshCw className={cn("w-4 h-4 mr-2", (loadingExtraction || loadingDisparo) && "animate-spin")} />
             Atualizar
           </Button>
         </div>
@@ -421,9 +380,9 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {recentExtractions.length > 0 ? (
+                {displayedExtractions.length > 0 ? (
                   <div className="space-y-3">
-                    {recentExtractions.map((record) => (
+                    {displayedExtractions.map((record) => (
                       <div
                         key={record.id}
                         className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 border border-border/50 hover:border-primary/30 transition-colors"
