@@ -56,6 +56,7 @@ interface MessageItem {
   mediaType: 'image' | 'video' | 'audio' | 'document' | null;
   mediaUrl: string | null;
   mediaName: string | null;
+  enableAI: boolean;
 }
 
 const defaultVariables = [
@@ -77,7 +78,7 @@ export default function DisparosPage() {
   const [selectedConnections, setSelectedConnections] = useState<number[]>([]);
   const [selectedListas, setSelectedListas] = useState<number[]>([]);
   const [messages, setMessages] = useState<MessageItem[]>([
-    { id: 1, text: '', mediaType: null, mediaUrl: null, mediaName: null }
+    { id: 1, text: '', mediaType: null, mediaUrl: null, mediaName: null, enableAI: false }
   ]);
   const [intervaloMin, setIntervaloMin] = useState(5);
   const [intervaloMax, setIntervaloMax] = useState(15);
@@ -216,7 +217,7 @@ export default function DisparosPage() {
 
   const addMessage = () => {
     const newId = Math.max(...messages.map(m => m.id), 0) + 1;
-    setMessages([...messages, { id: newId, text: '', mediaType: null, mediaUrl: null, mediaName: null }]);
+    setMessages([...messages, { id: newId, text: '', mediaType: null, mediaUrl: null, mediaName: null, enableAI: false }]);
   };
 
   const removeMessage = (id: number) => {
@@ -400,7 +401,7 @@ export default function DisparosPage() {
       // Reset form
       setSelectedConnections([]);
       setSelectedListas([]);
-      setMessages([{ id: 1, text: '', mediaType: null, mediaUrl: null, mediaName: null }]);
+      setMessages([{ id: 1, text: '', mediaType: null, mediaUrl: null, mediaName: null, enableAI: false }]);
     } catch (error) {
       console.error('Error creating disparo:', error);
       toast.error('Erro ao criar disparo');
@@ -705,8 +706,12 @@ export default function DisparosPage() {
                       <Sparkles className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">IA</span>
                       <Switch
-                        checked={enableAI}
-                        onCheckedChange={setEnableAI}
+                        checked={message.enableAI}
+                        onCheckedChange={(checked) => {
+                          setMessages(messages.map(m => 
+                            m.id === message.id ? { ...m, enableAI: checked } : m
+                          ));
+                        }}
                         disabled={!message.text.trim()}
                       />
                     </div>
