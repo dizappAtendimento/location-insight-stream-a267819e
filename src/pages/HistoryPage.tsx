@@ -15,6 +15,7 @@ import * as XLSX from 'xlsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useExtractionHistory } from '@/hooks/useExtractionHistory';
 
 type TypeFilter = 'all' | 'instagram' | 'linkedin' | 'places' | 'whatsapp-groups';
 type PeriodFilter = '7' | '14' | '30' | 'all' | 'custom';
@@ -45,6 +46,9 @@ const HistoryPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
+  // Use localStorage extraction history
+  const { history: extractionHistory, clearHistory, getResults } = useExtractionHistory();
+  
   const [activeTab, setActiveTab] = useState<'extracao' | 'disparo'>('extracao');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -52,54 +56,9 @@ const HistoryPage = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 7));
   const [endDate, setEndDate] = useState<Date>(new Date());
   
-  // Extraction data from database
-  const [extractionHistory, setExtractionHistory] = useState<ExtractionRecord[]>([]);
-  const [loadingExtraction, setLoadingExtraction] = useState(false);
-  
   // Disparo data from database
   const [disparoHistory, setDisparoHistory] = useState<DisparoRecord[]>([]);
   const [loadingDisparo, setLoadingDisparo] = useState(false);
-
-  // Fetch extraction history from database
-  const fetchExtractionHistory = async () => {
-    if (!user?.id) return;
-    
-    setLoadingExtraction(true);
-    try {
-      // Use a very wide date range to get all historical data
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      const startDateISO = oneYearAgo.toISOString();
-      const endDateISO = new Date().toISOString();
-      
-      console.log('[HistoryPage] Fetching extraction history:', { startDateISO, endDateISO, userId: user.id });
-      
-      const { data, error } = await supabase.functions.invoke('admin-api', {
-        body: { 
-          action: 'get-extraction-stats', 
-          userId: user.id,
-          startDate: startDateISO,
-          endDate: endDateISO
-        }
-      });
-      
-      if (error) {
-        console.error('[HistoryPage] Error invoking function:', error);
-        throw error;
-      }
-
-      console.log('[HistoryPage] Received data:', data);
-
-      if (data?.history) {
-        setExtractionHistory(data.history);
-        console.log('[HistoryPage] Set extraction history:', data.history.length, 'records');
-      }
-    } catch (error) {
-      console.error('[HistoryPage] Error fetching extraction history:', error);
-    } finally {
-      setLoadingExtraction(false);
-    }
-  };
 
   // Fetch disparo history from database
   const fetchDisparoHistory = async () => {
@@ -127,7 +86,6 @@ const HistoryPage = () => {
   };
 
   useEffect(() => {
-    fetchExtractionHistory();
     fetchDisparoHistory();
   }, [user?.id]);
 
@@ -232,10 +190,10 @@ const HistoryPage = () => {
   }, [filteredDisparos]);
 
   const handleClearHistory = () => {
-    // Now we only show a message since data is in database
+    clearHistory();
     toast({
-      title: "Histórico",
-      description: "Os dados de extração são armazenados no banco de dados",
+      title: "Histórico limpo",
+      description: "Todos os dados de extração foram removidos",
     });
   };
 
@@ -249,7 +207,7 @@ const HistoryPage = () => {
   };
 
   const handleRefresh = () => {
-    fetchExtractionHistory();
+    // localStorage data is reactive, just refresh disparos
     fetchDisparoHistory();
   };
 
