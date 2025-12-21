@@ -166,77 +166,91 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-6 lg:p-8 space-y-8">
         {/* Header with filters */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">
+          <div className="space-y-1">
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground text-sm lg:text-base">
               Acompanhe suas métricas e performance em tempo real
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loadingExtraction || loadingDisparo}>
-            <RefreshCw className={cn("w-4 h-4 mr-2", (loadingExtraction || loadingDisparo) && "animate-spin")} />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh} 
+            disabled={loadingExtraction || loadingDisparo}
+            className="w-fit"
+          >
+            <RefreshCw className={cn("w-4 h-4", (loadingExtraction || loadingDisparo) && "animate-spin")} />
             Atualizar
           </Button>
         </div>
 
         {/* Period Filters */}
-        <div className="flex flex-wrap items-center gap-3 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
-          <div className="flex items-center gap-1">
-            <span className="text-sm text-muted-foreground mr-2">Período</span>
-            {(['7', '14', '30'] as const).map((period) => (
-              <Button
-                key={period}
-                variant={periodFilter === period ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handlePeriodChange(period)}
-                className={cn(
-                  "min-w-[70px]",
-                  periodFilter === period && "bg-highlight text-highlight-foreground hover:bg-highlight/90"
-                )}
-              >
-                {period} dias
-              </Button>
-            ))}
+        <div className="flex flex-wrap items-center gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Período</span>
+            <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border/30">
+              {(['7', '14', '30'] as const).map((period) => (
+                <Button
+                  key={period}
+                  variant={periodFilter === period ? 'highlight' : 'ghost'}
+                  size="sm"
+                  onClick={() => handlePeriodChange(period)}
+                  className={cn(
+                    "min-w-[72px] h-8 text-xs font-medium",
+                    periodFilter !== period && "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {period} dias
+                </Button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Data Inicial</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="min-w-[130px] justify-start">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {format(startDate, "dd/MM/yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={startDate}
-                  onSelect={(date) => { if (date) { setStartDate(date); setPeriodFilter('custom'); }}}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="h-6 w-px bg-border/50 hidden sm:block" />
 
-            <span className="text-sm text-muted-foreground">Data Final</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="min-w-[130px] justify-start">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {format(endDate, "dd/MM/yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={endDate}
-                  onSelect={(date) => { if (date) { setEndDate(date); setPeriodFilter('custom'); }}}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Data Inicial</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="min-w-[140px] justify-start h-9 font-normal">
+                    <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+                    {format(startDate, "dd/MM/yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => { if (date) { setStartDate(date); setPeriodFilter('custom'); }}}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Data Final</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="min-w-[140px] justify-start h-9 font-normal">
+                    <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+                    {format(endDate, "dd/MM/yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(date) => { if (date) { setEndDate(date); setPeriodFilter('custom'); }}}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
 
@@ -253,10 +267,9 @@ const Dashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Extrator Tab */}
-          <TabsContent value="extrator" className="space-y-6 mt-6">
+          <TabsContent value="extrator" className="space-y-8 mt-8">
             {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Total de Extrações"
                 value={extractionStats.totalExtractions}
@@ -292,130 +305,150 @@ const Dashboard = () => {
             </div>
 
             {/* Chart */}
-            <Card className="opacity-0 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
+            <Card className="opacity-0 animate-fade-in-up overflow-hidden" style={{ animationDelay: '300ms' }}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2.5 text-base font-semibold">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50">
+                      <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                    </div>
                     Extrações por Dia
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs">
                     Evolução das extrações e leads no período
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-1 bg-secondary/50 p-1 rounded-lg">
+                <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border/30">
                   <Button
-                    variant={chartType === 'area' ? 'default' : 'ghost'}
+                    variant={chartType === 'area' ? 'secondary' : 'ghost'}
                     size="sm"
                     onClick={() => setChartType('area')}
-                    className="h-8 px-3"
+                    className={cn(
+                      "h-8 px-3 text-xs rounded-lg",
+                      chartType === 'area' && "bg-card shadow-sm border border-border/50"
+                    )}
                   >
-                    <AreaChartIcon className="w-4 h-4 mr-1" />
+                    <AreaChartIcon className="w-3.5 h-3.5 mr-1.5" />
                     Área
                   </Button>
                   <Button
-                    variant={chartType === 'bar' ? 'default' : 'ghost'}
+                    variant={chartType === 'bar' ? 'secondary' : 'ghost'}
                     size="sm"
                     onClick={() => setChartType('bar')}
-                    className="h-8 px-3"
+                    className={cn(
+                      "h-8 px-3 text-xs rounded-lg",
+                      chartType === 'bar' && "bg-card shadow-sm border border-border/50"
+                    )}
                   >
-                    <BarChart3 className="w-4 h-4 mr-1" />
+                    <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
                     Barras
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full">
+              <CardContent className="pt-4">
+                <div className="h-[320px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     {chartType === 'area' ? (
-                      <AreaChart data={extractionChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <AreaChart data={extractionChartData} margin={{ top: 20, right: 20, left: -10, bottom: 10 }}>
                         <defs>
                           <linearGradient id="colorExtractions" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                            <stop offset="0%" stopColor="hsl(160 70% 45%)" stopOpacity={0.4}/>
+                            <stop offset="100%" stopColor="hsl(160 70% 45%)" stopOpacity={0}/>
                           </linearGradient>
                           <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            <stop offset="0%" stopColor="#10b981" stopOpacity={0.25}/>
+                            <stop offset="100%" stopColor="#10b981" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          stroke="hsl(var(--border))" 
+                          opacity={0.4}
+                          vertical={false}
+                        />
                         <XAxis 
                           dataKey="date" 
                           stroke="hsl(var(--muted-foreground))" 
-                          fontSize={12}
+                          fontSize={11}
                           tickLine={false}
                           axisLine={false}
+                          dy={10}
                         />
                         <YAxis 
                           stroke="hsl(var(--muted-foreground))" 
-                          fontSize={12}
+                          fontSize={11}
                           tickLine={false}
                           axisLine={false}
+                          dx={-5}
                         />
                         <Tooltip 
                           contentStyle={{ 
                             backgroundColor: 'hsl(var(--card))', 
                             border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 30px -6px rgba(0,0,0,0.2)',
+                            padding: '12px 16px',
                           }}
-                          labelStyle={{ color: 'hsl(var(--foreground))' }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="extractions"
-                          name="Extrações"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          fill="url(#colorExtractions)"
+                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '8px' }}
+                          itemStyle={{ color: 'hsl(var(--muted-foreground))', fontSize: '13px' }}
                         />
                         <Area
                           type="monotone"
                           dataKey="leads"
                           name="Leads"
-                          stroke="#10b981"
-                          strokeWidth={2}
-                          fill="url(#colorLeads)"
+                          stroke="hsl(160 70% 45%)"
+                          strokeWidth={2.5}
+                          fill="url(#colorExtractions)"
+                          dot={false}
+                          activeDot={{ r: 6, stroke: 'hsl(var(--background))', strokeWidth: 2 }}
                         />
                       </AreaChart>
                     ) : (
-                      <BarChart data={extractionChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                      <BarChart data={extractionChartData} margin={{ top: 20, right: 20, left: -10, bottom: 10 }}>
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          stroke="hsl(var(--border))" 
+                          opacity={0.4}
+                          vertical={false}
+                        />
                         <XAxis 
                           dataKey="date" 
                           stroke="hsl(var(--muted-foreground))" 
-                          fontSize={12}
+                          fontSize={11}
                           tickLine={false}
                           axisLine={false}
+                          dy={10}
                         />
                         <YAxis 
                           stroke="hsl(var(--muted-foreground))" 
-                          fontSize={12}
+                          fontSize={11}
                           tickLine={false}
                           axisLine={false}
+                          dx={-5}
                         />
                         <Tooltip 
                           contentStyle={{ 
                             backgroundColor: 'hsl(var(--card))', 
                             border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 30px -6px rgba(0,0,0,0.2)',
+                            padding: '12px 16px',
                           }}
-                          labelStyle={{ color: 'hsl(var(--foreground))' }}
-                          cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
+                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '8px' }}
+                          itemStyle={{ color: 'hsl(var(--muted-foreground))', fontSize: '13px' }}
+                          cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2, radius: 4 }}
                         />
                         <Bar
                           dataKey="extractions"
                           name="Extrações"
                           fill="hsl(var(--primary))"
-                          radius={[4, 4, 0, 0]}
+                          radius={[6, 6, 0, 0]}
                         />
                         <Bar
                           dataKey="leads"
                           name="Leads"
-                          fill="#10b981"
-                          radius={[4, 4, 0, 0]}
+                          fill="hsl(160 70% 45%)"
+                          radius={[6, 6, 0, 0]}
                         />
                       </BarChart>
                     )}
@@ -425,49 +458,52 @@ const Dashboard = () => {
             </Card>
 
             {/* Recent Extractions */}
-            <Card className="opacity-0 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
+            <Card className="opacity-0 animate-fade-in-up overflow-hidden" style={{ animationDelay: '350ms' }}>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2.5 text-base font-semibold">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50">
+                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  </div>
                   Extrações Recentes
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   Últimas extrações no período selecionado
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {displayedExtractions.length > 0 ? (
                   <div className="space-y-3">
-                    {displayedExtractions.map((record) => (
+                    {displayedExtractions.map((record, index) => (
                       <div
                         key={record.id}
-                        className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 border border-border/50 hover:border-primary/30 transition-colors"
+                        className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 hover:border-border/60 hover:bg-muted/40 transition-all duration-300 opacity-0 animate-fade-in"
+                        style={{ animationDelay: `${400 + index * 50}ms` }}
                       >
                         <div className="flex items-center gap-4">
-                          <span className={`px-2 py-1 text-xs font-medium rounded bg-secondary ${typeColors[record.type]}`}>
+                          <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-card border border-border/50 ${typeColors[record.type]}`}>
                             {typeLabels[record.type]}
                           </span>
                           <div>
-                            <p className="font-medium text-foreground">{record.segment}</p>
+                            <p className="font-medium text-foreground text-sm">{record.segment}</p>
                             {record.location && (
-                              <p className="text-sm text-muted-foreground">{record.location}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{record.location}</p>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center gap-6 text-sm">
-                          <div className="text-center">
-                            <p className="font-semibold text-primary">{record.totalResults}</p>
-                            <p className="text-xs text-muted-foreground">leads</p>
+                          <div className="text-center min-w-[50px]">
+                            <p className="font-bold text-emerald-500 text-base">{record.totalResults}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">leads</p>
                           </div>
-                          <div className="text-center">
+                          <div className="text-center min-w-[50px]">
                             <p className="font-semibold text-foreground">{record.emailsFound}</p>
-                            <p className="text-xs text-muted-foreground">emails</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">emails</p>
                           </div>
-                          <div className="text-center">
+                          <div className="text-center min-w-[50px]">
                             <p className="font-semibold text-foreground">{record.phonesFound}</p>
-                            <p className="text-xs text-muted-foreground">telefones</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">tel</p>
                           </div>
-                          <div className="flex items-center gap-1 text-muted-foreground min-w-[90px]">
+                          <div className="flex items-center gap-1.5 text-muted-foreground min-w-[90px]">
                             <Calendar className="w-3 h-3" />
                             <span className="text-xs">
                               {format(new Date(record.createdAt), "dd/MM HH:mm", { locale: ptBR })}
@@ -478,10 +514,12 @@ const Dashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                    <p>Nenhuma extração no período selecionado</p>
-                    <p className="text-sm">Comece usando um dos extratores</p>
+                  <div className="text-center py-16 text-muted-foreground">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
+                      <FileText className="w-8 h-8 opacity-40" />
+                    </div>
+                    <p className="font-medium">Nenhuma extração no período selecionado</p>
+                    <p className="text-sm mt-1">Comece usando um dos extratores</p>
                   </div>
                 )}
               </CardContent>
@@ -489,9 +527,9 @@ const Dashboard = () => {
           </TabsContent>
 
           {/* Disparo Tab */}
-          <TabsContent value="disparo" className="space-y-6 mt-6">
+          <TabsContent value="disparo" className="space-y-8 mt-8">
             {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Total de Disparos"
                 value={disparoStats.totalDisparos}
