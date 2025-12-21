@@ -37,28 +37,42 @@ const Index = () => {
   // Fetch plan limits - check both regular plan and extrator plan
   useEffect(() => {
     const fetchPlanLimit = async () => {
-      // Try regular plan first, then extrator plan
-      const planIdToCheck = user?.planoId || user?.planoExtratorId;
-      
-      if (!planIdToCheck) {
+      if (!user?.planoId && !user?.planoExtratorId) {
         setPlanLimit(0);
         setIsLoadingPlan(false);
         return;
       }
 
       try {
-        const { data, error } = await supabase
-          .from('SAAS_Planos')
-          .select('qntPlaces')
-          .eq('id', planIdToCheck)
-          .maybeSingle();
+        let limit = 0;
 
-        if (error) {
-          console.error('Error fetching plan:', error);
-          setPlanLimit(0);
-        } else {
-          setPlanLimit(data?.qntPlaces ?? 0);
+        // Check regular plan first
+        if (user?.planoId) {
+          const { data } = await supabase
+            .from('SAAS_Planos')
+            .select('qntPlaces')
+            .eq('id', user.planoId)
+            .maybeSingle();
+          
+          if (data?.qntPlaces && data.qntPlaces > 0) {
+            limit = data.qntPlaces;
+          }
         }
+
+        // If no limit from regular plan, check extrator plan
+        if (limit === 0 && user?.planoExtratorId) {
+          const { data } = await supabase
+            .from('SAAS_Planos')
+            .select('qntPlaces')
+            .eq('id', user.planoExtratorId)
+            .maybeSingle();
+          
+          if (data?.qntPlaces && data.qntPlaces > 0) {
+            limit = data.qntPlaces;
+          }
+        }
+
+        setPlanLimit(limit);
       } catch (err) {
         console.error('Error:', err);
         setPlanLimit(0);
