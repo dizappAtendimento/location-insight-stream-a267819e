@@ -282,13 +282,19 @@ export default function ContratarPage() {
     const colors = getPlanColors(index);
     const isPopular = plan.destaque === true;
     
+    // Lista de benefícios - pode ser expandida
+    const benefits = [
+      { icon: Link2, color: 'text-cyan-400', text: `${plan.qntConexoes} conexões WhatsApp` },
+      { icon: List, color: 'text-violet-400', text: `${plan.qntListas} listas de contatos` },
+      { icon: Contact, color: 'text-amber-400', text: `${plan.qntContatos?.toLocaleString('pt-BR')} contatos` },
+      { icon: Send, color: 'text-orange-400', text: `${plan.qntDisparos?.toLocaleString('pt-BR')} disparos/mês` },
+    ];
+    
     return (
       <Card 
         key={plan.id} 
-        className={`relative overflow-hidden border-2 ${isPopular ? 'border-amber-500/50 ring-2 ring-amber-500/20' : colors.border} bg-card hover:shadow-2xl transition-all duration-500 group ${isPopular ? 'scale-105 z-10' : ''}`}
+        className={`relative overflow-hidden border ${isPopular ? 'border-amber-500/50 ring-2 ring-amber-500/20' : 'border-zinc-700'} bg-zinc-900 hover:shadow-2xl transition-all duration-500 group ${isPopular ? 'scale-105 z-10' : ''}`}
       >
-        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} opacity-50`} />
-        
         {isPopular && (
           <div className="absolute -top-1 -right-1">
             <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg px-3 py-1">
@@ -299,45 +305,24 @@ export default function ContratarPage() {
         )}
 
         <CardHeader className="relative pb-4 text-center">
-          <CardTitle className="text-2xl font-bold">{plan.nome}</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white">{plan.nome}</CardTitle>
           <div className="mt-4">
             <span className={`text-4xl font-bold ${colors.text}`}>
               R$ {plan.preco?.toFixed(2).replace('.', ',')}
             </span>
-            <span className="text-sm text-muted-foreground">/mês</span>
+            <span className="text-sm text-zinc-400">/mês</span>
           </div>
         </CardHeader>
         
         <CardContent className="relative space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-              <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-              <div className="flex items-center gap-2">
-                <Link2 className="w-4 h-4 text-cyan-500" />
-                <span className="text-sm"><strong>{plan.qntConexoes}</strong> conexões WhatsApp</span>
+          <div className="space-y-2">
+            {benefits.map((benefit, i) => (
+              <div key={i} className="flex items-center gap-3 py-2">
+                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
+                <benefit.icon className={`w-4 h-4 ${benefit.color} shrink-0`} />
+                <span className="text-sm text-zinc-300">{benefit.text}</span>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-              <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-              <div className="flex items-center gap-2">
-                <List className="w-4 h-4 text-violet-500" />
-                <span className="text-sm"><strong>{plan.qntListas}</strong> listas de contatos</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-              <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-              <div className="flex items-center gap-2">
-                <Contact className="w-4 h-4 text-amber-500" />
-                <span className="text-sm"><strong>{plan.qntContatos?.toLocaleString('pt-BR')}</strong> contatos</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-              <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-              <div className="flex items-center gap-2">
-                <Send className="w-4 h-4 text-orange-500" />
-                <span className="text-sm"><strong>{plan.qntDisparos?.toLocaleString('pt-BR')}</strong> disparos/mês</span>
-              </div>
-            </div>
+            ))}
           </div>
           
           <Button 
