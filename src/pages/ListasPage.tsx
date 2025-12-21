@@ -333,14 +333,9 @@ const ListasPage = () => {
       <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-highlight/10 border border-highlight/20">
-              <List className="w-5 h-5 text-highlight" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Listas</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm">Gerencie suas listas de contatos e grupos</p>
-            </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Listas</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">Gerencie suas listas de contatos e grupos</p>
           </div>
           <div className="flex gap-2">
             <Button
