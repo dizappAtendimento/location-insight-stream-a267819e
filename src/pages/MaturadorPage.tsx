@@ -311,14 +311,9 @@ Abraço!
     <DashboardLayout>
       <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-highlight/10 border border-highlight/20">
-              <MessageSquare className="w-5 h-5 text-highlight" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Maturador de Chip</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm">Configure conexões para conversarem automaticamente</p>
-            </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Maturador de Chip</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">Configure conexões para conversarem automaticamente</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => { fetchConnections(); fetchSessions(); }} disabled={loading || loadingSessions}>
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${(loading || loadingSessions) ? 'animate-spin' : ''}`} />

@@ -555,14 +555,9 @@ const ConexoesPage = () => {
       <div className="p-4 sm:p-5 lg:p-6 max-w-7xl mx-auto space-y-5 lg:space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-whatsapp/10 border border-whatsapp/20">
-              <Smartphone className="w-5 h-5 text-whatsapp" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Conexões</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm">Gerencie suas conexões do WhatsApp</p>
-            </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Conexões</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">Gerencie suas conexões do WhatsApp</p>
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
