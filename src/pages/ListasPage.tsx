@@ -53,6 +53,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useRef } from "react";
+import { useExtractionHistory } from "@/hooks/useExtractionHistory";
 
 interface Lista {
   id: number;
@@ -69,6 +70,7 @@ interface Lista {
 const ListasPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { history: localExtractions, getResults } = useExtractionHistory();
   const [listas, setListas] = useState<Lista[]>([]);
   const [filteredListas, setFilteredListas] = useState<Lista[]>([]);
   const [loading, setLoading] = useState(true);
@@ -535,7 +537,7 @@ const ListasPage = () => {
     
     setLoadingJobs(true);
     try {
-      // Fetch search jobs (extractions from Google Places, etc.)
+      // Fetch search jobs from database (extractions from Google Places, etc.)
       const { data: jobsData, error: jobsError } = await supabase
         .from('search_jobs')
         .select('*')
@@ -544,11 +546,34 @@ const ListasPage = () => {
         .order('created_at', { ascending: false });
       
       if (jobsError) throw jobsError;
-      const jobs = jobsData || [];
-      setSearchJobs(jobs);
+      const dbJobs = jobsData || [];
+      
+      // Convert localStorage extractions to same format as search_jobs
+      const localJobs = localExtractions.map(record => ({
+        id: record.id,
+        query: record.segment,
+        location: record.location || '',
+        status: 'completed',
+        total_found: record.totalResults,
+        created_at: record.createdAt,
+        results: getResults(record.id) || [],
+        source: 'local', // Mark as coming from localStorage
+        type: record.type,
+        phonesFound: record.phonesFound,
+        emailsFound: record.emailsFound
+      }));
+      
+      // Combine all extractions (avoid duplicates by id)
+      const dbJobIds = new Set(dbJobs.map((j: any) => j.id));
+      const combinedJobs = [
+        ...dbJobs,
+        ...localJobs.filter(j => !dbJobIds.has(j.id))
+      ];
+      
+      setSearchJobs(combinedJobs);
       
       // Auto-select all extractions
-      setSelectedJobIds(jobs.map((j: any) => j.id));
+      setSelectedJobIds(combinedJobs.map((j: any) => j.id));
       
       // Fetch existing lists with contact/group counts
       const { data: listasResult, error: listasError } = await supabase.functions.invoke("disparos-api", {
@@ -623,16 +648,25 @@ const ListasPage = () => {
       // Collect contacts from selected search jobs (extractions)
       for (const jobId of selectedJobIds) {
         const job = searchJobs.find(j => j.id === jobId);
-        if (job?.results && Array.isArray(job.results)) {
-          job.results.forEach((place: any) => {
-            if (place.phone) {
-              let telefone = place.phone.replace(/\D/g, '');
+        if (!job) continue;
+        
+        // Get results - either from job object or fetch from localStorage
+        let results = job.results;
+        if (job.source === 'local' && (!results || results.length === 0)) {
+          results = getResults(jobId) || [];
+        }
+        
+        if (results && Array.isArray(results)) {
+          results.forEach((place: any) => {
+            const phone = place.phone || place.telefone;
+            if (phone) {
+              let telefone = phone.replace(/\D/g, '');
               if (telefone.length === 10 || telefone.length === 11) {
                 telefone = '55' + telefone;
               }
               if (telefone) {
                 allContacts.push({
-                  nome: place.name || '',
+                  nome: place.name || place.nome || '',
                   telefone
                 });
               }
@@ -1332,10 +1366,13 @@ const ListasPage = () => {
                   ) : (
                     <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
                       {searchJobs.map((job) => {
-                        const resultsCount = Array.isArray(job.results) ? job.results.length : 0;
-                        const phonesCount = Array.isArray(job.results) 
+                        const resultsCount = job.total_found || (Array.isArray(job.results) ? job.results.length : 0);
+                        const phonesCount = job.phonesFound ?? (Array.isArray(job.results) 
                           ? job.results.filter((r: any) => r.phone).length 
-                          : 0;
+                          : 0);
+                        const sourceLabel = job.source === 'local' 
+                          ? (job.type === 'whatsapp-groups' ? 'WhatsApp' : job.type === 'places' ? 'Google Places' : job.type || 'Local')
+                          : 'Google Places';
                         
                         return (
                           <div 
@@ -1353,7 +1390,12 @@ const ListasPage = () => {
                               }}
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{job.query}</p>
+                              <p className="font-medium truncate">
+                                {job.query}
+                                <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                  {sourceLabel}
+                                </span>
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 {job.location || 'Sem localização'} • {resultsCount} resultados • {phonesCount} com telefone
                               </p>
