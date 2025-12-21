@@ -437,9 +437,11 @@ const WhatsAppGroupsExtractor = () => {
         requestBody.data = { labelId };
       }
       
-      const { data, error } = await supabase.functions.invoke('evolution-api', requestBody);
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: requestBody
+      });
       if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
       
       const chats = data.chats || [];
       
