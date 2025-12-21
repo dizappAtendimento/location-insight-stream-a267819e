@@ -57,6 +57,8 @@ const ConexoesPage = () => {
   const [isReplacingApiKey, setIsReplacingApiKey] = useState(false);
   const [savingApiKey, setSavingApiKey] = useState(false);
   const [deletingConnection, setDeletingConnection] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(false);
+  const [connectionInstanceName, setConnectionInstanceName] = useState<string | null>(null);
 
   // Fetch connections
   const fetchConnections = useCallback(async () => {
@@ -130,15 +132,22 @@ const ConexoesPage = () => {
     try {
       setCreatingConnection(true);
       
+      // Generate unique instance name
+      const instanceName = `${newConnectionName.trim()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      
       const { data, error } = await supabase.functions.invoke('evolution-api', {
         body: { 
           action: 'create-instance', 
-          instanceName: newConnectionName.trim(),
-          userId: user.id
+          instanceName: instanceName,
+          userId: user.id,
+          data: { displayName: newConnectionName.trim() }
         }
       });
 
       if (error) throw error;
+      
+      // Save instance name for polling
+      setConnectionInstanceName(instanceName);
       
       if (data?.qrcode?.base64) {
         setQrCodeData({ base64: data.qrcode.base64 });
@@ -155,9 +164,6 @@ const ConexoesPage = () => {
         description: "Conexão criada! Escaneie o QR Code para conectar.",
       });
       
-      // Refresh connections after creation
-      setTimeout(() => fetchConnections(), 2000);
-      
     } catch (error: any) {
       console.error('Error creating connection:', error);
       toast({
@@ -170,6 +176,58 @@ const ConexoesPage = () => {
       setNewConnectionName("");
     }
   };
+
+  // Poll for connection status when QR modal is open
+  useEffect(() => {
+    if (!showQrModal || !connectionInstanceName) return;
+    
+    let isCancelled = false;
+    setCheckingConnection(true);
+    
+    const checkStatus = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('evolution-api', {
+          body: { 
+            action: 'get-instance', 
+            instanceName: connectionInstanceName
+          }
+        });
+
+        if (error || isCancelled) return;
+        
+        const state = data?.connectionState || data?.instance?.state;
+        console.log('[Connection] Status check:', connectionInstanceName, state);
+        
+        if (state === 'open') {
+          // Connection successful!
+          setShowQrModal(false);
+          setQrCodeData(null);
+          setConnectionInstanceName(null);
+          setCheckingConnection(false);
+          
+          toast({
+            title: "Conectado!",
+            description: "WhatsApp conectado com sucesso!",
+          });
+          
+          // Refresh connections list
+          fetchConnections();
+        }
+      } catch (err) {
+        console.error('[Connection] Error checking status:', err);
+      }
+    };
+    
+    // Check immediately and then every 3 seconds
+    checkStatus();
+    const interval = setInterval(checkStatus, 3000);
+    
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+      setCheckingConnection(false);
+    };
+  }, [showQrModal, connectionInstanceName, fetchConnections, toast]);
 
   const showQrCode = async (connection: Connection) => {
     if (!connection.instanceName || !connection.Apikey) return;
@@ -716,7 +774,13 @@ const ConexoesPage = () => {
       </Dialog>
 
       {/* QR Code Modal */}
-      <Dialog open={showQrModal} onOpenChange={setShowQrModal}>
+      <Dialog open={showQrModal} onOpenChange={(open) => {
+        setShowQrModal(open);
+        if (!open) {
+          setQrCodeData(null);
+          setConnectionInstanceName(null);
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center">Escaneie o QR Code</DialogTitle>
@@ -747,8 +811,15 @@ const ConexoesPage = () => {
               </div>
             )}
             
-            <p className="text-sm text-muted-foreground mt-4 text-center">
-              O QR Code expira em alguns segundos. Se expirar, feche e abra novamente.
+            {checkingConnection && (
+              <div className="flex items-center gap-2 mt-4 text-sm text-emerald-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Aguardando conexão...
+              </div>
+            )}
+            
+            <p className="text-sm text-muted-foreground mt-2 text-center">
+              O modal fechará automaticamente quando conectar.
             </p>
           </div>
           
@@ -758,6 +829,7 @@ const ConexoesPage = () => {
               onClick={() => {
                 setShowQrModal(false);
                 setQrCodeData(null);
+                setConnectionInstanceName(null);
               }}
               className="w-full"
             >
