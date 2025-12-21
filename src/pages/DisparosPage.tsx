@@ -644,65 +644,51 @@ export default function DisparosPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6">
               {/* iPhone Frame */}
-              <div className="relative bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-[55px] p-3 shadow-2xl shadow-black/50 border border-zinc-700">
-                {/* Dynamic Island */}
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-8 bg-black rounded-full z-20 flex items-center justify-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-zinc-800" />
-                  <div className="w-2 h-2 rounded-full bg-zinc-700" />
-                </div>
-                
+              <div className="relative bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 rounded-[50px] p-2 shadow-2xl shadow-black/60 border border-zinc-700/50 max-w-[280px]">
                 {/* Screen */}
-                <div className="bg-[#111b21] rounded-[45px] overflow-hidden h-[580px] flex flex-col">
+                <div className="bg-[#e8ded3] rounded-[42px] overflow-hidden h-[520px] flex flex-col">
                   {/* WhatsApp Header */}
-                  <div className="bg-[#202c33] pt-12 pb-3 px-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#2a3942] flex items-center justify-center">
-                      <div className="w-6 h-6 rounded-full bg-[#00a884]/30" />
+                  <div className="bg-[#075e54] pt-8 pb-3 px-3 flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-full bg-[#ddd] flex items-center justify-center">
+                      <div className="w-5 h-5 rounded-full bg-[#aaa]" />
                     </div>
                     <div className="flex-1">
                       <div className="text-white font-medium text-sm">Contato</div>
-                      <div className="text-[#8696a0] text-xs">online</div>
+                      <div className="text-[#6ab99f] text-xs">online</div>
                     </div>
                   </div>
                   
                   {/* Chat Area */}
-                  <div className="flex-1 bg-[#0b141a] p-3 overflow-y-auto space-y-2" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M30 5 L35 15 L30 25 L25 15 Z\' fill=\'%23182229\' fill-opacity=\'0.3\'/%3E%3C/svg%3E")' }}>
+                  <div className="flex-1 bg-[#e8ded3] p-3 overflow-y-auto flex items-center justify-center">
                     {messages[0]?.text || messages[0]?.media ? (
-                      messages.map((m, i) => (
-                        <div key={i} className="flex justify-end">
-                          <div className="bg-[#005c4b] p-2.5 rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
-                            {m.media && (
-                              <div className="bg-black/20 p-2 rounded mb-2 text-xs text-white/70">📎 Mídia anexada</div>
-                            )}
-                            <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">{m.text}</p>
-                            <div className="text-right text-[10px] text-white/50 mt-1 flex items-center justify-end gap-1">
-                              {new Date().toLocaleTimeString().slice(0, 5)}
-                              <span className="text-[#53bdeb]">✓✓</span>
+                      <div className="self-start w-full space-y-2">
+                        {messages.map((m, i) => (
+                          <div key={i} className="flex justify-end">
+                            <div className="bg-[#dcf8c6] p-2 px-3 rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                              {m.media && (
+                                <div className="bg-black/10 p-2 rounded mb-2 text-xs">📎 Mídia anexada</div>
+                              )}
+                              <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                              <div className="text-right text-[10px] text-black/40 mt-1">
+                                {new Date().toLocaleTimeString().slice(0, 5)} ✓✓
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-[#8696a0] text-sm bg-[#182229] px-4 py-2 rounded-full">
-                          Preview da mensagem
-                        </div>
+                      <div className="text-center">
+                        <p className="text-[#6b7c85] text-sm">
+                          <span className="text-[#6ab99f]">Digite uma mensagem</span> para ver o
+                        </p>
+                        <p className="text-[#e09e5c]">preview</p>
                       </div>
                     )}
-                  </div>
-                  
-                  {/* Input Bar */}
-                  <div className="bg-[#202c33] h-14 px-3 flex items-center gap-2">
-                    <div className="flex-1 bg-[#2a3942] rounded-full h-10 px-4 flex items-center">
-                      <span className="text-[#8696a0] text-sm">Mensagem</span>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center">
-                      <Send className="w-5 h-5 text-[#111b21]" />
-                    </div>
                   </div>
                 </div>
                 
                 {/* Home Indicator */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full" />
+                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/30 rounded-full" />
               </div>
             </div>
           </div>
