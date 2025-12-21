@@ -26,6 +26,7 @@ import ApiDocsPage from "./pages/ApiDocsPage";
 import CrmPage from "./pages/CrmPage";
 import MaturadorPage from "./pages/MaturadorPage";
 import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
+import ContratarPage from "./pages/ContratarPage";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/contratar" element={<ProtectedRoute requirePlan={false}><ContratarPage /></ProtectedRoute>} />
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/conexoes" element={<ProtectedRoute><ConexoesPage /></ProtectedRoute>} />
               <Route path="/disparos" element={<ProtectedRoute><DisparosPage /></ProtectedRoute>} />
