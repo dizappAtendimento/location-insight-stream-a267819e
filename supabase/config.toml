@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.label-webhook]
 verify_jwt = false
+
+[functions.asaas-api]
+verify_jwt = false
