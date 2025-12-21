@@ -203,15 +203,20 @@ export function AppSidebar() {
                 <Link 
                   to={item.url} 
                   className={cn(
-                    "group/link flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 ease-out w-full",
-                    collapsed && "justify-center px-0",
+                    "group/link flex items-center gap-3 rounded-xl transition-all duration-300 ease-out",
+                    collapsed 
+                      ? "justify-center p-3 w-10 h-10" 
+                      : "px-3 py-3 w-full",
                     isActive(item.url) 
                       ? "bg-primary/20 text-primary shadow-lg shadow-primary/20 border border-primary/30" 
                       : "text-slate-400 hover:text-white hover:bg-slate-800/60"
                   )}
                 >
                   <item.icon 
-                    className="w-5 h-5 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
+                    className={cn(
+                      "shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
+                      collapsed ? "w-5 h-5" : "w-5 h-5"
+                    )} 
                     strokeWidth={2} 
                   />
                   {!collapsed && <span className="text-sm font-semibold">{item.title}</span>}
