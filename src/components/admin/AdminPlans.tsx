@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown, Instagram, Linkedin, MapPin, MessageCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown, Instagram, Linkedin, MapPin, MessageCircle, Calendar } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -46,6 +46,7 @@ interface Plan {
   qntInstagram: number | null;
   qntLinkedin: number | null;
   qntPlaces: number | null;
+  diasValidade: number | null;
   tipo: string | null;
   total_usuarios: number | null;
 }
@@ -53,6 +54,7 @@ interface Plan {
 const defaultPlanForm = {
   nome: '',
   preco: '',
+  diasValidade: '30',
   qntConexoes: '',
   qntContatos: '',
   qntDisparos: '',
@@ -99,6 +101,7 @@ export function AdminPlans() {
     setPlanForm({
       nome: plan.nome || '',
       preco: plan.preco?.toString() || '',
+      diasValidade: plan.diasValidade?.toString() || '30',
       qntConexoes: plan.qntConexoes?.toString() || '',
       qntContatos: plan.qntContatos?.toString() || '',
       qntDisparos: plan.qntDisparos?.toString() || '',
@@ -122,6 +125,7 @@ export function AdminPlans() {
     const planData = {
       nome: planForm.nome,
       preco: parseFloat(planForm.preco) || 0,
+      diasValidade: parseInt(planForm.diasValidade) || 30,
       qntConexoes: parseInt(planForm.qntConexoes) || 0,
       qntContatos: parseInt(planForm.qntContatos) || 0,
       qntDisparos: parseInt(planForm.qntDisparos) || 0,
@@ -296,15 +300,23 @@ export function AdminPlans() {
         </CardHeader>
         
         <CardContent className="relative space-y-4">
-          {/* Users count */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
-            <div className="flex items-center gap-2.5 text-muted-foreground">
-              <Users className="w-4 h-4" />
-              <span className="text-sm font-medium">Usuários</span>
+          {/* Users count and validity */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
+              <div className="flex items-center gap-2.5 text-muted-foreground">
+                <Users className="w-4 h-4" />
+                <span className="text-sm font-medium">Usuários</span>
+              </div>
+              <Badge variant="secondary" className="text-xs font-bold px-2.5">
+                {plan.total_usuarios || 0}
+              </Badge>
             </div>
-            <Badge variant="secondary" className="text-xs font-bold px-2.5">
-              {plan.total_usuarios || 0}
-            </Badge>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
+              <div className="flex items-center gap-2.5 text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm font-medium">{plan.diasValidade || 30} dias</span>
+              </div>
+            </div>
           </div>
           
           <div className="space-y-3">
@@ -423,15 +435,29 @@ export function AdminPlans() {
                     placeholder="Ex: Plano Básico"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Preço (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={planForm.preco}
-                    onChange={(e) => setPlanForm({ ...planForm, preco: e.target.value })}
-                    placeholder="0.00"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Preço (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={planForm.preco}
+                      onChange={(e) => setPlanForm({ ...planForm, preco: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Calendar className="w-3 h-3 text-primary" />
+                      Dias de Validade
+                    </Label>
+                    <Input
+                      type="number"
+                      value={planForm.diasValidade}
+                      onChange={(e) => setPlanForm({ ...planForm, diasValidade: e.target.value })}
+                      placeholder="30"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
