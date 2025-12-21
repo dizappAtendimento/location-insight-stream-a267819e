@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWebhookConfigs } from '@/hooks/useWebhookConfigs';
 import {
   Send,
   Plus,
@@ -25,6 +24,16 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
+
+// URLs da API
+const API_URLS = {
+  listarConexoes: 'https://api.dizapp.com.br/listarconexoes',
+  puxarLista: 'https://api.dizapp.com.br/puxar-lista',
+  uploadMedia: 'https://api.dizapp.com.br/uploadmedia',
+  gerarMensagemIA: 'https://api.dizapp.com.br/gerarmensagem-ia',
+  disparoIndividual: 'https://api.dizapp.com.br/db56b0fb-cc58-4d51-8755-d7e04ccaa120',
+  evoStatus: 'https://evo.dizapp.com.br/instance/connectionState',
+};
 
 interface Connection {
   id: number;
@@ -74,7 +83,6 @@ const substituirVariaveis = (texto: string) => {
 
 export default function DisparosPage() {
   const { user } = useAuth();
-  const { configs, loading: configsLoading } = useWebhookConfigs();
   
   // Estados principais
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -83,6 +91,7 @@ export default function DisparosPage() {
   const [selectedLists, setSelectedLists] = useState<number[]>([]);
   const [messages, setMessages] = useState<MessageItem[]>([{ id: 1, text: '', media: null }]);
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [csvContacts, setCsvContacts] = useState<string[]>([]);
   
   // Configurações
@@ -104,35 +113,43 @@ export default function DisparosPage() {
 
   // Carregamento inicial
   useEffect(() => {
-    if (user?.id && !configsLoading) {
-      loadConnections(user.id);
-      loadLists(user.id);
+    if (user?.id) {
+      fetchData(user.id);
     }
-  }, [user, configsLoading]);
+  }, [user]);
 
-  const loadConnections = async (userId: string) => {
+  const fetchData = async (userId: string) => {
+    setLoadingData(true);
     try {
-      const res = await fetch(configs.webhook_listar_conexoes, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-      const data = await res.json();
-      let raw: any[] = [];
-      if (data && data.Conexoes) raw = data.Conexoes;
-      else if (Array.isArray(data)) raw = data;
+      // Carregar conexões e listas em paralelo
+      const [connRes, listRes] = await Promise.all([
+        fetch(API_URLS.listarConexoes, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
+        }),
+        fetch(API_URLS.puxarLista, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
+        })
+      ]);
+
+      // Processar conexões
+      const connData = await connRes.json();
+      let rawConns: any[] = connData.Conexoes || (Array.isArray(connData) ? connData : []);
       
-      const valid = raw.filter(c => (c.NomeConexao || c.name) && (c.instanceName || c.instance_name));
+      const validConns = rawConns.filter(c => (c.NomeConexao || c.name) && (c.instanceName || c.instance_name));
       
       // Verificar status de cada conexão
-      const mappedWithStatus: Connection[] = await Promise.all(valid.map(async c => {
+      const mappedWithStatus: Connection[] = await Promise.all(validConns.map(async c => {
         const instance = c.instanceName || c.instance_name;
         const apikey = c.Apikey || c.apikey;
         let isConnected = false;
         
         try {
           if (instance && apikey) {
-            const statusRes = await fetch(`https://evo.dizapp.com.br/instance/connectionState/${instance}`, {
+            const statusRes = await fetch(`${API_URLS.evoStatus}/${instance}`, {
               headers: { 'apikey': apikey }
             });
             if (statusRes.ok) {
@@ -157,29 +174,18 @@ export default function DisparosPage() {
       }));
       
       setConnections(mappedWithStatus);
-    } catch (e) {
-      console.error(e);
-      toast.error('Erro ao carregar conexões');
-    }
-  };
 
-  const loadLists = async (userId: string) => {
-    try {
-      const res = await fetch(configs.webhook_puxar_lista, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-      const data = await res.json();
-      let raw: any[] = [];
-      if (data && data.data) raw = data.data;
-      else if (Array.isArray(data)) raw = data;
-
-      const contactsLists = raw.filter((l: any) => l.tipo === 'contacts');
+      // Processar listas
+      const listData = await listRes.json();
+      let rawLists: any[] = listData.data || (Array.isArray(listData) ? listData : []);
+      const contactsLists = rawLists.filter((l: any) => l.tipo === 'contacts');
       setLists(contactsLists);
+
     } catch (e) {
-      console.error(e);
-      toast.error('Erro ao carregar listas');
+      console.error('Erro ao carregar dados:', e);
+      toast.error('Erro ao carregar dados. Verifique console.');
+    } finally {
+      setLoadingData(false);
     }
   };
 
@@ -219,6 +225,15 @@ export default function DisparosPage() {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, text } : m));
   };
 
+  const insertVariable = (msgId: number, variable: string) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id === msgId) {
+        return { ...m, text: m.text + ` <${variable}>` };
+      }
+      return m;
+    }));
+  };
+
   const handleFileUpload = async (id: number, file: File, type: string) => {
     if (!file) return;
     if (file.size > 16 * 1024 * 1024) {
@@ -230,7 +245,7 @@ export default function DisparosPage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch(configs.webhook_upload_media, {
+      const res = await fetch(API_URLS.uploadMedia, {
         method: 'POST',
         body: formData
       });
@@ -248,9 +263,10 @@ export default function DisparosPage() {
           mimetype: file.type 
         }
       } : m));
-      toast.success('Mídia anexada!');
+      toast.success('Mídia carregada com sucesso!');
     } catch (e) {
-      toast.error('Erro ao enviar mídia');
+      console.error(e);
+      toast.error('Erro ao fazer upload da mídia');
     }
   };
 
@@ -275,7 +291,6 @@ export default function DisparosPage() {
     reader.onload = (evt) => {
       const text = evt.target?.result as string;
       const lines = text.split('\n').filter(line => line.trim());
-      // Pula header, pega primeira coluna, limpa números
       const contacts = lines.slice(1).map(line => {
         const phone = line.split(',')[0].trim();
         return phone.replace(/[^\d]/g, '');
@@ -292,13 +307,13 @@ export default function DisparosPage() {
     
     const seeds = messages.filter(m => m.text.trim()).map(m => m.text);
     if (seeds.length === 0) {
-      toast.error('Escreva pelo menos uma mensagem base');
+      toast.error('Escreva pelo menos uma mensagem base para a IA');
       return;
     }
 
     setIsGeneratingAI(true);
     try {
-      const res = await fetch(configs.webhook_gerar_mensagem_ia, {
+      const res = await fetch(API_URLS.gerarMensagemIA, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -321,7 +336,7 @@ export default function DisparosPage() {
         throw new Error('Formato inválido da API');
       }
     } catch (e) {
-      toast.error('Erro na IA. Verifique API Key.');
+      toast.error('Erro na IA: Verifique sua API Key');
     } finally {
       setIsGeneratingAI(false);
     }
@@ -331,7 +346,7 @@ export default function DisparosPage() {
     if (!user?.id) return;
 
     if (selectedConnections.length === 0) {
-      toast.error('Selecione uma conexão');
+      toast.error('Selecione ao menos uma conexão');
       return;
     }
     if (selectedLists.length === 0 && csvContacts.length === 0) {
@@ -339,7 +354,7 @@ export default function DisparosPage() {
       return;
     }
     if (selectedDays.length === 0) {
-      toast.error('Selecione dias da semana');
+      toast.error('Selecione os dias da semana');
       return;
     }
 
@@ -361,12 +376,12 @@ export default function DisparosPage() {
         apikey: c.apikey
       }));
 
-    const messagesData = messages.map(m => {
+    const messagesData = messages.filter(m => m.text || m.media).map(m => {
       const obj: any = {};
       if (m.text) obj.text = m.text;
       if (m.media) obj.media = m.media;
       return obj;
-    }).filter(m => m.text || m.media);
+    });
 
     const settings: any = {
       intervalMin: parseInt(String(intervalMin)),
@@ -392,7 +407,7 @@ export default function DisparosPage() {
     };
 
     try {
-      const res = await fetch(configs.webhook_disparo_individual, {
+      const res = await fetch(API_URLS.disparoIndividual, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -433,7 +448,7 @@ export default function DisparosPage() {
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Conexões Disponíveis</CardTitle>
+                  <CardTitle className="text-lg">Conexões Disponíveis *</CardTitle>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -446,8 +461,13 @@ export default function DisparosPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 max-h-[250px] overflow-y-auto">
-                {connections.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Carregando conexões...</p>
+                {loadingData ? (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Carregando conexões...
+                  </div>
+                ) : connections.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">Nenhuma conexão encontrada.</p>
                 ) : (
                   connections.map(conn => (
                     <div
@@ -501,13 +521,18 @@ export default function DisparosPage() {
             {/* Listas & CSV */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Destinatários</CardTitle>
+                <CardTitle className="text-lg">Destinatários *</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Listas */}
                 <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                  {lists.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">Carregando listas...</p>
+                  {loadingData ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Carregando listas...
+                    </div>
+                  ) : lists.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">Nenhuma lista de contatos encontrada.</p>
                   ) : (
                     lists.map(list => (
                       <div
@@ -563,7 +588,7 @@ export default function DisparosPage() {
             {/* Mensagens */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Mensagens</CardTitle>
+                <CardTitle className="text-lg">Mensagens *</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {messages.map((msg, idx) => (
@@ -585,21 +610,14 @@ export default function DisparosPage() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-2">Variáveis disponíveis:</p>
                       <div className="flex flex-wrap gap-2">
-                        {[
-                          { key: 'nome', label: 'nome' },
-                          { key: 'saudacao', label: 'saudação' },
-                          { key: 'data', label: 'data' },
-                          { key: 'hora', label: 'hora' },
-                          { key: 'diadasemana', label: 'dia da semana' },
-                          { key: 'mes', label: 'mês' },
-                        ].map(({ key, label }) => (
+                        {['nome', 'saudacao', 'hora', 'data'].map(key => (
                           <button
                             key={key}
                             type="button"
-                            onClick={() => updateMessageText(msg.id, msg.text + ` <${key}> `)}
+                            onClick={() => insertVariable(msg.id, key)}
                             className="px-2 py-1 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
                           >
-                            {label}
+                            {key}
                           </button>
                         ))}
                       </div>
@@ -664,7 +682,7 @@ export default function DisparosPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-emerald-500" />
-                      <span className="text-sm font-medium">Gerar com IA</span>
+                      <span className="text-sm font-medium">🤖 Gerar com IA</span>
                     </div>
                     <Switch
                       checked={aiEnabled}
@@ -716,7 +734,7 @@ export default function DisparosPage() {
               <CardContent className="space-y-4">
                 {/* Agendamento */}
                 <div className="flex items-center gap-3">
-                  <Label className="text-sm">Agendar?</Label>
+                  <Label className="text-sm">Agendar Envio?</Label>
                   <Switch
                     checked={scheduleEnabled}
                     onCheckedChange={setScheduleEnabled}
@@ -789,7 +807,7 @@ export default function DisparosPage() {
 
                 {/* Dias */}
                 <div className="space-y-2">
-                  <Label className="text-sm">Dias da semana:</Label>
+                  <Label className="text-sm">Dias da Semana:</Label>
                   <div className="flex flex-wrap gap-2">
                     {DAYS.map((d, i) => (
                       <Button
@@ -843,42 +861,16 @@ export default function DisparosPage() {
                   </div>
                   
                   {/* Chat Area */}
-                  <div className="flex-1 bg-[#e8ded3] p-3 overflow-y-auto flex items-center justify-center">
+                  <div className="flex-1 bg-[#e8ded3] p-3 overflow-y-auto">
                     {messages[0]?.text || messages[0]?.media ? (
-                      <div className="self-start w-full space-y-2">
+                      <div className="space-y-2">
                         {messages.map((m, i) => (
                           <div key={i} className="flex justify-end">
                             <div className="bg-[#dcf8c6] p-2 px-3 rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
                               {m.media && (
-                                m.media.type === 'image' ? (
-                                  <img 
-                                    src={m.media.link} 
-                                    alt="Mídia" 
-                                    className="rounded-lg mb-2 max-w-full h-auto max-h-32 object-cover"
-                                  />
-                                ) : m.media.type === 'video' ? (
-                                  <div className="bg-black/20 p-3 rounded-lg mb-2 flex items-center gap-2">
-                                    <div className="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center">
-                                      <div className="w-0 h-0 border-l-[8px] border-l-white border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent ml-1" />
-                                    </div>
-                                    <span className="text-xs text-black/60">{m.media.filename}</span>
-                                  </div>
-                                ) : m.media.type === 'audio' ? (
-                                  <div className="bg-[#c8e6c9] p-2 rounded-lg mb-2 flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-[#075e54] flex items-center justify-center">
-                                      <div className="w-0 h-0 border-l-[6px] border-l-white border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ml-0.5" />
-                                    </div>
-                                    <div className="flex-1 h-1.5 bg-[#075e54]/30 rounded-full">
-                                      <div className="w-1/3 h-full bg-[#075e54] rounded-full" />
-                                    </div>
-                                    <span className="text-[10px] text-black/50">0:00</span>
-                                  </div>
-                                ) : (
-                                  <div className="bg-white/50 p-2 rounded-lg mb-2 flex items-center gap-2">
-                                    <div className="text-2xl">📄</div>
-                                    <span className="text-xs text-black/70 truncate">{m.media.filename}</span>
-                                  </div>
-                                )
+                                <div className="bg-black/10 p-2 rounded mb-2 text-xs">
+                                  📎 Mídia Anexada
+                                </div>
                               )}
                               {m.text && <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{substituirVariaveis(m.text)}</p>}
                               <div className="text-right text-[10px] text-black/40 mt-1">
@@ -889,11 +881,10 @@ export default function DisparosPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center">
-                        <p className="text-[#6b7c85] text-sm">
-                          <span className="text-[#6ab99f]">Digite uma mensagem</span> para ver o
-                        </p>
-                        <p className="text-[#e09e5c]">preview</p>
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-center text-[#6b7c85] text-sm">
+                          Preview da mensagem
+                        </div>
                       </div>
                     )}
                   </div>
