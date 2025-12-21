@@ -1222,14 +1222,7 @@ const WhatsAppGroupsExtractor = () => {
                   <>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Selecione a Instância</Label>
-                      <Select 
-                        value={selectedInstance} 
-                        onValueChange={(value) => {
-                          setSelectedInstance(value);
-                          setLabels([]);
-                          setSelectedLabel('all');
-                        }}
-                      >
+                      <Select value={selectedInstance} onValueChange={setSelectedInstance}>
                         <SelectTrigger><SelectValue placeholder="Selecione uma instância conectada" /></SelectTrigger>
                         <SelectContent>
                           {connectedInstances.map((instance) => (
@@ -1241,60 +1234,14 @@ const WhatsAppGroupsExtractor = () => {
                       </Select>
                     </div>
                     
-                    {/* Filtro por Etiqueta */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Filtrar por Etiqueta</Label>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={fetchLabels}
-                          disabled={isLoadingLabels || !selectedInstance}
-                          className="h-7 text-xs"
-                        >
-                          {isLoadingLabels ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                          <span className="ml-1">Carregar</span>
-                        </Button>
-                      </div>
-                      <Select 
-                        value={selectedLabel} 
-                        onValueChange={setSelectedLabel}
-                        disabled={labels.length === 0}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={labels.length === 0 ? "Clique em 'Carregar' para ver etiquetas" : "Selecione uma etiqueta"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">
-                            <span className="flex items-center gap-2">
-                              <span className="w-3 h-3 rounded-full bg-muted-foreground/30" />
-                              Tudo (Todas as conversas)
-                            </span>
-                          </SelectItem>
-                          {labels.map((label) => (
-                            <SelectItem key={label.id} value={label.id}>
-                              <span className="flex items-center gap-2">
-                                <span 
-                                  className="w-3 h-3 rounded-full" 
-                                  style={{ 
-                                    backgroundColor: getLabelColor(label.color) 
-                                  }} 
-                                />
-                                {label.name}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {labels.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {labels.length} etiqueta{labels.length !== 1 ? 's' : ''} encontrada{labels.length !== 1 ? 's' : ''}
-                        </p>
-                      )}
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        <strong>Nota:</strong> A Evolution API não suporta filtro por etiqueta. Todas as conversas serão extraídas.
+                      </p>
                     </div>
                     
                     <Button 
-                      onClick={() => fetchChats(selectedLabel)} 
+                      onClick={() => fetchChats()} 
                       className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
                       disabled={isLoadingChats || !selectedInstance}
                     >
