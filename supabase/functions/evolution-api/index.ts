@@ -27,7 +27,22 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    const { action, instanceName, data, userId } = await req.json();
+    // Parse request body safely
+    let action = '', instanceName = '', data: any = null, userId = '';
+    try {
+      const body = await req.json();
+      action = body.action || '';
+      instanceName = body.instanceName || '';
+      data = body.data || null;
+      userId = body.userId || '';
+    } catch (parseError) {
+      console.error("[Evolution API] Error parsing request body:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Corpo da requisição inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     console.log(`[Evolution API] Action: ${action}, Instance: ${instanceName || 'N/A'}, UserId: ${userId || 'N/A'}`);
 
     const baseUrl = EVOLUTION_API_URL.replace(/\/$/, '');
