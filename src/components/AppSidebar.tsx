@@ -190,7 +190,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Sistema - fixo no rodapé */}
-      <SidebarFooter className="px-2 pb-6">
+      <SidebarFooter className="px-2 py-4 flex items-center justify-center">
         <SidebarMenu>
           {systemItems.map((item) => (
             <SidebarMenuItem key={item.title}>
