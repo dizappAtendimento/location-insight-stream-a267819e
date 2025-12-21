@@ -32,13 +32,15 @@ const Index = () => {
   const { addRecord } = useExtractionHistory();
   const lastResultsRef = useRef<string | null>(null);
   const [planLimit, setPlanLimit] = useState<number | null>(null);
+  const [usedCount, setUsedCount] = useState<number>(0);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
-  // Fetch plan limits - check both regular plan and extrator plan
+  // Fetch plan limits and usage - check both regular plan and extrator plan
   useEffect(() => {
-    const fetchPlanLimit = async () => {
-      if (!user?.planoId && !user?.planoExtratorId) {
+    const fetchPlanData = async () => {
+      if (!user?.id) {
         setPlanLimit(0);
+        setUsedCount(0);
         setIsLoadingPlan(false);
         return;
       }
@@ -72,17 +74,30 @@ const Index = () => {
           }
         }
 
+        // Get usage count this month
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+
+        const { count } = await supabase
+          .from('search_jobs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', monthStart.toISOString());
+
         setPlanLimit(limit);
+        setUsedCount(count || 0);
       } catch (err) {
         console.error('Error:', err);
         setPlanLimit(0);
+        setUsedCount(0);
       } finally {
         setIsLoadingPlan(false);
       }
     };
 
-    fetchPlanLimit();
-  }, [user?.planoId, user?.planoExtratorId]);
+    fetchPlanData();
+  }, [user?.id, user?.planoId, user?.planoExtratorId]);
 
   // Track completed jobs in history
   useEffect(() => {
@@ -112,7 +127,8 @@ const Index = () => {
   }, [activeJob, addRecord]);
 
   const isJobActive = activeJob && (activeJob.status === 'running' || activeJob.status === 'pending');
-  const hasPlacesQuota = planLimit !== null && planLimit > 0;
+  // Allow extraction if limit > 0 AND used < limit
+  const hasPlacesQuota = planLimit !== null && planLimit > 0 && usedCount < planLimit;
 
   return (
     <DashboardLayout>
@@ -123,12 +139,27 @@ const Index = () => {
           <p className="text-muted-foreground text-xs sm:text-sm">Encontre empresas e estabelecimentos</p>
         </div>
 
-        {/* No quota warning */}
-        {!isLoadingPlan && !hasPlacesQuota && (
+        {/* No quota warning - differentiate between no limit and limit reached */}
+        {!isLoadingPlan && planLimit === 0 && (
           <Alert variant="destructive" className="opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
               <span>Seu plano não inclui extrações do Google Places.</span>
+              <Link to="/configuracoes?tab=planos">
+                <Button variant="outline" size="sm" className="ml-4">
+                  Fazer Upgrade
+                </Button>
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Limit reached warning */}
+        {!isLoadingPlan && planLimit !== null && planLimit > 0 && usedCount >= planLimit && (
+          <Alert variant="destructive" className="opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Você atingiu o limite de extrações do Google Places ({usedCount}/{planLimit}).</span>
               <Link to="/configuracoes?tab=planos">
                 <Button variant="outline" size="sm" className="ml-4">
                   Fazer Upgrade
@@ -157,9 +188,13 @@ const Index = () => {
               </div>
             ) : hasPlacesQuota ? (
               <SearchForm onSearch={createJob} isLoading={isLoading} />
-            ) : (
+            ) : planLimit === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p>Faça upgrade do seu plano para usar o extrator de Google Places.</p>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Você atingiu o limite de extrações este mês ({usedCount}/{planLimit}).</p>
               </div>
             )}
           </CardContent>
