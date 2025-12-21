@@ -710,6 +710,34 @@ Não use hashtags ou emojis em excesso.`
         }
       }
 
+      case 'update-connection-crm': {
+        // Atualiza o status do CRM de uma conexão no banco
+        if (!userId || !disparoData?.connectionId) {
+          return new Response(
+            JSON.stringify({ error: 'userId and connectionId are required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error } = await supabase
+          .from('SAAS_Conexões')
+          .update({ crmAtivo: disparoData.crmAtivo })
+          .eq('id', disparoData.connectionId)
+          .eq('idUsuario', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error updating connection CRM status:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Updated crmAtivo=${disparoData.crmAtivo} for connection ${disparoData.connectionId}`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),

@@ -115,30 +115,15 @@ const ConexoesPage = () => {
       
       const status = data?.state === 'open' ? 'open' : 'close';
       
-      // Also check CRM webhook status
-      let crmAtivo = false;
-      if (status === 'open') {
-        try {
-          const { data: webhookData } = await supabase.functions.invoke('evolution-api', {
-            body: { 
-              action: 'check-crm-webhook', 
-              instanceName: connection.instanceName,
-              apikey: connection.Apikey
-            }
-          });
-          crmAtivo = webhookData?.crmAtivo || false;
-        } catch (e) {
-          console.error('Error checking CRM webhook:', e);
-        }
-      }
-      
+      // Use crmAtivo from database (already loaded with connection data)
+      // No need to check webhook status from API
       setConnections(prev => prev.map(c => 
-        c.id === connection.id ? { ...c, status, crmAtivo } : c
+        c.id === connection.id ? { ...c, status } : c
       ));
     } catch (error) {
       console.error('Error checking status:', error);
       setConnections(prev => prev.map(c => 
-        c.id === connection.id ? { ...c, status: 'close', crmAtivo: false } : c
+        c.id === connection.id ? { ...c, status: 'close' } : c
       ));
     } finally {
       setCheckingStatus(prev => ({ ...prev, [connection.id]: false }));
@@ -436,10 +421,12 @@ const ConexoesPage = () => {
     if (!user?.id || !connection.instanceName) return;
     
     const isCurrentlyActive = connection.crmAtivo;
+    const newCrmStatus = !isCurrentlyActive;
     setActivatingCrm(prev => ({ ...prev, [connection.id]: true }));
     
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
+      // 1. Configure/remove webhook on Evolution API
+      const { error: webhookError } = await supabase.functions.invoke('evolution-api', {
         body: { 
           action: isCurrentlyActive ? 'remove-crm-webhook' : 'setup-crm-webhook', 
           instanceName: connection.instanceName,
@@ -447,11 +434,25 @@ const ConexoesPage = () => {
         }
       });
 
-      if (error) throw error;
+      if (webhookError) throw webhookError;
+      
+      // 2. Save status to database
+      const { error: dbError } = await supabase.functions.invoke('disparos-api', {
+        body: { 
+          action: 'update-connection-crm',
+          userId: user.id,
+          disparoData: {
+            connectionId: connection.id,
+            crmAtivo: newCrmStatus
+          }
+        }
+      });
+
+      if (dbError) throw dbError;
       
       // Update local state
       setConnections(prev => prev.map(c => 
-        c.id === connection.id ? { ...c, crmAtivo: !isCurrentlyActive } : c
+        c.id === connection.id ? { ...c, crmAtivo: newCrmStatus } : c
       ));
       
       toast({
