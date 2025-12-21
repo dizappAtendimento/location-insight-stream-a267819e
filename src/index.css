@@ -5,14 +5,14 @@
 @layer base {
   :root {
     /* Light theme - refined with better contrast */
-    --background: 240 10% 96%;
+    --background: 0 0% 100%;
     --foreground: 240 10% 10%;
-    --card: 0 0% 100%;
+    --card: 240 10% 96%;
     --card-foreground: 240 10% 10%;
-    --popover: 0 0% 100%;
+    --popover: 240 10% 96%;
     --popover-foreground: 240 10% 10%;
     --primary: 263 70% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 240 10% 96%;
     --secondary: 240 8% 92%;
     --secondary-foreground: 240 10% 15%;
     --muted: 240 8% 94%;
@@ -20,7 +20,7 @@
     --accent: 263 50% 95%;
     --accent-foreground: 263 70% 40%;
     --destructive: 0 72% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 240 10% 96%;
     --border: 240 10% 85%;
     --input: 240 10% 88%;
     --ring: 263 70% 50%;
@@ -28,7 +28,7 @@
     
     /* Highlight/Accent purple color */
     --highlight: 263 70% 50%;
-    --highlight-foreground: 0 0% 100%;
+    --highlight-foreground: 240 10% 96%;
     
     /* Platform brand colors - Light (more saturated for visibility) */
     --instagram: 328 80% 50%;
@@ -41,10 +41,10 @@
     --places-glow: 150 70% 48%;
     
     /* Sidebar - Light */
-    --sidebar-background: 240 10% 98%;
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 10% 15%;
     --sidebar-primary: 263 70% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary-foreground: 240 10% 96%;
     --sidebar-accent: 263 50% 95%;
     --sidebar-accent-foreground: 263 70% 40%;
     --sidebar-border: 240 10% 88%;
