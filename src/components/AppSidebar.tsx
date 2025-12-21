@@ -10,7 +10,7 @@ import {
   Flame,
   Instagram,
   Linkedin,
-  Navigation,
+  Map,
   Settings,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -72,7 +72,7 @@ const extractorItems = [
   { 
     title: 'Google Places', 
     url: '/places', 
-    icon: Navigation,
+    icon: Map,
     ringColor: 'ring-cyan-500',
     iconColor: 'text-cyan-500',
     hoverRing: 'group-hover/link:ring-cyan-400',
