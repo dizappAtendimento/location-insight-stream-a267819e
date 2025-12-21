@@ -4,58 +4,58 @@
 
 @layer base {
   :root {
-    /* Light theme - clean minimal with dark accent #0d0f17 */
-    --background: 210 20% 98%;
-    --foreground: 225 30% 7%;
+    /* Light theme - refined with better contrast */
+    --background: 240 10% 96%;
+    --foreground: 240 10% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 225 30% 7%;
+    --card-foreground: 240 10% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 225 30% 7%;
-    --primary: 225 30% 7%;
+    --popover-foreground: 240 10% 10%;
+    --primary: 263 70% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 15% 93%;
-    --secondary-foreground: 225 30% 7%;
-    --muted: 210 15% 96%;
-    --muted-foreground: 215 15% 45%;
-    --accent: 225 20% 95%;
-    --accent-foreground: 225 30% 7%;
-    --destructive: 0 72% 55%;
+    --secondary: 240 8% 92%;
+    --secondary-foreground: 240 10% 15%;
+    --muted: 240 8% 94%;
+    --muted-foreground: 240 8% 40%;
+    --accent: 263 50% 95%;
+    --accent-foreground: 263 70% 40%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 15% 90%;
-    --input: 210 15% 90%;
-    --ring: 225 30% 7%;
+    --border: 240 10% 85%;
+    --input: 240 10% 88%;
+    --ring: 263 70% 50%;
     --radius: 0.75rem;
     
     /* Highlight/Accent purple color */
     --highlight: 263 70% 50%;
     --highlight-foreground: 0 0% 100%;
     
-    /* Platform brand colors - Light */
-    --instagram: 328 85% 60%;
-    --instagram-glow: 328 85% 70%;
-    --linkedin: 201 100% 45%;
-    --linkedin-glow: 201 100% 55%;
-    --whatsapp: 142 70% 45%;
-    --whatsapp-glow: 142 70% 55%;
-    --places: 150 80% 45%;
-    --places-glow: 150 80% 55%;
+    /* Platform brand colors - Light (more saturated for visibility) */
+    --instagram: 328 80% 50%;
+    --instagram-glow: 328 80% 60%;
+    --linkedin: 201 90% 40%;
+    --linkedin-glow: 201 90% 50%;
+    --whatsapp: 142 65% 38%;
+    --whatsapp-glow: 142 65% 48%;
+    --places: 150 70% 38%;
+    --places-glow: 150 70% 48%;
     
     /* Sidebar - Light */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 225 30% 7%;
-    --sidebar-primary: 225 30% 7%;
+    --sidebar-background: 240 10% 98%;
+    --sidebar-foreground: 240 10% 15%;
+    --sidebar-primary: 263 70% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 20% 95%;
-    --sidebar-accent-foreground: 225 30% 7%;
-    --sidebar-border: 210 15% 90%;
-    --sidebar-ring: 225 30% 7%;
+    --sidebar-accent: 263 50% 95%;
+    --sidebar-accent-foreground: 263 70% 40%;
+    --sidebar-border: 240 10% 88%;
+    --sidebar-ring: 263 70% 50%;
 
     /* Success / Info colors - Light */
-    --success: 225 30% 7%;
+    --success: 142 65% 38%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 38 92% 45%;
     --warning-foreground: 0 0% 0%;
-    --info: 225 30% 7%;
+    --info: 201 90% 40%;
     --info-foreground: 0 0% 100%;
   }
 
