@@ -666,9 +666,37 @@ export default function DisparosPage() {
                           <div key={i} className="flex justify-end">
                             <div className="bg-[#dcf8c6] p-2 px-3 rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
                               {m.media && (
-                                <div className="bg-black/10 p-2 rounded mb-2 text-xs">📎 Mídia anexada</div>
+                                m.media.type === 'image' ? (
+                                  <img 
+                                    src={m.media.link} 
+                                    alt="Mídia" 
+                                    className="rounded-lg mb-2 max-w-full h-auto max-h-32 object-cover"
+                                  />
+                                ) : m.media.type === 'video' ? (
+                                  <div className="bg-black/20 p-3 rounded-lg mb-2 flex items-center gap-2">
+                                    <div className="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center">
+                                      <div className="w-0 h-0 border-l-[8px] border-l-white border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent ml-1" />
+                                    </div>
+                                    <span className="text-xs text-black/60">{m.media.filename}</span>
+                                  </div>
+                                ) : m.media.type === 'audio' ? (
+                                  <div className="bg-[#c8e6c9] p-2 rounded-lg mb-2 flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-[#075e54] flex items-center justify-center">
+                                      <div className="w-0 h-0 border-l-[6px] border-l-white border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ml-0.5" />
+                                    </div>
+                                    <div className="flex-1 h-1.5 bg-[#075e54]/30 rounded-full">
+                                      <div className="w-1/3 h-full bg-[#075e54] rounded-full" />
+                                    </div>
+                                    <span className="text-[10px] text-black/50">0:00</span>
+                                  </div>
+                                ) : (
+                                  <div className="bg-white/50 p-2 rounded-lg mb-2 flex items-center gap-2">
+                                    <div className="text-2xl">📄</div>
+                                    <span className="text-xs text-black/70 truncate">{m.media.filename}</span>
+                                  </div>
+                                )
                               )}
-                              <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                              {m.text && <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{m.text}</p>}
                               <div className="text-right text-[10px] text-black/40 mt-1">
                                 {new Date().toLocaleTimeString().slice(0, 5)} ✓✓
                               </div>
