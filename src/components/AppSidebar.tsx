@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Headphones,
+  CreditCard,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,6 +58,7 @@ const extractorItems = [
   { title: 'Google Places', url: '/places', icon: MapPin, colorClass: 'text-places' },
   { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, colorClass: 'text-whatsapp' },
   { title: 'Suporte', url: 'https://api.whatsapp.com/send/?phone=5561992557146&text&type=phone_number&app_absent=0', icon: Headphones, colorClass: 'text-emerald-400', external: true },
+  { title: 'Planos', url: '/configuracoes', icon: CreditCard, colorClass: 'text-amber-400' },
 ];
 
 const systemItems = [
