@@ -30,6 +30,16 @@ Deno.serve(async (req) => {
 
     // Formato Evolution API
     if (body.data?.key?.remoteJid) {
+      // IMPORTANTE: Ignorar mensagens ENVIADAS (fromMe: true)
+      // Só processar mensagens RECEBIDAS de clientes
+      if (body.data.key.fromMe === true) {
+        console.log('Mensagem enviada (fromMe: true), ignorando para CRM');
+        return new Response(
+          JSON.stringify({ success: true, message: 'Mensagem enviada ignorada' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Se o remoteJid termina com @lid, usar remoteJidAlt que contém o telefone real
       const remoteJid = body.data.key.remoteJid;
       if (remoteJid.endsWith('@lid') && body.data.key.remoteJidAlt) {
