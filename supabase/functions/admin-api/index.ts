@@ -42,6 +42,39 @@ serve(async (req) => {
         );
       }
 
+      case 'check-admin-self': {
+        // Check admin based on email from SAAS_Usuarios login
+        const { email } = body;
+        
+        if (!email) {
+          return new Response(
+            JSON.stringify({ isAdmin: false }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Find user by email
+        const { data: userToCheck } = await supabase
+          .from('SAAS_Usuarios')
+          .select('id')
+          .eq('Email', email)
+          .single();
+
+        if (!userToCheck) {
+          return new Response(
+            JSON.stringify({ isAdmin: false }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if admin
+        const isAdminSelf = await checkAdmin(userToCheck.id);
+        return new Response(
+          JSON.stringify({ isAdmin: isAdminSelf }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'get-stats': {
         // Get total users
         const { count: totalUsers } = await supabase
