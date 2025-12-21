@@ -1025,6 +1025,82 @@ serve(async (req) => {
         );
       }
 
+      case 'get-configuracoes': {
+        const { data: configuracoes, error } = await supabase
+          .from('SAAS_Configuracoes')
+          .select('*')
+          .order('categoria', { ascending: true });
+
+        if (error) {
+          console.error('[Admin API] Error fetching configurations:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao buscar configurações' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Fetched ${configuracoes?.length || 0} configurations`);
+
+        return new Response(
+          JSON.stringify({ configuracoes }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'update-configuracao': {
+        const { chave, valor } = body;
+
+        if (!chave) {
+          return new Response(
+            JSON.stringify({ error: 'Chave é obrigatória' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error } = await supabase
+          .from('SAAS_Configuracoes')
+          .update({ valor, updated_at: new Date().toISOString() })
+          .eq('chave', chave);
+
+        if (error) {
+          console.error('[Admin API] Error updating configuration:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao atualizar configuração' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Configuration ${chave} updated`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'get-configuracao': {
+        const { chave } = body;
+
+        const { data, error } = await supabase
+          .from('SAAS_Configuracoes')
+          .select('valor')
+          .eq('chave', chave)
+          .maybeSingle();
+
+        if (error) {
+          console.error('[Admin API] Error fetching configuration:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao buscar configuração' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ valor: data?.valor || null }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Ação inválida' }),

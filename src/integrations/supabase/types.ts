@@ -107,6 +107,39 @@ export type Database = {
           },
         ]
       }
+      saas_configuracoes: {
+        Row: {
+          categoria: string | null
+          chave: string
+          created_at: string
+          descricao: string | null
+          id: number
+          tipo: string | null
+          updated_at: string
+          valor: string | null
+        }
+        Insert: {
+          categoria?: string | null
+          chave: string
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          tipo?: string | null
+          updated_at?: string
+          valor?: string | null
+        }
+        Update: {
+          categoria?: string | null
+          chave?: string
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          tipo?: string | null
+          updated_at?: string
+          valor?: string | null
+        }
+        Relationships: []
+      }
       SAAS_Contatos: {
         Row: {
           atributos: Json
