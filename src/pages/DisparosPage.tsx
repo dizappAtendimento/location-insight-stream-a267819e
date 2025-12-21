@@ -29,6 +29,7 @@ interface Connection {
   instance: string;
   apikey: string;
   isConnected: boolean;
+  photo?: string;
 }
 
 interface Lista {
@@ -100,7 +101,8 @@ export default function DisparosPage() {
         name: c.NomeConexao || c.name,
         instance: c.instanceName || c.instance_name,
         apikey: c.Apikey || c.apikey,
-        isConnected: true
+        isConnected: true,
+        photo: c.FotoPerfil || c.fotoPerfil || null
       }));
       setConnections(mapped);
     } catch (e) {
@@ -344,9 +346,17 @@ export default function DisparosPage() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
-                          {conn.name.charAt(0)}
-                        </div>
+                        {conn.photo ? (
+                          <img 
+                            src={conn.photo} 
+                            alt={conn.name}
+                            className="w-11 h-11 rounded-full object-cover border-2 border-primary/20"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-primary font-semibold border border-primary/20">
+                            {conn.name.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="font-medium text-foreground">{conn.name}</p>
                           <p className="text-xs text-muted-foreground">{conn.instance}</p>
@@ -630,50 +640,69 @@ export default function DisparosPage() {
             </Button>
           </div>
 
-          {/* Phone Preview */}
+          {/* iPhone Preview */}
           <div className="hidden lg:block">
             <div className="sticky top-6">
-              <div className="bg-black rounded-[35px] p-4 border-4 border-zinc-800 shadow-2xl">
-                {/* Notch */}
-                <div className="w-24 h-6 bg-black rounded-full mx-auto mb-2" />
+              {/* iPhone Frame */}
+              <div className="relative bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-[55px] p-3 shadow-2xl shadow-black/50 border border-zinc-700">
+                {/* Dynamic Island */}
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-8 bg-black rounded-full z-20 flex items-center justify-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-zinc-800" />
+                  <div className="w-2 h-2 rounded-full bg-zinc-700" />
+                </div>
                 
-                <div className="bg-[#e5ddd5] rounded-[25px] overflow-hidden h-[600px] flex flex-col">
-                  {/* Header WhatsApp */}
-                  <div className="bg-[#075e54] h-16 px-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-300" />
-                    <div>
-                      <div className="text-white font-medium">Contato</div>
-                      <div className="text-white/70 text-xs">online</div>
+                {/* Screen */}
+                <div className="bg-[#111b21] rounded-[45px] overflow-hidden h-[580px] flex flex-col">
+                  {/* WhatsApp Header */}
+                  <div className="bg-[#202c33] pt-12 pb-3 px-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#2a3942] flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-[#00a884]/30" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white font-medium text-sm">Contato</div>
+                      <div className="text-[#8696a0] text-xs">online</div>
                     </div>
                   </div>
                   
                   {/* Chat Area */}
-                  <div className="flex-1 p-4 overflow-y-auto space-y-2">
+                  <div className="flex-1 bg-[#0b141a] p-3 overflow-y-auto space-y-2" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M30 5 L35 15 L30 25 L25 15 Z\' fill=\'%23182229\' fill-opacity=\'0.3\'/%3E%3C/svg%3E")' }}>
                     {messages[0]?.text || messages[0]?.media ? (
                       messages.map((m, i) => (
-                        <div key={i} className="bg-[#dcf8c6] p-2 rounded-lg max-w-[80%] ml-auto shadow-sm">
-                          {m.media && (
-                            <div className="bg-black/10 p-2 rounded mb-2 text-xs">📎 Mídia</div>
-                          )}
-                          <p className="text-sm text-black whitespace-pre-wrap">{m.text}</p>
-                          <div className="text-right text-[10px] text-gray-500 mt-1">
-                            {new Date().toLocaleTimeString().slice(0, 5)} ✓✓
+                        <div key={i} className="flex justify-end">
+                          <div className="bg-[#005c4b] p-2.5 rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
+                            {m.media && (
+                              <div className="bg-black/20 p-2 rounded mb-2 text-xs text-white/70">📎 Mídia anexada</div>
+                            )}
+                            <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                            <div className="text-right text-[10px] text-white/50 mt-1 flex items-center justify-end gap-1">
+                              {new Date().toLocaleTimeString().slice(0, 5)}
+                              <span className="text-[#53bdeb]">✓✓</span>
+                            </div>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center text-gray-500 mt-20 text-sm">
-                        Preview da mensagem
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-[#8696a0] text-sm bg-[#182229] px-4 py-2 rounded-full">
+                          Preview da mensagem
+                        </div>
                       </div>
                     )}
                   </div>
                   
                   {/* Input Bar */}
-                  <div className="bg-[#f0f0f0] h-14 px-4 flex items-center gap-3">
-                    <div className="flex-1 bg-white rounded-full h-10" />
-                    <div className="w-10 h-10 rounded-full bg-[#075e54]" />
+                  <div className="bg-[#202c33] h-14 px-3 flex items-center gap-2">
+                    <div className="flex-1 bg-[#2a3942] rounded-full h-10 px-4 flex items-center">
+                      <span className="text-[#8696a0] text-sm">Mensagem</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center">
+                      <Send className="w-5 h-5 text-[#111b21]" />
+                    </div>
                   </div>
                 </div>
+                
+                {/* Home Indicator */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full" />
               </div>
             </div>
           </div>
