@@ -453,15 +453,18 @@ serve(async (req) => {
         
         const webhookUrl = `${SUPABASE_URL}/functions/v1/label-webhook`;
         
-        // Configura webhook na Evolution API
+        // Configura webhook na Evolution API - estrutura correta com propriedade "webhook"
         const webhookConfig = {
-          url: webhookUrl,
-          webhook_by_events: true,
-          webhook_base64: false,
-          events: [
-            "LABELS_EDIT",
-            "LABELS_ASSOCIATION"
-          ]
+          webhook: {
+            enabled: true,
+            url: webhookUrl,
+            webhookByEvents: true,
+            webhookBase64: false,
+            events: [
+              "LABELS_EDIT",
+              "LABELS_ASSOCIATION"
+            ]
+          }
         };
         
         response = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
