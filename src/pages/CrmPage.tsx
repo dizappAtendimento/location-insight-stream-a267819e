@@ -853,6 +853,21 @@ const CrmPage = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button 
+                    onClick={() => {
+                      if (!selectedLead.telefone) {
+                        toast({ title: "Telefone não disponível", variant: "destructive" });
+                        return;
+                      }
+                      const cleanPhone = selectedLead.telefone.replace(/\D/g, '');
+                      window.open(`https://wa.me/${cleanPhone}`, '_blank');
+                    }} 
+                    variant="outline" 
+                    className="text-green-500 hover:text-green-600 hover:bg-green-500/10 border-green-500/30"
+                  >
+                    <WhatsAppIcon size={18} className="mr-2" />
+                    WhatsApp
+                  </Button>
                   <Button onClick={saveLeadChanges} className="flex-1">
                     <Save className="w-4 h-4 mr-2" />
                     Salvar
