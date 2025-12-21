@@ -69,21 +69,10 @@ serve(async (req) => {
       );
     }
 
-    const statusEx = user['Status Ex'];
-    console.log(`[Login] Status Ex value for ${email}:`, statusEx);
-    
-    // Block if Status Ex is null or false (only allow if explicitly true)
-    if (statusEx !== true) {
-      console.log(`[Login] Account disabled or not activated: ${email}`);
-      return new Response(
-        JSON.stringify({ error: 'Acesso negado' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     console.log(`[Login] Success for: ${email}`);
 
     // Return user data without password
+    // Allow login regardless of plan status - the frontend will redirect to contratar page if no plan
     return new Response(
       JSON.stringify({
         user: {
