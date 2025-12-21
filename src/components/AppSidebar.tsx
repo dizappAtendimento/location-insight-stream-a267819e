@@ -61,9 +61,6 @@ const extractorItems = [
   { title: 'Planos', url: '/configuracoes?tab=planos', icon: CreditCard, colorClass: 'text-amber-400' },
 ];
 
-const systemItems = [
-  { title: 'Configurações', url: '/configuracoes', icon: Settings },
-];
 
 
 export function AppSidebar() {
@@ -219,38 +216,36 @@ export function AppSidebar() {
       {/* Sistema - fixo no rodapé */}
       <SidebarFooter className="px-2 py-4 space-y-1">
         <SidebarMenu>
-          {systemItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive(item.url)}
-                tooltip={item.title}
-                className="p-0 h-auto"
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive('/configuracoes')}
+              tooltip={user?.nome || 'Configurações'}
+              className="p-0 h-auto"
+            >
+              <Link 
+                to="/configuracoes" 
+                className={cn(
+                  "group/link flex items-center gap-3 rounded-xl transition-all duration-300 ease-out",
+                  collapsed 
+                    ? "justify-center p-3 w-10 h-10" 
+                    : "px-3 py-3 w-full",
+                  isActive('/configuracoes') 
+                    ? "bg-primary/20 text-primary shadow-lg shadow-primary/20 border border-primary/30" 
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                )}
               >
-                <Link 
-                  to={item.url} 
+                <Settings 
                   className={cn(
-                    "group/link flex items-center gap-3 rounded-xl transition-all duration-300 ease-out",
-                    collapsed 
-                      ? "justify-center p-3 w-10 h-10" 
-                      : "px-3 py-3 w-full",
-                    isActive(item.url) 
-                      ? "bg-primary/20 text-primary shadow-lg shadow-primary/20 border border-primary/30" 
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                  )}
-                >
-                  <item.icon 
-                    className={cn(
-                      "shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
-                      collapsed ? "w-5 h-5" : "w-5 h-5"
-                    )} 
-                    strokeWidth={2} 
-                  />
-                  {!collapsed && <span className="text-sm font-semibold">{item.title}</span>}
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+                    "shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
+                    collapsed ? "w-5 h-5" : "w-5 h-5"
+                  )} 
+                  strokeWidth={2} 
+                />
+                {!collapsed && <span className="text-sm font-semibold">{user?.nome || 'Configurações'}</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
