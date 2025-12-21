@@ -328,7 +328,7 @@ serve(async (req) => {
           );
         }
         
-        // 2. Busca todos os chats
+        // 2. Busca todos os chats com todas as informações possíveis
         const chatsResponse = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
           method: "POST",
           headers,
@@ -345,81 +345,84 @@ serve(async (req) => {
         }
         console.log(`[Evolution API] Found ${allChats.length} chats`);
         
-        // 3. Para cada label, busca os chats associados via endpoint específico
+        // Log sample chat para debug da estrutura
+        if (allChats.length > 0) {
+          const sampleChat = allChats[0];
+          console.log(`[Evolution API] Sample chat structure: ${JSON.stringify(Object.keys(sampleChat))}`);
+          // Verifica se tem labels
+          if (sampleChat.labels) {
+            console.log(`[Evolution API] Chat has labels field: ${JSON.stringify(sampleChat.labels)}`);
+          }
+          if (sampleChat.labelIds) {
+            console.log(`[Evolution API] Chat has labelIds field: ${JSON.stringify(sampleChat.labelIds)}`);
+          }
+        }
+        
+        // Cria um mapa de labels por ID para referência rápida
+        const labelsMap = new Map<string, any>();
+        for (const label of allLabels) {
+          labelsMap.set(String(label.id), label);
+        }
+        
+        // 3. Itera pelos chats e busca quais têm labels associadas
         let totalSynced = 0;
         const syncErrors: string[] = [];
         
-        for (const label of allLabels) {
+        for (const chat of allChats) {
           try {
-            // Tenta buscar chats por label usando o endpoint findChatsByLabel
-            const labelChatsResponse = await fetch(`${baseUrl}/label/fetchLabels/${instanceName}`, {
-              method: "GET",
-              headers,
-            });
+            const remoteJid = chat.remoteJid || chat.id;
+            if (!remoteJid) continue;
             
-            let labelChats: any[] = [];
+            // Verifica diferentes estruturas possíveis de labels no chat
+            let chatLabels: any[] = [];
             
-            if (labelChatsResponse.ok) {
-              const labelData = await labelChatsResponse.json();
-              // Procura pelos chats associados a esta label específica
-              if (Array.isArray(labelData)) {
-                const targetLabel = labelData.find((l: any) => l.id === label.id);
-                if (targetLabel) {
-                  // Verifica estruturas possíveis de associação
-                  if (targetLabel.chats && Array.isArray(targetLabel.chats)) {
-                    labelChats = targetLabel.chats;
-                  } else if (targetLabel.associations && Array.isArray(targetLabel.associations)) {
-                    labelChats = targetLabel.associations;
-                  } else if (targetLabel.labelAssociations && Array.isArray(targetLabel.labelAssociations)) {
-                    labelChats = targetLabel.labelAssociations;
-                  }
-                }
-              }
+            if (chat.labels && Array.isArray(chat.labels)) {
+              chatLabels = chat.labels;
+            } else if (chat.labelIds && Array.isArray(chat.labelIds)) {
+              chatLabels = chat.labelIds.map((id: string | number) => ({ id: String(id) }));
+            } else if (chat.label) {
+              chatLabels = [chat.label];
             }
             
-            // Também tenta o endpoint alternativo
-            if (labelChats.length === 0) {
+            // Se não encontrou labels no chat, tenta buscar via endpoint específico
+            if (chatLabels.length === 0) {
               try {
-                const altResponse = await fetch(`${baseUrl}/label/findLabels/${instanceName}`, {
+                const chatLabelResponse = await fetch(`${baseUrl}/label/findLabels/${instanceName}`, {
                   method: "POST",
                   headers,
-                  body: JSON.stringify({ labelId: label.id }),
+                  body: JSON.stringify({ remoteJid: remoteJid }),
                 });
                 
-                if (altResponse.ok) {
-                  const altData = await altResponse.json();
-                  if (Array.isArray(altData) && altData.length > 0) {
-                    labelChats = altData;
-                  } else if (altData?.chats && Array.isArray(altData.chats)) {
-                    labelChats = altData.chats;
+                if (chatLabelResponse.ok) {
+                  const chatLabelData = await chatLabelResponse.json();
+                  if (Array.isArray(chatLabelData)) {
+                    chatLabels = chatLabelData;
                   }
                 }
               } catch (e) {
-                console.log(`[Evolution API] Alt endpoint failed for label ${label.id}`);
+                // Ignora erro, chat pode não ter labels
               }
             }
             
-            console.log(`[Evolution API] Label ${label.id} (${label.name}): found ${labelChats.length} associations`);
-            
-            // Para cada chat associado à label, salva no banco
-            for (const chatAssoc of labelChats) {
-              const remoteJid = chatAssoc.remoteJid || chatAssoc.chatId || chatAssoc;
-              if (!remoteJid || typeof remoteJid !== 'string') continue;
+            // Salva cada label associada ao chat
+            for (const labelInfo of chatLabels) {
+              const labelId = String(labelInfo.id || labelInfo.labelId || labelInfo);
+              const label = labelsMap.get(labelId) || { name: labelInfo.name, color: labelInfo.color };
               
-              // Busca o nome do chat se disponível
-              const chatInfo = allChats.find((c: any) => c.remoteJid === remoteJid || c.id === remoteJid);
-              const chatName = chatInfo?.pushName || chatInfo?.name || remoteJid.split('@')[0];
+              if (!label) continue;
               
-              // Upsert no banco (insere ou atualiza se já existir)
+              const chatName = chat.pushName || chat.name || chat.verifiedName || remoteJid.split('@')[0];
+              
+              // Upsert no banco
               const { error: upsertError } = await supabase
                 .from('SAAS_Chat_Labels')
                 .upsert({
                   idUsuario: userId,
                   idConexao: idConexao,
                   instanceName: instanceName,
-                  labelId: String(label.id),
-                  labelName: label.name,
-                  labelColor: label.color,
+                  labelId: labelId,
+                  labelName: label.name || labelInfo.name,
+                  labelColor: label.color || labelInfo.color,
                   remoteJid: remoteJid,
                   chatName: chatName,
                   updated_at: new Date().toISOString(),
@@ -429,16 +432,16 @@ serve(async (req) => {
                 });
               
               if (upsertError) {
-                // Se falhar por constraint, tenta insert normal (pode ser constraint diferente)
+                // Tenta insert se upsert falhar
                 const { error: insertError } = await supabase
                   .from('SAAS_Chat_Labels')
                   .insert({
                     idUsuario: userId,
                     idConexao: idConexao,
                     instanceName: instanceName,
-                    labelId: String(label.id),
-                    labelName: label.name,
-                    labelColor: label.color,
+                    labelId: labelId,
+                    labelName: label.name || labelInfo.name,
+                    labelColor: label.color || labelInfo.color,
                     remoteJid: remoteJid,
                     chatName: chatName,
                   });
@@ -450,20 +453,20 @@ serve(async (req) => {
                 totalSynced++;
               }
             }
-          } catch (labelError) {
-            console.error(`[Evolution API] Error syncing label ${label.id}:`, labelError);
-            syncErrors.push(`Label ${label.name}: ${labelError instanceof Error ? labelError.message : 'Erro desconhecido'}`);
+          } catch (chatError) {
+            console.error(`[Evolution API] Error processing chat:`, chatError);
           }
         }
         
-        console.log(`[Evolution API] Sync complete: ${totalSynced} chat-labels synced`);
+        console.log(`[Evolution API] Sync complete: ${totalSynced} chat-labels synced from ${allChats.length} chats`);
         
         return new Response(
           JSON.stringify({ 
             synced: totalSynced, 
             labels: allLabels.length,
+            chats: allChats.length,
             errors: syncErrors.length > 0 ? syncErrors : undefined,
-            message: `${totalSynced} associações sincronizadas de ${allLabels.length} etiquetas`
+            message: `${totalSynced} associações sincronizadas de ${allChats.length} chats`
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
