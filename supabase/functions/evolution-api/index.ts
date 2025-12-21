@@ -292,10 +292,10 @@ serve(async (req) => {
 
       case "status":
         // Busca status de uma instância específica usando apikey própria
-        const { apikey } = await req.json().catch(() => ({}));
+        const customApikey = data?.apikey;
         const statusHeaders = {
           "Content-Type": "application/json",
-          "apikey": apikey || EVOLUTION_API_KEY,
+          "apikey": customApikey || EVOLUTION_API_KEY,
         };
         response = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
           method: "GET",
