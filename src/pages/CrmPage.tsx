@@ -87,8 +87,16 @@ const CrmPage = () => {
   const [columnTitle, setColumnTitle] = useState('');
   const [isAddingLead, setIsAddingLead] = useState(false);
   const [newLead, setNewLead] = useState({ nome: '', telefone: '', valor: 0, mensagem: '' });
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('crm-sound-enabled');
+    return saved !== null ? saved === 'true' : true;
+  });
   const initialLoadDone = useRef(false);
+
+  // Salvar preferência de som no localStorage
+  useEffect(() => {
+    localStorage.setItem('crm-sound-enabled', String(soundEnabled));
+  }, [soundEnabled]);
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
