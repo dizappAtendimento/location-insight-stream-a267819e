@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search, Smartphone, List, Filter, Download, LayoutGrid, LayoutList } from 'lucide-react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search, Smartphone, List, Filter, Download, LayoutGrid, LayoutList, Bell } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -217,6 +217,46 @@ const playSuccessSound = () => {
   }
 };
 
+// Notificações push do navegador
+const requestNotificationPermission = async () => {
+  if (!('Notification' in window)) {
+    console.log('Este navegador não suporta notificações');
+    return false;
+  }
+  
+  if (Notification.permission === 'granted') {
+    return true;
+  }
+  
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }
+  
+  return false;
+};
+
+const showPushNotification = (title: string, body: string, icon?: string) => {
+  if (Notification.permission === 'granted') {
+    const notification = new Notification(title, {
+      body,
+      icon: icon || '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'crm-notification',
+      requireInteraction: false,
+      silent: false,
+    });
+    
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+    
+    // Auto-fechar após 5 segundos
+    setTimeout(() => notification.close(), 5000);
+  }
+};
+
 const CrmPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -237,12 +277,37 @@ const CrmPage = () => {
     const saved = localStorage.getItem('crm-sound-enabled');
     return saved !== null ? saved === 'true' : true;
   });
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem('crm-notifications-enabled');
+    return saved !== null ? saved === 'true' : false;
+  });
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() => {
     const saved = localStorage.getItem('crm-view-mode');
     return (saved as 'kanban' | 'list') || 'kanban';
   });
   const [selectedColumnFilter, setSelectedColumnFilter] = useState<number | null>(null);
   const initialLoadDone = useRef(false);
+
+  // Solicitar permissão de notificação ao ativar
+  const toggleNotifications = async () => {
+    if (!notificationsEnabled) {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        setNotificationsEnabled(true);
+        toast({ title: "Notificações ativadas!" });
+      } else {
+        toast({ title: "Permissão de notificação negada", variant: "destructive" });
+      }
+    } else {
+      setNotificationsEnabled(false);
+      toast({ title: "Notificações desativadas" });
+    }
+  };
+
+  // Salvar preferência de notificações
+  useEffect(() => {
+    localStorage.setItem('crm-notifications-enabled', String(notificationsEnabled));
+  }, [notificationsEnabled]);
 
   // Listas únicas disponíveis nos leads
   const availableListas = leads.reduce((acc, lead) => {
@@ -430,9 +495,17 @@ const CrmPage = () => {
           // Fazer o lead piscar
           triggerBlink(lead.id);
           
-          // Só toca som se já carregou inicialmente (não toca no primeiro load)
-          if (initialLoadDone.current && soundEnabled) {
-            playNewLeadSound();
+          // Só toca som/notifica se já carregou inicialmente (não toca no primeiro load)
+          if (initialLoadDone.current) {
+            if (soundEnabled) {
+              playNewLeadSound();
+            }
+            if (notificationsEnabled) {
+              showPushNotification(
+                '🔔 Novo Lead!',
+                `${lead.nome || 'Novo contato'} - ${lead.telefone || ''}`
+              );
+            }
             toast({ 
               title: "🔔 Novo Lead!", 
               description: `${lead.nome || 'Novo contato'} - ${lead.telefone}` 
@@ -471,9 +544,17 @@ const CrmPage = () => {
           // Fazer o lead piscar
           triggerBlink(updatedLeadData.id);
           
-          // Só toca som se já carregou inicialmente
-          if (initialLoadDone.current && soundEnabled) {
-            playMessageSound();
+          // Só toca som/notifica se já carregou inicialmente
+          if (initialLoadDone.current) {
+            if (soundEnabled) {
+              playMessageSound();
+            }
+            if (notificationsEnabled) {
+              showPushNotification(
+                '💬 Nova mensagem!',
+                `${updatedLeadData.nome || 'Contato'} enviou mensagem`
+              );
+            }
             toast({ 
               title: "💬 Nova mensagem!", 
               description: `${updatedLeadData.nome || 'Contato'} enviou mensagem` 
@@ -486,7 +567,7 @@ const CrmPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, soundEnabled, toast]);
+  }, [user?.id, soundEnabled, notificationsEnabled, toast]);
 
   const moveLeadToColumn = async (leadId: number, newColunaId: number) => {
     try {
@@ -902,6 +983,16 @@ const CrmPage = () => {
               title={soundEnabled ? "Som ativado" : "Som desativado"}
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </Button>
+            <Button 
+              onClick={toggleNotifications} 
+              variant={notificationsEnabled ? "default" : "outline"} 
+              size="sm"
+              title={notificationsEnabled ? "Notificações ativadas" : "Ativar notificações push"}
+              className="gap-1.5"
+            >
+              <Bell className="w-4 h-4" />
+              {notificationsEnabled && <span className="hidden sm:inline text-xs">Push</span>}
             </Button>
             <Button onClick={() => setIsAddingLead(true)} size="sm">
               <Plus className="w-4 h-4 mr-2" />
