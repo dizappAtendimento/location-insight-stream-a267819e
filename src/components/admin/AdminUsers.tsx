@@ -346,25 +346,28 @@ export function AdminUsers() {
     if (!planName) return '';
     const name = planName.toLowerCase();
     
-    if (!isActive) return 'bg-muted text-muted-foreground';
+    if (!isActive) return 'bg-muted text-muted-foreground border border-border/50';
     
     if (name.includes('gold') || name.includes('ouro')) {
-      return 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-0';
+      return 'bg-amber-500 text-white border-0 shadow-sm';
     }
     if (name.includes('diamante') || name.includes('diamond')) {
-      return 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-0';
+      return 'bg-cyan-500 text-white border-0 shadow-sm';
     }
     if (name.includes('platina') || name.includes('platinum')) {
-      return 'bg-gradient-to-r from-slate-400 to-zinc-500 text-white border-0';
+      return 'bg-slate-500 text-white border-0 shadow-sm';
     }
-    if (name.includes('max') || name.includes('ilimitado')) {
-      return 'bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0';
+    if (name.includes('max')) {
+      return 'bg-violet-500 text-white border-0 shadow-sm';
+    }
+    if (name.includes('ilimitado')) {
+      return 'bg-emerald-500 text-white border-0 shadow-sm';
     }
     if (name.includes('free') || name.includes('grátis')) {
-      return 'bg-muted/80 text-muted-foreground border-border/50';
+      return 'bg-muted text-muted-foreground border border-border/50';
     }
     
-    return 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground border-0';
+    return 'bg-primary text-primary-foreground border-0 shadow-sm';
   };
 
   if (isLoading) {
@@ -599,7 +602,7 @@ export function AdminUsers() {
                         <Switch
                           checked={!!user.status}
                           onCheckedChange={() => handleToggleStatus(user.id, 'disparador')}
-                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-400/60 scale-[0.8]"
+                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-muted-foreground/30 scale-[0.8]"
                         />
                       </div>
                       {user.dataValidade && (
@@ -624,7 +627,7 @@ export function AdminUsers() {
                         <Switch
                           checked={!!user.status_ex}
                           onCheckedChange={() => handleToggleStatus(user.id, 'extrator')}
-                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-400/60 scale-[0.8]"
+                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-muted-foreground/30 scale-[0.8]"
                         />
                       </div>
                       {user.dataValidade_extrator && (
