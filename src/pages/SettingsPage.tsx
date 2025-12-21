@@ -544,6 +544,30 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                   </div>
                 </div>
 
+                {/* WhatsApp Config */}
+                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                  <div className="p-4 sm:p-5 border-b border-border/30">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-emerald-500" />
+                      <h2 className="text-sm font-semibold text-foreground">WhatsApp</h2>
+                    </div>
+                  </div>
+                  <Link to="/whatsapp-config">
+                    <div className="p-4 sm:p-5 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                          <MessageSquare className="w-4 h-4 text-emerald-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Configurar WhatsApp</p>
+                          <p className="text-xs text-muted-foreground">Gerenciar conexões e instâncias</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </Link>
+                </div>
+
                 {/* Admin Panel */}
                 {isAdmin && (
                   <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
