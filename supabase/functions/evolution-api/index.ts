@@ -876,6 +876,26 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "check-crm-webhook":
+        // Verifica se o webhook do CRM está configurado
+        console.log(`[Evolution API] Checking CRM webhook for ${instanceName}`);
+        
+        response = await fetch(`${baseUrl}/webhook/find/${instanceName}`, {
+          method: "GET",
+          headers,
+        });
+        
+        result = await response.json();
+        console.log(`[Evolution API] Webhook check result:`, JSON.stringify(result));
+        
+        const currentWebhookUrl = result?.url || result?.webhook?.url || '';
+        const isCrmActive = currentWebhookUrl.includes('crm-webhook');
+        
+        return new Response(
+          JSON.stringify({ success: true, crmAtivo: isCrmActive, webhookUrl: currentWebhookUrl }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       default:
         return new Response(
           JSON.stringify({ error: "Ação não reconhecida" }),
