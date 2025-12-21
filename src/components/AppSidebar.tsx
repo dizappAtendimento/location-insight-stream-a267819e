@@ -187,48 +187,40 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Sistema */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
-            collapsed && "sr-only"
-          )}>
-            Sistema
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-0.5">
-              {systemItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                    className="p-0 h-auto"
-                  >
-                    <Link 
-                      to={item.url} 
-                      className={cn(
-                        "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
-                        collapsed && "justify-center px-0",
-                        isActive(item.url) 
-                          ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
-                          : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-                      )}
-                    >
-                      <item.icon 
-                        className="w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
-                        strokeWidth={1.5} 
-                      />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
+      {/* Sistema - fixo no rodapé */}
+      <SidebarFooter className="p-2 border-t border-slate-800/50 mt-auto">
+        <SidebarMenu className="space-y-0.5">
+          {systemItems.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive(item.url)}
+                tooltip={item.title}
+                className="p-0 h-auto"
+              >
+                <Link 
+                  to={item.url} 
+                  className={cn(
+                    "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
+                    collapsed && "justify-center px-0",
+                    isActive(item.url) 
+                      ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                  )}
+                >
+                  <item.icon 
+                    className="w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
+                    strokeWidth={1.5} 
+                  />
+                  {!collapsed && <span className="text-sm">{item.title}</span>}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
