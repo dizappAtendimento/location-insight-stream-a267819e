@@ -745,18 +745,6 @@ const CrmPage = () => {
                                 <Phone className="w-3 h-3" />
                                 {lead.telefone?.slice(-8) || '-'}
                               </p>
-                              {lead.instanceName && (
-                                <p className="text-[10px] text-primary font-medium truncate max-w-[120px] flex items-center gap-1">
-                                  <Smartphone className="w-3 h-3" />
-                                  {lead.instanceName.split('-')[0]}
-                                </p>
-                              )}
-                              {lead.nomeLista && (
-                                <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px] flex items-center gap-1">
-                                  <List className="w-3 h-3" />
-                                  {lead.nomeLista}
-                                </p>
-                              )}
                             </div>
                           </div>
                           <DropdownMenu>
@@ -816,12 +804,20 @@ const CrmPage = () => {
                               <Clock className="w-3 h-3" />
                               {formatDate(lead.created_at)}
                             </span>
-                            {lead.instanceName && (
-                              <span className="text-[10px] text-primary/70 font-medium truncate max-w-[100px] flex items-center gap-1">
-                                <Smartphone className="w-2.5 h-2.5" />
-                                {lead.instanceName.split('-')[0]}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {lead.instanceName && (
+                                <span className="text-[10px] text-primary/70 font-medium truncate max-w-[80px] flex items-center gap-1">
+                                  <Smartphone className="w-2.5 h-2.5" />
+                                  {lead.instanceName.split('-')[0]}
+                                </span>
+                              )}
+                              {lead.nomeLista && (
+                                <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[80px] flex items-center gap-1">
+                                  <List className="w-2.5 h-2.5" />
+                                  {lead.nomeLista}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <Button
                             variant="ghost"
