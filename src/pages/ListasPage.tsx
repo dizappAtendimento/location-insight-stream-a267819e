@@ -1333,26 +1333,6 @@ const ListasPage = () => {
                 >
                   Listas de Contatos ({existingListas.length})
                 </button>
-                <button
-                  onClick={() => setImportSource('groups')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                    importSource === 'groups' 
-                      ? 'border-primary text-primary' 
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Listas de Grupos ({existingGrupos.length})
-                </button>
-                <button
-                  onClick={() => setImportSource('batepapo')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                    importSource === 'batepapo' 
-                      ? 'border-primary text-primary' 
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Bate-Papo ({existingBatePapo.length})
-                </button>
               </div>
               
               {loadingJobs ? (
