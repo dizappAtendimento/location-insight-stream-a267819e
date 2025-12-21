@@ -42,6 +42,8 @@ interface CrmLead {
   valor: number;
   created_at: string;
   instanceName: string | null;
+  idLista: number | null;
+  nomeLista: string | null;
 }
 
 const colorOptions = [
@@ -210,6 +212,8 @@ const CrmPage = () => {
         valor: Number(l.valor) || 0,
         created_at: l.created_at,
         instanceName: (l as any).instanceName || null,
+        idLista: (l as any).idLista || null,
+        nomeLista: (l as any).nomeLista || null,
       })) || []);
       
       initialLoadDone.current = true;
@@ -252,6 +256,8 @@ const CrmPage = () => {
             valor: Number(newLeadData.valor) || 0,
             created_at: newLeadData.created_at,
             instanceName: newLeadData.instanceName || null,
+            idLista: newLeadData.idLista || null,
+            nomeLista: newLeadData.nomeLista || null,
           };
           
           // Verifica se o lead já existe (evita duplicatas)
@@ -552,6 +558,8 @@ const CrmPage = () => {
         valor: Number(data.valor) || 0,
         created_at: data.created_at,
         instanceName: null,
+        idLista: null,
+        nomeLista: null,
       }, ...prev]);
       setNewLead({ nome: '', telefone: '', valor: 0, mensagem: '' });
       setIsAddingLead(false);
@@ -743,6 +751,12 @@ const CrmPage = () => {
                                   {lead.instanceName.split('-')[0]}
                                 </p>
                               )}
+                              {lead.nomeLista && (
+                                <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px] flex items-center gap-1">
+                                  <List className="w-3 h-3" />
+                                  {lead.nomeLista}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <DropdownMenu>
@@ -879,6 +893,15 @@ const CrmPage = () => {
                     <div className="px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground flex items-center gap-2">
                       <Smartphone className="w-4 h-4 text-primary" />
                       {selectedLead.instanceName.split('-')[0]}
+                    </div>
+                  </div>
+                )}
+                {selectedLead.nomeLista && (
+                  <div className="space-y-2">
+                    <Label>Lista de Origem</Label>
+                    <div className="px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground flex items-center gap-2">
+                      <List className="w-4 h-4 text-muted-foreground" />
+                      {selectedLead.nomeLista}
                     </div>
                   </div>
                 )}
