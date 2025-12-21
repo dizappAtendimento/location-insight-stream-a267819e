@@ -280,25 +280,13 @@ serve(async (req) => {
         );
 
       case "fetch-chats":
-        // Busca conversas/chats com filtro opcional por labelId
-        const chatLabelId = data?.labelId;
-        
-        let chatsUrl = `${baseUrl}/chat/findChats/${instanceName}`;
-        let chatsBody: any = { where: {} };
-        
-        // Se tem labelId, adiciona filtro
-        if (chatLabelId && chatLabelId !== 'all') {
-          chatsBody.where = { labelId: chatLabelId };
-          console.log(`[Evolution API] Fetching chats with labelId: ${chatLabelId}`);
-        }
-        
-        response = await fetch(chatsUrl, {
+        // Busca conversas/chats
+        response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
           method: "POST",
           headers,
-          body: JSON.stringify(chatsBody),
+          body: JSON.stringify({ where: {} }),
         });
         
-        // Verifica se a resposta tem conteúdo antes de fazer parse
         const chatsText = await response.text();
         let chatsResult = [];
         if (chatsText && chatsText.trim()) {
@@ -313,6 +301,41 @@ serve(async (req) => {
         
         return new Response(
           JSON.stringify({ chats: chatsResult || [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
+      case "fetch-chats-by-label":
+        // Busca chats associados a uma etiqueta específica usando o endpoint correto
+        const labelIdToFilter = data?.labelId;
+        if (!labelIdToFilter) {
+          return new Response(
+            JSON.stringify({ error: "labelId é obrigatório" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.log(`[Evolution API] Fetching chats by label ${labelIdToFilter} for ${instanceName}`);
+        
+        // Usa o endpoint de label/fetchChatsByLabel que retorna os chats com a label específica
+        response = await fetch(`${baseUrl}/label/fetchLabelChats/${instanceName}?labelId=${labelIdToFilter}`, {
+          method: "GET",
+          headers,
+        });
+        
+        const labelChatsText = await response.text();
+        let labelChatsResult = [];
+        if (labelChatsText && labelChatsText.trim()) {
+          try {
+            labelChatsResult = JSON.parse(labelChatsText);
+          } catch (parseError) {
+            console.error(`[Evolution API] Error parsing label chats response:`, parseError, labelChatsText);
+          }
+        }
+        
+        console.log(`[Evolution API] Fetched ${Array.isArray(labelChatsResult) ? labelChatsResult.length : 0} chats with label ${labelIdToFilter}`);
+        
+        return new Response(
+          JSON.stringify({ chats: labelChatsResult || [] }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
