@@ -24,16 +24,16 @@ export function StatCard({
 }: StatCardProps) {
   const accentStyles = {
     primary: {
-      border: 'border-l-primary/60',
+      border: 'border-l-highlight/60',
       value: 'text-foreground',
-      icon: 'text-primary bg-primary/10',
-      iconBorder: 'border-primary/20',
+      icon: 'text-highlight bg-highlight/10',
+      iconBorder: 'border-highlight/20',
     },
     success: {
-      border: 'border-l-emerald-500/60',
-      value: 'text-emerald-500',
-      icon: 'text-emerald-500 bg-emerald-500/10',
-      iconBorder: 'border-emerald-500/20',
+      border: 'border-l-highlight/60',
+      value: 'text-highlight',
+      icon: 'text-highlight bg-highlight/10',
+      iconBorder: 'border-highlight/20',
     },
     warning: {
       border: 'border-l-amber-500/60',
@@ -42,10 +42,10 @@ export function StatCard({
       iconBorder: 'border-amber-500/20',
     },
     info: {
-      border: 'border-l-sky-500/60',
-      value: 'text-sky-500',
-      icon: 'text-sky-500 bg-sky-500/10',
-      iconBorder: 'border-sky-500/20',
+      border: 'border-l-highlight/40',
+      value: 'text-muted-foreground',
+      icon: 'text-highlight/70 bg-highlight/10',
+      iconBorder: 'border-highlight/20',
     },
     highlight: {
       border: 'border-l-highlight/60',
