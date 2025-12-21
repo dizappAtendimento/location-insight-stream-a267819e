@@ -119,18 +119,24 @@ export function PlanExpirationAlert() {
       const { data: paymentResponse, error: paymentError } = await supabase.functions.invoke('asaas-api', {
         body: {
           action: 'create-pix-payment',
-          customerId: customerData.customer.id,
+          customerId: customerData.customerId,
           value: currentPlan.preco,
-          description: `Renovação do plano ${currentPlan.nome}`
+          description: `Renovação do plano ${currentPlan.nome}`,
+          planId: currentPlan.id,
+          userId: user.id
         }
       });
 
       if (paymentError) throw paymentError;
+      
+      if (!paymentResponse.success) {
+        throw new Error(paymentResponse.error || 'Erro ao criar pagamento');
+      }
 
       setPaymentData({
-        pixQrCode: paymentResponse.payment.pixQrCode,
-        pixCopyPaste: paymentResponse.payment.pixCopyPaste,
-        paymentId: paymentResponse.payment.id,
+        pixQrCode: paymentResponse.pixQrCode,
+        pixCopyPaste: paymentResponse.pixCopyPaste,
+        paymentId: paymentResponse.paymentId,
         value: currentPlan.preco
       });
       setShowCustomerForm(false);
