@@ -479,7 +479,7 @@ serve(async (req) => {
         if (userData.plano) {
           const { data: planInfo } = await supabase
             .from('SAAS_Planos')
-            .select('nome, qntDisparos, qntConexoes, qntContatos, qntListas')
+            .select('nome, qntDisparos, qntConexoes, qntContatos, qntListas, qntExtracoes')
             .eq('id', userData.plano)
             .single();
 
@@ -520,16 +520,25 @@ serve(async (req) => {
             disparosCount = count || 0;
           }
 
+          // Get extractions/searches this month
+          const { count: extracoesCount } = await supabase
+            .from('search_jobs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .gte('created_at', monthStart.toISOString());
+
           disparadorData = {
             planoNome: planInfo?.nome || null,
             limiteDisparos: planInfo?.qntDisparos || null,
             limiteConexoes: planInfo?.qntConexoes || null,
             limiteContatos: planInfo?.qntContatos || null,
             limiteListas: planInfo?.qntListas || null,
+            limiteExtracoes: planInfo?.qntExtracoes || null,
             usadoDisparos: disparosCount,
             usadoConexoes: conexoesCount || 0,
             usadoContatos: contatosCount || 0,
             usadoListas: listasCount || 0,
+            usadoExtracoes: extracoesCount || 0,
             dataValidade: userData.dataValidade || null,
           };
         }
