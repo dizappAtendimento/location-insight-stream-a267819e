@@ -597,35 +597,6 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
 
               {/* Right Column */}
               <div className="space-y-6">
-                {/* Theme Card */}
-                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
-                  <div className="p-4 sm:p-5 border-b border-border/30">
-                    <div className="flex items-center gap-2">
-                      <Moon className="w-4 h-4 text-muted-foreground" />
-                      <h2 className="text-sm font-semibold text-foreground">Aparência</h2>
-                    </div>
-                  </div>
-                  <div className="p-4 sm:p-5">
-                    <div className="grid grid-cols-3 gap-2">
-                      {themeOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => setTheme(option.value)}
-                          className={cn(
-                            "flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all text-xs",
-                            theme === option.value 
-                              ? "bg-primary/10 border-primary/30 text-foreground" 
-                              : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                          )}
-                        >
-                          <option.icon className="w-4 h-4" />
-                          <span>{option.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
                 {/* Preferences Card */}
                 <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
                   <div className="p-4 sm:p-5 border-b border-border/30">
