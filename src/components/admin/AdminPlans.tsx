@@ -570,17 +570,46 @@ export function AdminPlans() {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Sparkles className="w-3 h-3 text-amber-500" />
-                    Benefícios extras (um por linha)
+                    Benefícios extras
                   </Label>
-                  <textarea
-                    className="w-full min-h-[80px] p-2 text-sm rounded-md border border-border bg-background resize-none"
-                    value={planForm.beneficios_extras.join('\n')}
-                    onChange={(e) => setPlanForm({ 
-                      ...planForm, 
-                      beneficios_extras: e.target.value.split('\n').filter(b => b.trim()) 
-                    })}
-                    placeholder="Ex: Suporte prioritário&#10;Acesso antecipado a novos recursos"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Digite um benefício e pressione Enter"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const input = e.target as HTMLInputElement;
+                          const value = input.value.trim();
+                          if (value && !planForm.beneficios_extras.includes(value)) {
+                            setPlanForm({ 
+                              ...planForm, 
+                              beneficios_extras: [...planForm.beneficios_extras, value] 
+                            });
+                            input.value = '';
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                  {planForm.beneficios_extras.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {planForm.beneficios_extras.map((beneficio, index) => (
+                        <Badge key={index} variant="secondary" className="gap-1 pr-1">
+                          {beneficio}
+                          <button
+                            type="button"
+                            onClick={() => setPlanForm({
+                              ...planForm,
+                              beneficios_extras: planForm.beneficios_extras.filter((_, i) => i !== index)
+                            })}
+                            className="ml-1 hover:bg-muted rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
