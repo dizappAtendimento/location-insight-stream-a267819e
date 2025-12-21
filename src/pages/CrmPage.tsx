@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX } from 'lucide-react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 interface CrmColuna {
   id: number;
@@ -327,6 +328,17 @@ const CrmPage = () => {
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const openWhatsApp = (telefone: string | null, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!telefone) {
+      toast({ title: "Telefone não disponível", variant: "destructive" });
+      return;
+    }
+    // Remove caracteres não numéricos
+    const cleanPhone = telefone.replace(/\D/g, '');
+    window.open(`https://wa.me/${cleanPhone}`, '_blank');
   };
 
   const openLeadDetails = (lead: CrmLead) => {
@@ -760,6 +772,15 @@ const CrmPage = () => {
                             <Clock className="w-3 h-3" />
                             {formatDate(lead.created_at)}
                           </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                            onClick={(e) => openWhatsApp(lead.telefone, e)}
+                            title="Abrir WhatsApp"
+                          >
+                            <WhatsAppIcon size={14} />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
