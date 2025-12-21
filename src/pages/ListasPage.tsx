@@ -542,7 +542,11 @@ const ListasPage = () => {
         .order('created_at', { ascending: false });
       
       if (jobsError) throw jobsError;
-      setSearchJobs(jobsData || []);
+      const jobs = jobsData || [];
+      setSearchJobs(jobs);
+      
+      // Auto-select all extractions
+      setSelectedJobIds(jobs.map((j: any) => j.id));
       
       // Fetch existing lists with contact/group counts
       const { data: listasResult, error: listasError } = await supabase.functions.invoke("disparos-api", {
@@ -557,11 +561,17 @@ const ListasPage = () => {
       );
       setExistingListas(contactLists);
       
+      // Auto-select all contact lists
+      setSelectedListaIds(contactLists.map((l: any) => l.id));
+      
       // Filter group lists with items
       const groupLists = (listasResult?.listas || []).filter(
         (l: any) => (l.tipo === 'groups' || l.tipo === 'grupos') && (l._count || 0) > 0
       );
       setExistingGrupos(groupLists);
+      
+      // Auto-select all group lists
+      setSelectedGrupoListaIds(groupLists.map((l: any) => l.id));
       
     } catch (error) {
       console.error('Error fetching sources:', error);
