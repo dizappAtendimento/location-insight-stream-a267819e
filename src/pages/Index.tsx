@@ -5,12 +5,17 @@ import { useSearchJobs } from '@/hooks/useSearchJobs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { MapPin, Download, FileJson, FileSpreadsheet, FileDown, Sparkles, Loader2 } from 'lucide-react';
+import { MapPin, Download, FileJson, FileSpreadsheet, FileDown, Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useExtractionHistory } from '@/hooks/useExtractionHistory';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
+  const { user } = useAuth();
   const { 
     isLoading, 
     jobs, 
@@ -26,6 +31,41 @@ const Index = () => {
   
   const { addRecord } = useExtractionHistory();
   const lastResultsRef = useRef<string | null>(null);
+  const [planLimit, setPlanLimit] = useState<number | null>(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(true);
+
+  // Fetch plan limits
+  useEffect(() => {
+    const fetchPlanLimit = async () => {
+      if (!user?.planoExtratorId) {
+        setPlanLimit(0);
+        setIsLoadingPlan(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('SAAS_Planos')
+          .select('qntPlaces')
+          .eq('id', user.planoExtratorId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching plan:', error);
+          setPlanLimit(0);
+        } else {
+          setPlanLimit(data?.qntPlaces ?? 0);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setPlanLimit(0);
+      } finally {
+        setIsLoadingPlan(false);
+      }
+    };
+
+    fetchPlanLimit();
+  }, [user?.planoExtratorId]);
 
   // Track completed jobs in history
   useEffect(() => {
@@ -55,6 +95,7 @@ const Index = () => {
   }, [activeJob, addRecord]);
 
   const isJobActive = activeJob && (activeJob.status === 'running' || activeJob.status === 'pending');
+  const hasPlacesQuota = planLimit !== null && planLimit > 0;
 
   return (
     <DashboardLayout>
@@ -64,6 +105,21 @@ const Index = () => {
           <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Google Places Extractor</h1>
           <p className="text-muted-foreground text-xs sm:text-sm">Encontre empresas e estabelecimentos</p>
         </div>
+
+        {/* No quota warning */}
+        {!isLoadingPlan && !hasPlacesQuota && (
+          <Alert variant="destructive" className="opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Seu plano não inclui extrações do Google Places.</span>
+              <Link to="/configuracoes?tab=planos">
+                <Button variant="outline" size="sm" className="ml-4">
+                  Fazer Upgrade
+                </Button>
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Search Card */}
         <Card className="opacity-0 animate-fade-in-up overflow-hidden relative" style={{ animationDelay: '100ms' }}>
@@ -78,7 +134,17 @@ const Index = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <SearchForm onSearch={createJob} isLoading={isLoading} />
+            {isLoadingPlan ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : hasPlacesQuota ? (
+              <SearchForm onSearch={createJob} isLoading={isLoading} />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Faça upgrade do seu plano para usar o extrator de Google Places.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -163,7 +229,7 @@ const Index = () => {
         )}
 
         {/* Empty State */}
-        {!activeJob && jobs.length === 0 && !isLoading && (
+        {!activeJob && jobs.length === 0 && !isLoading && hasPlacesQuota && (
           <Card className="text-center py-16 opacity-0 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
             <CardContent>
               <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 flex items-center justify-center">
