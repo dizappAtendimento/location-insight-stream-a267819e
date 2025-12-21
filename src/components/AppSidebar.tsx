@@ -14,6 +14,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Headphones,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -60,6 +61,13 @@ const extractorItems = [
 const systemItems = [
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
 ];
+
+const supportLink = {
+  title: 'Suporte',
+  url: 'https://api.whatsapp.com/send/?phone=5561992557146&text&type=phone_number&app_absent=0',
+  icon: Headphones,
+  external: true,
+};
 
 export function AppSidebar() {
   const location = useLocation();
@@ -190,7 +198,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Sistema - fixo no rodapé */}
-      <SidebarFooter className="px-2 py-4 flex items-center justify-center">
+      <SidebarFooter className="px-2 py-4 space-y-1">
         <SidebarMenu>
           {systemItems.map((item) => (
             <SidebarMenuItem key={item.title}>
@@ -224,6 +232,34 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          
+          {/* Suporte Link */}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              tooltip={supportLink.title}
+              className="p-0 h-auto"
+            >
+              <a 
+                href={supportLink.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "group/link flex items-center gap-3 rounded-xl transition-all duration-300 ease-out",
+                  collapsed 
+                    ? "justify-center p-3 w-10 h-10" 
+                    : "px-3 py-3 w-full",
+                  "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10"
+                )}
+              >
+                <supportLink.icon 
+                  className="w-5 h-5 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
+                  strokeWidth={2} 
+                />
+                {!collapsed && <span className="text-sm font-semibold">{supportLink.title}</span>}
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
