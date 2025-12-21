@@ -107,6 +107,7 @@ const WhatsAppGroupsExtractor = () => {
   const [labels, setLabels] = useState<WhatsAppLabel[]>([]);
   const [selectedLabel, setSelectedLabel] = useState<string>('all');
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
+  const [isSyncingLabels, setIsSyncingLabels] = useState(false);
   const [extractionMode, setExtractionMode] = useState<'all' | 'by-label'>('all');
   
   // Public groups search states
@@ -421,6 +422,44 @@ const WhatsAppGroupsExtractor = () => {
       setLabels([]);
     } finally {
       setIsLoadingLabels(false);
+    }
+  };
+
+  const syncLabels = async () => {
+    if (!selectedInstance || !user?.id) {
+      toast({ title: "Erro", description: "Selecione uma instância conectada", variant: "destructive" });
+      return;
+    }
+    
+    setIsSyncingLabels(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { 
+          action: 'sync-labels', 
+          instanceName: selectedInstance,
+          userId: user.id 
+        }
+      });
+      
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      
+      toast({ 
+        title: "Sincronização concluída", 
+        description: data.message || `${data.synced} associações sincronizadas`
+      });
+      
+      // Recarrega as labels após a sincronização
+      await fetchLabels();
+    } catch (error) {
+      console.error('Error syncing labels:', error);
+      toast({ 
+        title: "Erro na sincronização", 
+        description: error instanceof Error ? error.message : "Erro ao sincronizar etiquetas", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsSyncingLabels(false);
     }
   };
 
@@ -1293,19 +1332,21 @@ const WhatsAppGroupsExtractor = () => {
                     </div>
                     
                     {extractionMode === 'by-label' && (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-medium">Selecione a Etiqueta</Label>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={fetchLabels}
-                            disabled={isLoadingLabels}
-                            className="h-7 text-xs"
-                          >
-                            {isLoadingLabels ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                            <span className="ml-1">Atualizar</span>
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={fetchLabels}
+                              disabled={isLoadingLabels}
+                              className="h-7 text-xs"
+                            >
+                              {isLoadingLabels ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                              <span className="ml-1">Atualizar</span>
+                            </Button>
+                          </div>
                         </div>
                         
                         {labels.length === 0 ? (
@@ -1335,9 +1376,30 @@ const WhatsAppGroupsExtractor = () => {
                           </Select>
                         )}
                         
-                        <div className="p-2 rounded-lg bg-muted/50 border border-border/50">
-                          <p className="text-xs text-muted-foreground">
-                            <strong>Nota:</strong> A filtragem por etiqueta depende da Evolution API retornar os dados corretamente.
+                        {/* Botão de sincronização */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={syncLabels}
+                          disabled={isSyncingLabels || !selectedInstance}
+                          className="w-full"
+                        >
+                          {isSyncingLabels ? (
+                            <>
+                              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                              Sincronizando...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3 h-3 mr-2" />
+                              Sincronizar Etiquetas com Banco de Dados
+                            </>
+                          )}
+                        </Button>
+                        
+                        <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            <strong>Dica:</strong> Clique em "Sincronizar" para salvar as etiquetas no banco de dados. Isso garante uma filtragem mais confiável.
                           </p>
                         </div>
                       </div>

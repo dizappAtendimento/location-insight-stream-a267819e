@@ -279,6 +279,195 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "sync-labels":
+        // Sincroniza etiquetas e seus chats associados para o banco de dados
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: "userId é obrigatório" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.log(`[Evolution API] Starting label sync for ${instanceName}, userId: ${userId}`);
+        
+        // Busca a conexão do usuário
+        const { data: conexao, error: connErr } = await supabase
+          .from('SAAS_Conexões')
+          .select('id')
+          .eq('instanceName', instanceName)
+          .eq('idUsuario', userId)
+          .single();
+        
+        if (connErr || !conexao) {
+          console.error(`[Evolution API] Connection not found for ${instanceName}:`, connErr);
+          return new Response(
+            JSON.stringify({ error: "Conexão não encontrada" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        const idConexao = conexao.id;
+        
+        // 1. Busca todas as labels
+        const labelsResponse = await fetch(`${baseUrl}/label/findLabels/${instanceName}`, {
+          method: "GET",
+          headers,
+        });
+        
+        if (!labelsResponse.ok) {
+          throw new Error('Falha ao buscar labels da API');
+        }
+        
+        const allLabels = await labelsResponse.json();
+        console.log(`[Evolution API] Found ${Array.isArray(allLabels) ? allLabels.length : 0} labels`);
+        
+        if (!Array.isArray(allLabels) || allLabels.length === 0) {
+          return new Response(
+            JSON.stringify({ synced: 0, message: "Nenhuma etiqueta encontrada" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // 2. Busca todos os chats
+        const chatsResponse = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({}),
+        });
+        
+        let allChats: any[] = [];
+        if (chatsResponse.ok) {
+          const chatsText = await chatsResponse.text();
+          if (chatsText && chatsText.trim()) {
+            const parsedChats = JSON.parse(chatsText);
+            allChats = Array.isArray(parsedChats) ? parsedChats : [];
+          }
+        }
+        console.log(`[Evolution API] Found ${allChats.length} chats`);
+        
+        // 3. Para cada label, busca os chats associados via endpoint específico
+        let totalSynced = 0;
+        const syncErrors: string[] = [];
+        
+        for (const label of allLabels) {
+          try {
+            // Tenta buscar chats por label usando o endpoint findChatsByLabel
+            const labelChatsResponse = await fetch(`${baseUrl}/label/fetchLabels/${instanceName}`, {
+              method: "GET",
+              headers,
+            });
+            
+            let labelChats: any[] = [];
+            
+            if (labelChatsResponse.ok) {
+              const labelData = await labelChatsResponse.json();
+              // Procura pelos chats associados a esta label específica
+              if (Array.isArray(labelData)) {
+                const targetLabel = labelData.find((l: any) => l.id === label.id);
+                if (targetLabel) {
+                  // Verifica estruturas possíveis de associação
+                  if (targetLabel.chats && Array.isArray(targetLabel.chats)) {
+                    labelChats = targetLabel.chats;
+                  } else if (targetLabel.associations && Array.isArray(targetLabel.associations)) {
+                    labelChats = targetLabel.associations;
+                  } else if (targetLabel.labelAssociations && Array.isArray(targetLabel.labelAssociations)) {
+                    labelChats = targetLabel.labelAssociations;
+                  }
+                }
+              }
+            }
+            
+            // Também tenta o endpoint alternativo
+            if (labelChats.length === 0) {
+              try {
+                const altResponse = await fetch(`${baseUrl}/label/findLabels/${instanceName}`, {
+                  method: "POST",
+                  headers,
+                  body: JSON.stringify({ labelId: label.id }),
+                });
+                
+                if (altResponse.ok) {
+                  const altData = await altResponse.json();
+                  if (Array.isArray(altData) && altData.length > 0) {
+                    labelChats = altData;
+                  } else if (altData?.chats && Array.isArray(altData.chats)) {
+                    labelChats = altData.chats;
+                  }
+                }
+              } catch (e) {
+                console.log(`[Evolution API] Alt endpoint failed for label ${label.id}`);
+              }
+            }
+            
+            console.log(`[Evolution API] Label ${label.id} (${label.name}): found ${labelChats.length} associations`);
+            
+            // Para cada chat associado à label, salva no banco
+            for (const chatAssoc of labelChats) {
+              const remoteJid = chatAssoc.remoteJid || chatAssoc.chatId || chatAssoc;
+              if (!remoteJid || typeof remoteJid !== 'string') continue;
+              
+              // Busca o nome do chat se disponível
+              const chatInfo = allChats.find((c: any) => c.remoteJid === remoteJid || c.id === remoteJid);
+              const chatName = chatInfo?.pushName || chatInfo?.name || remoteJid.split('@')[0];
+              
+              // Upsert no banco (insere ou atualiza se já existir)
+              const { error: upsertError } = await supabase
+                .from('SAAS_Chat_Labels')
+                .upsert({
+                  idUsuario: userId,
+                  idConexao: idConexao,
+                  instanceName: instanceName,
+                  labelId: String(label.id),
+                  labelName: label.name,
+                  labelColor: label.color,
+                  remoteJid: remoteJid,
+                  chatName: chatName,
+                  updated_at: new Date().toISOString(),
+                }, {
+                  onConflict: 'instanceName,labelId,remoteJid',
+                  ignoreDuplicates: false,
+                });
+              
+              if (upsertError) {
+                // Se falhar por constraint, tenta insert normal (pode ser constraint diferente)
+                const { error: insertError } = await supabase
+                  .from('SAAS_Chat_Labels')
+                  .insert({
+                    idUsuario: userId,
+                    idConexao: idConexao,
+                    instanceName: instanceName,
+                    labelId: String(label.id),
+                    labelName: label.name,
+                    labelColor: label.color,
+                    remoteJid: remoteJid,
+                    chatName: chatName,
+                  });
+                
+                if (!insertError) {
+                  totalSynced++;
+                }
+              } else {
+                totalSynced++;
+              }
+            }
+          } catch (labelError) {
+            console.error(`[Evolution API] Error syncing label ${label.id}:`, labelError);
+            syncErrors.push(`Label ${label.name}: ${labelError instanceof Error ? labelError.message : 'Erro desconhecido'}`);
+          }
+        }
+        
+        console.log(`[Evolution API] Sync complete: ${totalSynced} chat-labels synced`);
+        
+        return new Response(
+          JSON.stringify({ 
+            synced: totalSynced, 
+            labels: allLabels.length,
+            errors: syncErrors.length > 0 ? syncErrors : undefined,
+            message: `${totalSynced} associações sincronizadas de ${allLabels.length} etiquetas`
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       case "fetch-chats":
         // Busca conversas/chats
         response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
