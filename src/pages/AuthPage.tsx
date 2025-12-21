@@ -96,36 +96,20 @@ export default function AuthPage() {
     setIsResetLoading(true);
 
     try {
-      // Check if email exists in SAAS_Usuarios
-      const { data: user } = await supabase
-        .from('SAAS_Usuarios')
-        .select('id, Email, nome')
-        .eq('Email', trimmedEmail)
-        .single();
+      const { data, error } = await supabase.functions.invoke('auth-login', {
+        body: { action: 'recover-password', email: trimmedEmail }
+      });
 
-      if (!user) {
-        toast.error('Email não encontrado');
-        setIsResetLoading(false);
+      if (error) {
+        toast.error('Erro ao conectar ao servidor');
+        console.error('Password reset error:', error);
         return;
       }
 
-      // Generate recovery code (6 digits)
-      const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-      // Send to webhook
-      const webhookResponse = await fetch('https://n8n.apolinario.site/webhook-test/dizapp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        mode: 'no-cors',
-        body: JSON.stringify({
-          email: user.Email,
-          code: recoveryCode,
-          nome: user.nome,
-          timestamp: new Date().toISOString(),
-        }),
-      });
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
 
       toast.success('Código de recuperação enviado! Verifique seu email.');
       setIsResetDialogOpen(false);
