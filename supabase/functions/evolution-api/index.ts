@@ -261,43 +261,60 @@ serve(async (req) => {
         result = await response.json();
         console.log(`[Evolution API] Fetched chats for ${instanceName}: ${Array.isArray(result) ? result.length : 0}`);
         
-        // Busca labels para enriquecer os chats
+        // Busca labels e suas associações
         let labelsMap: Record<string, string[]> = {};
         try {
+          // Primeiro busca todas as labels
           const labelsResponse = await fetch(`${baseUrl}/label/findLabels/${instanceName}`, {
             method: "GET",
             headers,
           });
+          
           if (labelsResponse.ok) {
             const labelsData = await labelsResponse.json();
-            console.log(`[Evolution API] Labels raw response:`, JSON.stringify(labelsData).substring(0, 500));
+            console.log(`[Evolution API] Found ${Array.isArray(labelsData) ? labelsData.length : 0} labels`);
             
-            // Mapeia chatId -> array de labels
-            if (Array.isArray(labelsData)) {
-              for (const label of labelsData) {
-                const labelName = label.name || label.displayName || label.id;
+            // Para cada label, busca os chats associados usando handleLabel
+            for (const label of labelsData || []) {
+              const labelId = label.id;
+              const labelName = label.name || label.displayName || labelId;
+              
+              try {
+                // Tenta buscar chats associados a esta label usando findChats com filtro
+                const labelChatsResponse = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
+                  method: "POST",
+                  headers,
+                  body: JSON.stringify({ 
+                    where: { 
+                      labelId: labelId 
+                    } 
+                  }),
+                });
                 
-                // Verifica diferentes estruturas possíveis de associações
-                const associations = label.labelAssociations || label.associations || label.chats || [];
-                
-                if (Array.isArray(associations)) {
-                  for (const assoc of associations) {
-                    // Diferentes formatos possíveis de chatId
-                    const chatId = assoc.chatId || assoc.remoteJid || assoc.id || assoc;
-                    if (chatId && typeof chatId === 'string') {
-                      if (!labelsMap[chatId]) {
-                        labelsMap[chatId] = [];
-                      }
-                      if (!labelsMap[chatId].includes(labelName)) {
-                        labelsMap[chatId].push(labelName);
+                if (labelChatsResponse.ok) {
+                  const labelChats = await labelChatsResponse.json();
+                  if (Array.isArray(labelChats) && labelChats.length > 0) {
+                    console.log(`[Evolution API] Label "${labelName}" has ${labelChats.length} chats`);
+                    for (const chat of labelChats) {
+                      const chatId = chat.remoteJid || chat.id;
+                      if (chatId) {
+                        if (!labelsMap[chatId]) {
+                          labelsMap[chatId] = [];
+                        }
+                        if (!labelsMap[chatId].includes(labelName)) {
+                          labelsMap[chatId].push(labelName);
+                        }
                       }
                     }
                   }
                 }
+              } catch (labelChatError) {
+                console.log(`[Evolution API] Could not fetch chats for label ${labelId}`);
               }
             }
-            console.log(`[Evolution API] Labels map created with ${Object.keys(labelsMap).length} chats mapped`);
           }
+          
+          console.log(`[Evolution API] Labels map created with ${Object.keys(labelsMap).length} chats mapped`);
         } catch (labelError) {
           console.error(`[Evolution API] Error fetching labels:`, labelError);
         }
@@ -306,9 +323,6 @@ serve(async (req) => {
         const enrichedChats = (result || []).map((chat: any) => {
           const chatId = chat.remoteJid || chat.id;
           const labels = labelsMap[chatId] || [];
-          if (labels.length > 0) {
-            console.log(`[Evolution API] Chat ${chatId} has labels:`, labels);
-          }
           return {
             ...chat,
             labels
