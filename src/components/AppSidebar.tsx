@@ -215,12 +215,7 @@ export function AppSidebar() {
         <SidebarFooter className="px-2 py-4">
           <Link 
             to="/configuracoes" 
-            className={cn(
-              "flex items-center px-3 py-3 rounded-xl transition-all duration-300 ease-out w-full",
-              isActive('/configuracoes') 
-                ? "bg-primary/20 text-primary shadow-lg shadow-primary/20 border border-primary/30" 
-                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-            )}
+            className="flex items-center px-3 py-3 text-slate-400 hover:text-white transition-colors"
           >
             <span className="text-sm font-semibold">{user?.nome || 'Usuário'}</span>
           </Link>
