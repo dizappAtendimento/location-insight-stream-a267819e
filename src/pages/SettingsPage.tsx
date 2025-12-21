@@ -974,6 +974,7 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                           <UsageBar label="📍 Google Places" used={disparadorPlan.usadoPlaces || 0} limit={disparadorPlan.limitePlaces} color="blue" />
                           <UsageBar label="📸 Instagram" used={disparadorPlan.usadoInstagram || 0} limit={disparadorPlan.limiteInstagram} color="blue" />
                           <UsageBar label="💼 LinkedIn" used={disparadorPlan.usadoLinkedin || 0} limit={disparadorPlan.limiteLinkedin} color="blue" />
+                          <UsageBar label="💬 WhatsApp Groups" used={disparadorPlan.usadoExtracoes || 0} limit={disparadorPlan.limiteExtracoes} color="blue" />
                         </div>
                       </div>
                     </div>
