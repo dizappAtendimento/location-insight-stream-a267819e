@@ -362,36 +362,36 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
 
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto animate-fade-in">
         <div className="mb-6">
           <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Configurações</h1>
           <p className="text-xs text-muted-foreground mt-1">Gerencie seu perfil, preferências e integrações</p>
         </div>
 
         <Tabs defaultValue="perfil" className="w-full">
-          <TabsList className="w-full flex mb-6 p-1 bg-muted/30 rounded-lg">
-            <TabsTrigger value="perfil" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all">
+          <TabsList className="w-full flex mb-6 p-1 bg-muted/30 rounded-xl border border-border/20">
+            <TabsTrigger value="perfil" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <User className="w-3.5 h-3.5" />
-              <span>Perfil</span>
+              <span className="hidden sm:inline">Perfil</span>
             </TabsTrigger>
-            <TabsTrigger value="planos" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all">
+            <TabsTrigger value="planos" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <CreditCard className="w-3.5 h-3.5" />
-              <span>Planos</span>
+              <span className="hidden sm:inline">Planos</span>
             </TabsTrigger>
-            <TabsTrigger value="api" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all">
+            <TabsTrigger value="api" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <Code className="w-3.5 h-3.5" />
-              <span>API</span>
+              <span className="hidden sm:inline">API</span>
             </TabsTrigger>
-            <TabsTrigger value="webhook" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all">
+            <TabsTrigger value="webhook" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <Webhook className="w-3.5 h-3.5" />
-              <span>Webhook</span>
+              <span className="hidden sm:inline">Webhook</span>
             </TabsTrigger>
           </TabsList>
 
           {/* PERFIL TAB */}
-          <TabsContent value="perfil" className="space-y-6">
+          <TabsContent value="perfil" className="space-y-5 animate-fade-in">
             {/* Profile Card */}
-            <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+            <div className="rounded-xl border border-border/30 bg-card overflow-hidden transition-all hover:border-border/50">
               <div className="p-4 sm:p-5 border-b border-border/30">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-foreground">Informações Pessoais</h2>
@@ -627,17 +627,13 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
               </div>
             </div>
 
-            {/* Footer */}
-            <p className="text-xs text-muted-foreground text-center pt-4">
-              v1.0.0 • Dezembro 2024
-            </p>
           </TabsContent>
 
           {/* PLANOS TAB */}
-          <TabsContent value="planos" className="space-y-6">
+          <TabsContent value="planos" className="space-y-5 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Plano Disparador */}
-              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5">
+              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5 transition-all hover:border-emerald-500/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 animate-pulse"></div>
@@ -689,7 +685,7 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
               </div>
 
               {/* Plano Extrator */}
-              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5">
+              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5 transition-all hover:border-blue-500/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className={cn("w-3 h-3 rounded-full", extratorPlan ? "bg-gradient-to-r from-blue-500 to-cyan-400 animate-pulse" : "bg-muted")}></div>
@@ -745,7 +741,7 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
           </TabsContent>
 
           {/* API DOCS TAB */}
-          <TabsContent value="api" className="space-y-6">
+          <TabsContent value="api" className="space-y-5 animate-fade-in">
             {/* Auth Credentials */}
             <div className="p-4 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-3">
               <div className="flex items-center justify-between">
@@ -894,7 +890,7 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
           </TabsContent>
 
           {/* WEBHOOK TAB */}
-          <TabsContent value="webhook" className="space-y-6">
+          <TabsContent value="webhook" className="space-y-5 animate-fade-in">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
