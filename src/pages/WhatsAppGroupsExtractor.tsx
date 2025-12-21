@@ -395,6 +395,10 @@ const WhatsAppGroupsExtractor = () => {
         totalResults: contacts.length,
         emailsFound: 0,
         phonesFound: contacts.length,
+        results: contacts.map((c: any) => ({
+          nome: c.pushName || '',
+          telefone: c.phoneNumber || '',
+        })),
       });
       
       toast({ title: "Extração concluída", description: `${contacts.length} contatos extraídos` });
@@ -551,6 +555,10 @@ const WhatsAppGroupsExtractor = () => {
         totalResults: chats.length,
         emailsFound: 0,
         phonesFound: chats.length,
+        results: chats.map((c: any) => ({
+          nome: c.pushName || c.name || '',
+          telefone: (c.remoteJid || '').replace(/@.*$/, ''),
+        })),
       });
       
       toast({ title: "Extração concluída", description: `${chats.length} conversas extraídas` });

@@ -658,6 +658,8 @@ const ListasPage = () => {
           results = getResults(jobId) || [];
         }
         
+        console.log('Processing job:', jobId, 'source:', job.source, 'results count:', results?.length);
+        
         if (results && Array.isArray(results)) {
           results.forEach((place: any) => {
             const phone = place.phone || place.telefone;
@@ -776,7 +778,12 @@ const ListasPage = () => {
       }
 
       if (allContacts.length === 0) {
-        toast.error('Nenhum contato encontrado nas fontes selecionadas');
+        const hasLocalJobs = selectedJobIds.some(id => searchJobs.find(j => j.id === id)?.source === 'local');
+        if (hasLocalJobs) {
+          toast.error('Extrações antigas não contêm dados salvos. Faça uma nova extração para poder importar.');
+        } else {
+          toast.error('Nenhum contato encontrado nas fontes selecionadas');
+        }
         setImportingExtraction(false);
         return;
       }
