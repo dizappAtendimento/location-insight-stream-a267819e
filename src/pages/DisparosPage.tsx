@@ -420,9 +420,33 @@ export default function DisparosPage() {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+
+                    {/* Variáveis disponíveis */}
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">Variáveis disponíveis:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { key: 'nome', label: 'nome' },
+                          { key: 'saudacao', label: 'saudação' },
+                          { key: 'data', label: 'data' },
+                          { key: 'hora', label: 'hora' },
+                          { key: 'diadasemana', label: 'dia da semana' },
+                          { key: 'mes', label: 'mês' },
+                        ].map(({ key, label }) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => updateMessageText(msg.id, msg.text + ` <${key}> `)}
+                            className="px-2 py-1 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     
                     <Textarea
-                      placeholder="Digite sua mensagem..."
+                      placeholder="Digite sua mensagem... Use variáveis como <nome>, <saudacao>, <data>"
                       value={msg.text}
                       onChange={(e) => updateMessageText(msg.id, e.target.value)}
                       className="min-h-[100px] resize-none"
