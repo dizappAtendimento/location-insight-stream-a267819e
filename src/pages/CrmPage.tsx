@@ -195,11 +195,12 @@ const CrmPage = () => {
         setColumns(colunasData);
       }
 
-      // Buscar leads
+      // Buscar leads - apenas os que vieram de alguma lista
       const { data: leadsData, error: leadsError } = await supabase
         .from('SAAS_CRM_Leads')
         .select('*')
         .eq('idUsuario', user.id)
+        .not('idLista', 'is', null)
         .order('created_at', { ascending: false });
 
       if (leadsError) throw leadsError;
