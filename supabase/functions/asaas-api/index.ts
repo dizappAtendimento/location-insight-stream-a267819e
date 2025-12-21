@@ -91,6 +91,11 @@ serve(async (req) => {
       case 'create-pix-payment': {
         const { customerId, value, description, planId, userId, dueDate } = params;
 
+        // Asaas requer valor mínimo de R$ 5,00 para PIX
+        if (value < 5) {
+          throw new Error('O valor mínimo para pagamento PIX é R$ 5,00. Entre em contato com o suporte para renovar planos com valor inferior.');
+        }
+
         // Calcular data de vencimento (hoje + 1 dia se não fornecida)
         const dueDateFormatted = dueDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
