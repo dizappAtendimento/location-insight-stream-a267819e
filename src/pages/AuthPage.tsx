@@ -96,18 +96,40 @@ export default function AuthPage() {
     setIsResetLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-        redirectTo: `${window.location.origin}/auth`,
+      // Check if email exists in SAAS_Usuarios
+      const { data: user } = await supabase
+        .from('SAAS_Usuarios')
+        .select('id, Email, nome')
+        .eq('Email', trimmedEmail)
+        .single();
+
+      if (!user) {
+        toast.error('Email não encontrado');
+        setIsResetLoading(false);
+        return;
+      }
+
+      // Generate recovery code (6 digits)
+      const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Send to webhook
+      const webhookResponse = await fetch('https://n8n.apolinario.site/webhook-test/dizapp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        mode: 'no-cors',
+        body: JSON.stringify({
+          email: user.Email,
+          code: recoveryCode,
+          nome: user.nome,
+          timestamp: new Date().toISOString(),
+        }),
       });
 
-      if (error) {
-        toast.error('Erro ao enviar email de recuperação');
-        console.error('Password reset error:', error);
-      } else {
-        toast.success('Email de recuperação enviado! Verifique sua caixa de entrada.');
-        setIsResetDialogOpen(false);
-        setResetEmail('');
-      }
+      toast.success('Código de recuperação enviado! Verifique seu email.');
+      setIsResetDialogOpen(false);
+      setResetEmail('');
     } catch (err) {
       toast.error('Erro inesperado. Tente novamente.');
       console.error('Password reset error:', err);
