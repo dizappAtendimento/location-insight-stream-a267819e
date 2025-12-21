@@ -25,6 +25,8 @@ Deno.serve(async (req) => {
     let nome: string | null = null;
     let mensagem: string | null = null;
     let instanceName: string | null = null;
+    let idLista: number | null = null;
+    let nomeLista: string | null = null;
 
     // Formato Evolution API
     if (body.data?.key?.remoteJid) {
@@ -56,6 +58,8 @@ Deno.serve(async (req) => {
       nome = body.nome || body.name || null;
       mensagem = body.mensagem || body.message || 'Mensagem recebida';
       instanceName = body.instanceName || body.instance || null;
+      idLista = body.idLista || null;
+      nomeLista = body.nomeLista || body.listaNome || null;
     }
 
     if (!telefone) {
@@ -205,8 +209,29 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Tentar buscar lista associada ao disparo se não veio no payload
+    if (!idLista && telefone) {
+      // Buscar contato pelo telefone para identificar a lista
+      const { data: contato } = await supabase
+        .from('SAAS_Contatos')
+        .select('idLista, SAAS_Listas(id, nome)')
+        .eq('idUsuario', userId)
+        .eq('telefone', telefone)
+        .limit(1)
+        .maybeSingle();
+
+      if (contato) {
+        const lista = (contato as any).SAAS_Listas;
+        if (lista) {
+          idLista = lista.id;
+          nomeLista = lista.nome;
+          console.log(`Lista identificada pelo contato: ${nomeLista} (${idLista})`);
+        }
+      }
+    }
+
     // Criar novo lead na primeira coluna
-    console.log(`Criando novo lead na coluna ${colunaId}, instanceName: ${instanceName}`);
+    console.log(`Criando novo lead na coluna ${colunaId}, instanceName: ${instanceName}, lista: ${nomeLista}`);
     const { data: newLead, error: leadError } = await supabase
       .from('SAAS_CRM_Leads')
       .insert({
@@ -217,6 +242,8 @@ Deno.serve(async (req) => {
         mensagem: mensagem?.slice(0, 1000) || null,
         valor: 0,
         instanceName: instanceName,
+        idLista: idLista,
+        nomeLista: nomeLista,
       })
       .select('id')
       .single();
