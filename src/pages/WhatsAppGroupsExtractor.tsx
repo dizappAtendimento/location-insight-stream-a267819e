@@ -439,42 +439,54 @@ const WhatsAppGroupsExtractor = () => {
     
     setIsLoadingChats(true);
     try {
-      // Buscar todos os chats
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'fetch-chats', instanceName: selectedInstance }
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
+      let chats: any[] = [];
+      let labelName = 'todas';
       
-      let chats = data.chats || [];
-      
-      // Filtrar apenas conversas individuais (não grupos)
-      chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
-      
-      // Se tem etiqueta selecionada, filtrar pelos chats que têm essa label
+      // Se modo por etiqueta, usa o endpoint específico para buscar chats por label
       if (extractionMode === 'by-label' && selectedLabel && selectedLabel !== 'all') {
-        chats = chats.filter((c: any) => {
-          const chatLabels = c.labels || [];
-          return chatLabels.includes(selectedLabel);
+        console.log('[fetchChats] Fetching chats by label:', selectedLabel);
+        
+        const { data, error } = await supabase.functions.invoke('evolution-api', {
+          body: { 
+            action: 'fetch-chats-by-label', 
+            instanceName: selectedInstance,
+            data: { labelId: selectedLabel }
+          }
         });
-        console.log('[fetchChats] Filtered by label:', selectedLabel, 'Found:', chats.length);
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        
+        chats = data.chats || [];
+        labelName = labels.find(l => l.id === selectedLabel)?.name || 'etiqueta';
+        
+        // Filtrar apenas conversas individuais (não grupos)
+        chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
+        
+        console.log('[fetchChats] Chats with label:', selectedLabel, 'Found:', chats.length);
+      } else {
+        // Buscar todos os chats
+        const { data, error } = await supabase.functions.invoke('evolution-api', {
+          body: { action: 'fetch-chats', instanceName: selectedInstance }
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        
+        chats = data.chats || [];
+        
+        // Filtrar apenas conversas individuais (não grupos)
+        chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
       }
       
       if (chats.length === 0) {
         toast({ 
           title: "Aviso", 
-          description: extractionMode === 'by-label' && selectedLabel !== 'all' 
-            ? "Nenhuma conversa encontrada com esta etiqueta. A API pode não retornar as etiquetas dos chats." 
+          description: extractionMode === 'by-label' 
+            ? "Nenhuma conversa encontrada com esta etiqueta." 
             : "Nenhuma conversa encontrada", 
           variant: "destructive" 
         });
         return;
       }
-
-      // Encontra o nome da etiqueta para o nome do arquivo
-      const labelName = extractionMode === 'by-label' && selectedLabel !== 'all'
-        ? labels.find(l => l.id === selectedLabel)?.name || 'etiqueta'
-        : 'todas';
 
       // Download Excel com contatos do bate-papo
       const worksheet = XLSX.utils.json_to_sheet(chats.map((c: any) => ({
@@ -488,7 +500,7 @@ const WhatsAppGroupsExtractor = () => {
       
       addRecord({
         type: 'whatsapp-groups',
-        segment: `Conversas de ${selectedInstance}${extractionMode === 'by-label' && selectedLabel !== 'all' ? ` (${labelName})` : ''}`,
+        segment: `Conversas de ${selectedInstance}${extractionMode === 'by-label' ? ` (${labelName})` : ''}`,
         totalResults: chats.length,
         emailsFound: 0,
         phonesFound: chats.length,
