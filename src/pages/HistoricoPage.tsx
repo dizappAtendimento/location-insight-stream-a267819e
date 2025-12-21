@@ -96,18 +96,11 @@ const HistoricoPage = () => {
     'whatsapp-groups': MessageCircle,
   };
 
-  const typeColors: Record<string, string> = {
-    instagram: 'bg-pink-500/10 border border-pink-500/30',
-    linkedin: 'bg-blue-500/10 border border-blue-500/30',
-    places: 'bg-emerald-500/10 border border-emerald-500/30',
-    'whatsapp-groups': 'bg-emerald-500/10 border border-emerald-500/30',
-  };
-
   const typeIconColors: Record<string, string> = {
-    instagram: 'text-pink-500',
-    linkedin: 'text-blue-500',
-    places: 'text-emerald-500',
-    'whatsapp-groups': 'text-emerald-500',
+    instagram: 'text-instagram',
+    linkedin: 'text-linkedin',
+    places: 'text-places',
+    'whatsapp-groups': 'text-whatsapp',
   };
 
   const typeBadgeColors: Record<string, string> = {
@@ -657,8 +650,8 @@ const HistoricoPage = () => {
                           className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all duration-200"
                         >
                           <div className="flex items-center gap-4">
-                            <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', typeColors[record.type])}>
-                              <TypeIcon className={cn('w-6 h-6', typeIconColors[record.type])} />
+                            <div className="w-10 h-10 flex items-center justify-center">
+                              <TypeIcon className={cn('w-5 h-5', typeIconColors[record.type])} strokeWidth={1.5} />
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
