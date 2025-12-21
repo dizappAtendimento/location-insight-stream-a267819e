@@ -832,15 +832,18 @@ serve(async (req) => {
         
         console.log(`[Evolution API] Setting up CRM webhook for ${instanceName}: ${crmWebhookEndpoint}`);
         
+        // Evolution API v2 espera a estrutura dentro de um objeto "webhook"
         response = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
           method: "POST",
           headers,
           body: JSON.stringify({
-            url: crmWebhookEndpoint,
-            enabled: true,
-            webhookByEvents: false,
-            webhookBase64: false,
-            events: ["MESSAGES_UPSERT"]
+            webhook: {
+              url: crmWebhookEndpoint,
+              enabled: true,
+              webhookByEvents: false,
+              webhookBase64: false,
+              events: ["MESSAGES_UPSERT"]
+            }
           }),
         });
         
