@@ -431,6 +431,56 @@ serve(async (req) => {
     if (!sessionId) throw new Error('Session ID is required');
     if (!userId) throw new Error('User ID is required');
 
+    // ==== VALIDATE EXTRACTION LIMIT ====
+    // Get user's plan and extraction limit
+    const { data: userData, error: userError } = await supabase
+      .from('SAAS_Usuarios')
+      .select('plano')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData?.plano) {
+      return new Response(
+        JSON.stringify({ error: 'Usuário não possui plano ativo. Entre em contato com o suporte.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: planInfo } = await supabase
+      .from('SAAS_Planos')
+      .select('qntExtracoes')
+      .eq('id', userData.plano)
+      .single();
+
+    const limiteExtracoes = planInfo?.qntExtracoes || 0;
+    const isUnlimited = limiteExtracoes === 0 || limiteExtracoes > 999999999;
+
+    if (!isUnlimited) {
+      // Count extractions this month
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const { count: extracoesUsadas } = await supabase
+        .from('search_jobs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('created_at', monthStart.toISOString());
+
+      if ((extracoesUsadas || 0) >= limiteExtracoes) {
+        return new Response(
+          JSON.stringify({ 
+            error: `Limite de consultas atingido (${extracoesUsadas}/${limiteExtracoes} este mês). Faça upgrade do seu plano para continuar.`,
+            limitReached: true,
+            used: extracoesUsadas,
+            limit: limiteExtracoes
+          }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    // ==== END VALIDATION ====
+
     // Create job record
     const { data: newJob, error: insertError } = await supabase
       .from('search_jobs')
