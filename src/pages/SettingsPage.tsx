@@ -369,20 +369,20 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
         </div>
 
         <Tabs defaultValue="perfil" className="w-full">
-          <TabsList className="w-full flex mb-6 p-1 bg-muted/30 rounded-xl border border-border/20">
-            <TabsTrigger value="perfil" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
+          <TabsList className="w-full flex mb-6 p-1 bg-muted/50 rounded-xl border border-border/30">
+            <TabsTrigger value="perfil" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <User className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Perfil</span>
             </TabsTrigger>
-            <TabsTrigger value="planos" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
+            <TabsTrigger value="planos" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <CreditCard className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Planos</span>
             </TabsTrigger>
-            <TabsTrigger value="api" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
+            <TabsTrigger value="api" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <Code className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">API</span>
             </TabsTrigger>
-            <TabsTrigger value="webhook" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
+            <TabsTrigger value="webhook" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <Webhook className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Webhook</span>
             </TabsTrigger>
