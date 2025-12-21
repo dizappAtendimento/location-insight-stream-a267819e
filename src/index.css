@@ -165,10 +165,13 @@
   /* Premium card with subtle glow */
   .premium-card {
     @apply bg-card border border-border/50 rounded-xl shadow-lg shadow-black/10;
+  }
+
+  .dark .premium-card {
     background: linear-gradient(
       180deg,
       hsl(var(--card)) 0%,
-      hsl(225 22% 8%) 100%
+      hsl(var(--background)) 100%
     );
   }
 
