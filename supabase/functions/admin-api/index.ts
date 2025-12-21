@@ -105,7 +105,7 @@ serve(async (req) => {
         const { data: users, error } = await supabase
           .from('SAAS_Usuarios')
           .select(`
-            id, nome, Email, telefone, senha, status, "Status Ex", dataValidade, "dataValidade_extrator", 
+            id, nome, Email, telefone, senha, status, "Status Ex", banido, dataValidade, "dataValidade_extrator", 
             plano, plano_extrator, created_at
           `)
           .order('created_at', { ascending: false });
@@ -137,6 +137,7 @@ serve(async (req) => {
           return {
             ...user,
             status_ex: user['Status Ex'],
+            banido: user.banido ?? false,
             plano_id: user.plano,
             plano_nome: planDisparador?.nome || null,
             plano_extrator_id: user.plano_extrator,
@@ -254,6 +255,30 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ success: true, newStatus }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'toggle-ban': {
+        const { banido } = body;
+        
+        const { error } = await supabase
+          .from('SAAS_Usuarios')
+          .update({ banido })
+          .eq('id', userId);
+
+        if (error) {
+          console.error('[Admin API] Error toggling ban status:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao alterar status de banimento' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] User ${userId} ban status toggled to ${banido}`);
+
+        return new Response(
+          JSON.stringify({ success: true, banido }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

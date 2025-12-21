@@ -41,7 +41,7 @@ serve(async (req) => {
     // Query user by email using service role (bypasses RLS)
     const { data: user, error } = await supabase
       .from('SAAS_Usuarios')
-      .select('id, nome, Email, telefone, status, "Status Ex", senha, avatar_url')
+      .select('id, nome, Email, telefone, status, "Status Ex", senha, avatar_url, banido')
       .eq('Email', email)
       .maybeSingle();
 
@@ -65,6 +65,15 @@ serve(async (req) => {
       console.log(`[Login] Invalid password for: ${email}`);
       return new Response(
         JSON.stringify({ error: 'Senha incorreta' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user is banned
+    if (user.banido === true) {
+      console.log(`[Login] User is banned: ${email}`);
+      return new Response(
+        JSON.stringify({ error: 'Sua conta foi suspensa. Entre em contato com o suporte.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
