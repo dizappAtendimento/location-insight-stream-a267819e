@@ -545,8 +545,8 @@ export default function DisparosPage() {
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-lg">
-                            📝
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                            <FileText className="w-4 h-4 text-primary" />
                           </div>
                           <span className="font-medium text-foreground">{list.nome}</span>
                         </div>
@@ -632,7 +632,7 @@ export default function DisparosPage() {
 
                     {msg.media && (
                       <div className="flex items-center justify-between p-2 rounded bg-primary/10 border border-primary/20">
-                        <span className="text-sm text-foreground">📎 {msg.media.filename} ({msg.media.type})</span>
+                        <span className="text-sm text-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> {msg.media.filename} ({msg.media.type})</span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -868,8 +868,8 @@ export default function DisparosPage() {
                           <div key={i} className="flex justify-end">
                             <div className="bg-[#dcf8c6] p-2 px-3 rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
                               {m.media && (
-                                <div className="bg-black/10 p-2 rounded mb-2 text-xs">
-                                  📎 Mídia Anexada
+                                <div className="bg-black/10 p-2 rounded mb-2 text-xs flex items-center gap-1">
+                                  <FileText className="w-3 h-3" /> Mídia Anexada
                                 </div>
                               )}
                               {m.text && <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{substituirVariaveis(m.text)}</p>}
