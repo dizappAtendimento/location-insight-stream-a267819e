@@ -30,6 +30,7 @@ interface Connection {
   FotoPerfil: string | null;
   Apikey: string | null;
   status?: 'open' | 'close' | 'checking';
+  crmAtivo?: boolean;
 }
 
 const ConexoesPage = () => {
@@ -413,15 +414,16 @@ const ConexoesPage = () => {
 
   const [activatingCrm, setActivatingCrm] = useState<Record<number, boolean>>({});
 
-  const setupCrmWebhookForConnection = async (connection: Connection) => {
+  const toggleCrmForConnection = async (connection: Connection) => {
     if (!user?.id || !connection.instanceName) return;
     
+    const isCurrentlyActive = connection.crmAtivo;
     setActivatingCrm(prev => ({ ...prev, [connection.id]: true }));
     
     try {
       const { data, error } = await supabase.functions.invoke('evolution-api', {
         body: { 
-          action: 'setup-crm-webhook', 
+          action: isCurrentlyActive ? 'remove-crm-webhook' : 'setup-crm-webhook', 
           instanceName: connection.instanceName,
           userId: user.id
         }
@@ -429,15 +431,22 @@ const ConexoesPage = () => {
 
       if (error) throw error;
       
+      // Update local state
+      setConnections(prev => prev.map(c => 
+        c.id === connection.id ? { ...c, crmAtivo: !isCurrentlyActive } : c
+      ));
+      
       toast({
-        title: "CRM Ativado!",
-        description: `Respostas de ${connection.NomeConexao || connection.instanceName} virão para o CRM automaticamente.`,
+        title: isCurrentlyActive ? "CRM Desativado" : "CRM Ativado!",
+        description: isCurrentlyActive 
+          ? `CRM desativado para ${connection.NomeConexao || connection.instanceName}`
+          : `Respostas de ${connection.NomeConexao || connection.instanceName} virão para o CRM automaticamente.`,
       });
     } catch (error) {
-      console.error('Error setting up webhook:', error);
+      console.error('Error toggling CRM:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível ativar o CRM para esta conexão",
+        description: `Não foi possível ${isCurrentlyActive ? 'desativar' : 'ativar'} o CRM`,
         variant: "destructive"
       });
     } finally {
@@ -673,21 +682,27 @@ const ConexoesPage = () => {
                       </Button>
                     </div>
                     
-                    {/* CRM Button - only show when connected */}
+                    {/* CRM Toggle - only show when connected */}
                     {connection.status === 'open' && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setupCrmWebhookForConnection(connection)}
+                        onClick={() => toggleCrmForConnection(connection)}
                         disabled={activatingCrm[connection.id]}
-                        className="w-full h-9 text-[13px] border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/50"
+                        className={`w-full h-9 text-[13px] transition-all ${
+                          connection.crmAtivo 
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30' 
+                            : 'border-muted-foreground/30 text-muted-foreground hover:bg-muted/50'
+                        }`}
                       >
                         {activatingCrm[connection.id] ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                        ) : connection.crmAtivo ? (
+                          <Check className="w-3.5 h-3.5 mr-1.5" />
                         ) : (
-                          <Wifi className="w-3.5 h-3.5 mr-1.5" />
+                          <WifiOff className="w-3.5 h-3.5 mr-1.5" />
                         )}
-                        Ativar CRM
+                        {connection.crmAtivo ? 'CRM Ativo' : 'Ativar CRM'}
                       </Button>
                     )}
                   </div>

@@ -852,6 +852,30 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "remove-crm-webhook":
+        // Remove webhook do CRM de uma instância
+        console.log(`[Evolution API] Removing CRM webhook for ${instanceName}`);
+        
+        response = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            url: "",
+            byEvents: false,
+            base64: false,
+            headers: {},
+            events: []
+          }),
+        });
+        
+        result = await response.json();
+        console.log(`[Evolution API] Webhook removal result:`, JSON.stringify(result));
+        
+        return new Response(
+          JSON.stringify({ success: true, result }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       default:
         return new Response(
           JSON.stringify({ error: "Ação não reconhecida" }),
