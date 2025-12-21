@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -107,7 +108,7 @@ serve(async (req) => {
   }
 
   try {
-    const { segment, location, maxResults = 100 } = await req.json();
+    const { segment, location, maxResults = 100, userId } = await req.json();
 
     if (!segment) {
       return new Response(
@@ -117,6 +118,9 @@ serve(async (req) => {
     }
 
     const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
     if (!SERPER_API_KEY) {
       console.error('SERPER_API_KEY not configured');
       return new Response(
@@ -124,6 +128,58 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // ==== VALIDATE EXTRACTION LIMIT ====
+    if (userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      
+      const { data: userData } = await supabase
+        .from('SAAS_Usuarios')
+        .select('plano')
+        .eq('id', userId)
+        .single();
+
+      if (!userData?.plano) {
+        return new Response(
+          JSON.stringify({ error: 'Usuário não possui plano ativo. Entre em contato com o suporte.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: planInfo } = await supabase
+        .from('SAAS_Planos')
+        .select('qntExtracoes')
+        .eq('id', userData.plano)
+        .single();
+
+      const limiteExtracoes = planInfo?.qntExtracoes || 0;
+      const isUnlimited = limiteExtracoes === 0 || limiteExtracoes > 999999999;
+
+      if (!isUnlimited) {
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+
+        const { count: extracoesUsadas } = await supabase
+          .from('search_jobs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', monthStart.toISOString());
+
+        if ((extracoesUsadas || 0) >= limiteExtracoes) {
+          return new Response(
+            JSON.stringify({ 
+              error: `Limite de consultas atingido (${extracoesUsadas}/${limiteExtracoes} este mês). Faça upgrade do seu plano para continuar.`,
+              limitReached: true,
+              used: extracoesUsadas,
+              limit: limiteExtracoes
+            }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+    // ==== END VALIDATION ====
 
     // Obter termos relacionados para busca expandida
     const searchTerms = getRelatedTerms(segment);
