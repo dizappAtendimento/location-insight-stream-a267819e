@@ -4,13 +4,17 @@ import {
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
   Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar,
   Key, Copy, Code, FileJson, ExternalLink, ChevronDown, Webhook, MessageSquare,
-  Play, RotateCcw, ArrowDownToLine, ArrowUpFromLine, Plus, RefreshCw, ArrowRight, Zap
+  Play, RotateCcw, ArrowDownToLine, ArrowUpFromLine, Plus, RefreshCw, ArrowRight, Zap,
+  QrCode, Star, CheckCircle2, Link2, List, Contact, Send
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -101,9 +105,30 @@ const formatLimit = (value: number | null): string => {
   return value?.toLocaleString('pt-BR') || '0';
 };
 
+interface AvailablePlan {
+  id: number;
+  nome: string | null;
+  preco: number | null;
+  qntConexoes: number | null;
+  qntContatos: number | null;
+  qntDisparos: number | null;
+  qntListas: number | null;
+  destaque: boolean | null;
+  tipo: string | null;
+}
+
+interface PaymentData {
+  paymentId: string;
+  pixQrCode: string;
+  pixCopyPaste: string;
+  invoiceUrl: string;
+  status: string;
+}
+
 const SettingsPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'perfil';
@@ -114,6 +139,25 @@ const SettingsPage = () => {
   const [extratorPlan, setExtratorPlan] = useState<ExtractorPlanUsage | null>(null);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
+  
+  // Available plans for purchase
+  const [availablePlans, setAvailablePlans] = useState<AvailablePlan[]>([]);
+  const [loadingAvailablePlans, setLoadingAvailablePlans] = useState(true);
+  
+  // Payment states
+  const [selectedPlan, setSelectedPlan] = useState<AvailablePlan | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string>('');
+  const [showCustomerForm, setShowCustomerForm] = useState(true);
+  const [customerForm, setCustomerForm] = useState({
+    name: '',
+    email: '',
+    cpfCnpj: '',
+    phone: ''
+  });
+  const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({ nome: '', telefone: '' });
@@ -178,10 +222,199 @@ const SettingsPage = () => {
     if (stored) setSettings(JSON.parse(stored));
   }, []);
 
+  // Fetch available plans for purchase
+  useEffect(() => {
+    const fetchAvailablePlans = async () => {
+      setLoadingAvailablePlans(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-api', {
+          body: { action: 'get-plans' }
+        });
+        if (!error && data?.plans) {
+          const disparadorPlans = data.plans.filter((p: AvailablePlan) => p.tipo === 'disparador' || !p.tipo);
+          setAvailablePlans(disparadorPlans);
+        }
+      } catch (err) {
+        console.error('Error fetching available plans:', err);
+      } finally {
+        setLoadingAvailablePlans(false);
+      }
+    };
+    fetchAvailablePlans();
+  }, []);
+
+  // Preencher form com dados do usuário para pagamento
+  useEffect(() => {
+    if (user) {
+      setCustomerForm(prev => ({
+        ...prev,
+        name: user.nome || '',
+        email: user.Email || '',
+        phone: user.telefone || ''
+      }));
+    }
+  }, [user]);
+
+  // Limpar interval ao desmontar
+  useEffect(() => {
+    return () => {
+      if (statusCheckInterval.current) {
+        clearInterval(statusCheckInterval.current);
+      }
+    };
+  }, []);
+
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     localStorage.setItem('app_settings', JSON.stringify(newSettings));
+  };
+
+  // Payment functions
+  const handleSelectPlan = (plan: AvailablePlan) => {
+    setSelectedPlan(plan);
+    setShowPaymentDialog(true);
+    setPaymentData(null);
+    setPaymentStatus('');
+    setShowCustomerForm(true);
+  };
+
+  const handleCreatePayment = async () => {
+    if (!selectedPlan || !user) return;
+
+    if (!customerForm.name || !customerForm.email || !customerForm.cpfCnpj) {
+      toast({ title: 'Campos obrigatórios', description: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      const { data: customerData, error: customerError } = await supabase.functions.invoke('asaas-api', {
+        body: {
+          action: 'create-customer',
+          name: customerForm.name,
+          email: customerForm.email,
+          cpfCnpj: customerForm.cpfCnpj,
+          phone: customerForm.phone,
+          userId: user.id
+        }
+      });
+
+      if (customerError || !customerData?.success) {
+        throw new Error(customerData?.error || 'Erro ao criar cliente');
+      }
+
+      const { data: paymentResult, error: paymentError } = await supabase.functions.invoke('asaas-api', {
+        body: {
+          action: 'create-pix-payment',
+          customerId: customerData.customerId,
+          value: selectedPlan.preco,
+          description: `Plano ${selectedPlan.nome} - DizApp`,
+          planId: selectedPlan.id,
+          userId: user.id
+        }
+      });
+
+      if (paymentError || !paymentResult?.success) {
+        throw new Error(paymentResult?.error || 'Erro ao criar cobrança');
+      }
+
+      setPaymentData({
+        paymentId: paymentResult.paymentId,
+        pixQrCode: paymentResult.pixQrCode,
+        pixCopyPaste: paymentResult.pixCopyPaste,
+        invoiceUrl: paymentResult.invoiceUrl,
+        status: paymentResult.status
+      });
+      setShowCustomerForm(false);
+      setPaymentStatus('PENDING');
+
+      startPaymentStatusCheck(paymentResult.paymentId);
+
+      toast({ title: 'PIX gerado!', description: 'Escaneie o QR Code para pagar.' });
+
+    } catch (error: any) {
+      console.error('Error creating payment:', error);
+      toast({ title: 'Erro', description: error.message || 'Erro ao gerar PIX', variant: 'destructive' });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const startPaymentStatusCheck = (paymentId: string) => {
+    if (statusCheckInterval.current) {
+      clearInterval(statusCheckInterval.current);
+    }
+
+    statusCheckInterval.current = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('asaas-api', {
+          body: {
+            action: 'check-payment-status',
+            paymentId
+          }
+        });
+
+        if (!error && data?.success) {
+          setPaymentStatus(data.status);
+
+          if (data.status === 'CONFIRMED' || data.status === 'RECEIVED') {
+            clearInterval(statusCheckInterval.current!);
+            await activatePlan();
+          }
+        }
+      } catch (err) {
+        console.error('Error checking payment status:', err);
+      }
+    }, 5000);
+  };
+
+  const activatePlan = async () => {
+    if (!selectedPlan || !user || !paymentData) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('asaas-api', {
+        body: {
+          action: 'activate-plan',
+          userId: user.id,
+          planId: selectedPlan.id,
+          paymentId: paymentData.paymentId
+        }
+      });
+
+      if (error || !data?.success) {
+        throw new Error(data?.error || 'Erro ao ativar plano');
+      }
+
+      toast({ title: 'Pagamento confirmado!', description: 'Seu plano foi ativado.' });
+      
+      setTimeout(() => {
+        setShowPaymentDialog(false);
+        window.location.reload();
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Error activating plan:', err);
+      toast({ title: 'Erro', description: err.message || 'Erro ao ativar plano', variant: 'destructive' });
+    }
+  };
+
+  const handleCopyPixCode = () => {
+    if (paymentData?.pixCopyPaste) {
+      navigator.clipboard.writeText(paymentData.pixCopyPaste);
+      toast({ title: 'Copiado!', description: 'Código PIX copiado' });
+    }
+  };
+
+  const getPlanColors = (index: number) => {
+    const colors = [
+      { gradient: 'from-violet-500 to-purple-600', bg: 'from-violet-500/10 to-purple-600/5', text: 'text-violet-500', border: 'border-violet-500/30' },
+      { gradient: 'from-blue-500 to-cyan-500', bg: 'from-blue-500/10 to-cyan-500/5', text: 'text-blue-500', border: 'border-blue-500/30' },
+      { gradient: 'from-emerald-500 to-teal-500', bg: 'from-emerald-500/10 to-teal-500/5', text: 'text-emerald-500', border: 'border-emerald-500/30' },
+      { gradient: 'from-orange-500 to-amber-500', bg: 'from-orange-500/10 to-amber-500/5', text: 'text-orange-500', border: 'border-orange-500/30' },
+    ];
+    return colors[index % colors.length];
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -670,14 +903,15 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
           </TabsContent>
 
           {/* PLANOS TAB */}
-          <TabsContent value="planos" className="space-y-5 animate-fade-in">
+          <TabsContent value="planos" className="space-y-6 animate-fade-in">
+            {/* Current Plan */}
             <div className="grid grid-cols-1 gap-6">
               {/* Plano Disparador */}
               <div className="p-6 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-6 transition-all hover:border-emerald-500/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 animate-pulse"></div>
-                    <h3 className="text-lg font-semibold text-foreground">Disparador</h3>
+                    <h3 className="text-lg font-semibold text-foreground">Seu Plano Atual</h3>
                   </div>
                   {disparadorPlan && <span className="text-sm text-muted-foreground px-3 py-1 rounded-full bg-emerald-500/10">Ativo</span>}
                 </div>
@@ -720,17 +954,105 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                     </div>
                   </>
                 ) : (
-                  <div className="py-12 text-center">
+                  <div className="py-8 text-center">
+                    <Zap className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
                     <p className="text-base text-muted-foreground">Nenhum plano ativo</p>
-                    <p className="text-sm text-muted-foreground mt-2">Entre em contato para ativar</p>
+                    <p className="text-sm text-muted-foreground mt-2">Escolha um plano abaixo para começar</p>
                   </div>
                 )}
               </div>
+            </div>
 
+            {/* Available Plans for Purchase */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <QrCode className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold text-foreground">Contratar ou Renovar Plano</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">Escolha um plano e pague com PIX. Seu acesso é liberado instantaneamente!</p>
+              
+              {loadingAvailablePlans ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                </div>
+              ) : availablePlans.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>Nenhum plano disponível no momento</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {availablePlans.map((plan, index) => {
+                    const colors = getPlanColors(index);
+                    const isPopular = plan.destaque === true;
+                    
+                    return (
+                      <Card 
+                        key={plan.id} 
+                        className={`relative overflow-hidden border-2 ${isPopular ? 'border-amber-500/50 ring-2 ring-amber-500/20' : colors.border} bg-card hover:shadow-xl transition-all duration-300 ${isPopular ? 'scale-[1.02]' : ''}`}
+                      >
+                        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} opacity-50`} />
+                        
+                        {isPopular && (
+                          <div className="absolute -top-1 -right-1">
+                            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg px-2 py-0.5 text-xs">
+                              <Star className="w-3 h-3 mr-1" />
+                              Mais Contratado
+                            </Badge>
+                          </div>
+                        )}
+
+                        <CardHeader className="relative pb-3 text-center">
+                          <CardTitle className="text-xl font-bold">{plan.nome}</CardTitle>
+                          <div className="mt-2">
+                            <span className={`text-3xl font-bold ${colors.text}`}>
+                              R$ {plan.preco?.toFixed(2).replace('.', ',')}
+                            </span>
+                            <span className="text-xs text-muted-foreground">/mês</span>
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent className="relative space-y-4 pt-0">
+                          <div className="space-y-2 text-xs">
+                            <div className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                              <Link2 className="w-3 h-3 text-cyan-500" />
+                              <span><strong>{plan.qntConexoes}</strong> conexões</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                              <List className="w-3 h-3 text-violet-500" />
+                              <span><strong>{plan.qntListas}</strong> listas</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                              <Contact className="w-3 h-3 text-amber-500" />
+                              <span><strong>{plan.qntContatos?.toLocaleString('pt-BR')}</strong> contatos</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                              <Send className="w-3 h-3 text-orange-500" />
+                              <span><strong>{plan.qntDisparos?.toLocaleString('pt-BR')}</strong> disparos/mês</span>
+                            </div>
+                          </div>
+                          
+                          <Button 
+                            onClick={() => handleSelectPlan(plan)}
+                            className={`w-full gap-2 bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white shadow-lg text-sm`}
+                            size="sm"
+                          >
+                            <QrCode className="w-4 h-4" />
+                            Pagar com PIX
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-              Caso queira mudar de plano, <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">clique aqui</a> e fale com o suporte.
+              Dúvidas? <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Fale com o suporte</a>
             </p>
           </TabsContent>
 
@@ -1031,6 +1353,131 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
 
         <div className="pt-4 text-center text-xs text-muted-foreground/50">v1.0.0 • Dezembro 2024</div>
       </div>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              {showCustomerForm ? 'Dados para Pagamento' : 'Pagar com PIX'}
+            </DialogTitle>
+            <DialogDescription>
+              {showCustomerForm 
+                ? `Plano ${selectedPlan?.nome} - R$ ${selectedPlan?.preco?.toFixed(2).replace('.', ',')}`
+                : 'Escaneie o QR Code ou copie o código PIX'
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {showCustomerForm ? (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome completo *</Label>
+                <Input
+                  id="name"
+                  value={customerForm.name}
+                  onChange={(e) => setCustomerForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Seu nome completo"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={customerForm.email}
+                  onChange={(e) => setCustomerForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="seu@email.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cpfCnpj">CPF ou CNPJ *</Label>
+                <Input
+                  id="cpfCnpj"
+                  value={customerForm.cpfCnpj}
+                  onChange={(e) => setCustomerForm(prev => ({ ...prev, cpfCnpj: e.target.value }))}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={customerForm.phone}
+                  onChange={(e) => setCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+              <Button 
+                onClick={handleCreatePayment} 
+                disabled={isProcessingPayment}
+                className="w-full gap-2"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Gerando PIX...
+                  </>
+                ) : (
+                  <>
+                    <QrCode className="w-4 h-4" />
+                    Gerar PIX
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : paymentData && (
+            <div className="space-y-4 py-4">
+              <div className={`p-3 rounded-lg text-center ${
+                paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED'
+                  ? 'bg-emerald-500/10 text-emerald-500'
+                  : 'bg-amber-500/10 text-amber-500'
+              }`}>
+                {paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED' ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span className="font-medium">Pagamento Confirmado!</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Aguardando pagamento...</span>
+                  </div>
+                )}
+              </div>
+
+              {paymentData.pixQrCode && (
+                <div className="flex justify-center p-4 bg-white rounded-lg">
+                  <img 
+                    src={`data:image/png;base64,${paymentData.pixQrCode}`} 
+                    alt="QR Code PIX"
+                    className="w-48 h-48"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Código PIX (Copia e Cola)</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={paymentData.pixCopyPaste} 
+                    readOnly 
+                    className="text-xs"
+                  />
+                  <Button variant="outline" size="icon" onClick={handleCopyPixCode}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Após o pagamento, seu plano será ativado automaticamente.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
