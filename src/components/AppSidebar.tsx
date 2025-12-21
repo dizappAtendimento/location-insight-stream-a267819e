@@ -12,8 +12,6 @@ import {
   Linkedin,
   MapPin,
   Settings,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,12 +47,48 @@ const disparadorMenuItems = [
   { title: 'Maturador', url: '/maturador', icon: Flame },
 ];
 
-// Itens do extrator
+// Itens do extrator com cores vibrantes
 const extractorItems = [
-  { title: 'Instagram', url: '/instagram', icon: Instagram, colorClass: 'text-instagram' },
-  { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, colorClass: 'text-linkedin' },
-  { title: 'Google Places', url: '/places', icon: MapPin, colorClass: 'text-places' },
-  { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, colorClass: 'text-whatsapp' },
+  { 
+    title: 'Instagram', 
+    url: '/instagram', 
+    icon: Instagram, 
+    gradient: 'from-pink-500 via-purple-500 to-orange-400',
+    shadow: 'shadow-pink-500/30',
+    hoverBg: 'hover:bg-pink-500/10',
+    activeBg: 'bg-gradient-to-r from-pink-500/20 to-purple-500/20',
+    borderColor: 'border-pink-500/40'
+  },
+  { 
+    title: 'LinkedIn', 
+    url: '/linkedin', 
+    icon: Linkedin, 
+    gradient: 'from-blue-500 to-blue-600',
+    shadow: 'shadow-blue-500/30',
+    hoverBg: 'hover:bg-blue-500/10',
+    activeBg: 'bg-blue-500/15',
+    borderColor: 'border-blue-500/40'
+  },
+  { 
+    title: 'Google Places', 
+    url: '/places', 
+    icon: MapPin, 
+    gradient: 'from-emerald-400 to-green-500',
+    shadow: 'shadow-emerald-500/30',
+    hoverBg: 'hover:bg-emerald-500/10',
+    activeBg: 'bg-emerald-500/15',
+    borderColor: 'border-emerald-500/40'
+  },
+  { 
+    title: 'WhatsApp', 
+    url: '/grupos', 
+    icon: WhatsAppIcon, 
+    gradient: 'from-green-400 to-green-500',
+    shadow: 'shadow-green-500/30',
+    hoverBg: 'hover:bg-green-500/10',
+    activeBg: 'bg-green-500/15',
+    borderColor: 'border-green-500/40'
+  },
 ];
 
 const systemItems = [
@@ -81,18 +115,18 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className="border-r border-[#1a1d2e] bg-[#0d0f17]"
+      className="border-r border-border/30 bg-background/95 backdrop-blur-sm"
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <SidebarHeader className="px-3 py-4 border-b border-slate-800/50">
+      <SidebarHeader className="px-3 py-4 border-b border-border/30">
         <Link to="/" className="flex items-center justify-center">
           <img 
             src={logo} 
             alt="Logo" 
             className={cn(
-              "object-contain transition-all duration-200", 
+              "object-contain transition-all duration-300 ease-out", 
               collapsed ? "w-8 h-8" : "w-24 h-7"
             )}
           />
@@ -103,7 +137,7 @@ export function AppSidebar() {
         {/* Menu Principal */}
         <SidebarGroup className="mb-4">
           <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
+            "text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 px-2 mb-2",
             collapsed && "sr-only"
           )}>
             Menu
@@ -121,15 +155,15 @@ export function AppSidebar() {
                     <Link 
                       to={item.url} 
                       className={cn(
-                        "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
+                        "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-200 ease-out w-full",
                         collapsed && "justify-center px-0",
                         isActive(item.url) 
-                          ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
-                          : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                          ? "bg-muted text-foreground" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       )}
                     >
                       <item.icon 
-                        className="w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
+                        className="w-4 h-4 shrink-0 transition-transform duration-200 ease-out group-hover/link:scale-110" 
                         strokeWidth={1.5} 
                       />
                       {!collapsed && <span className="text-sm">{item.title}</span>}
@@ -141,17 +175,17 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Extratores - só mostra se tem acesso ao extrator */}
+        {/* Extratores - Design Premium */}
         {hasExtrator && (
           <SidebarGroup className="mb-4">
             <SidebarGroupLabel className={cn(
-              "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
+              "text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 px-2 mb-2",
               collapsed && "sr-only"
             )}>
               Extratores
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-0.5">
+              <SidebarMenu className="space-y-1">
                 {extractorItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -163,21 +197,34 @@ export function AppSidebar() {
                       <Link 
                         to={item.url} 
                         className={cn(
-                          "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
+                          "group/link flex items-center gap-3 px-2 py-2.5 rounded-xl transition-all duration-200 ease-out w-full",
                           collapsed && "justify-center px-0",
                           isActive(item.url) 
-                            ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
-                            : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                            ? cn("border", item.activeBg, item.borderColor, item.shadow, "shadow-lg")
+                            : cn("text-muted-foreground", item.hoverBg, "hover:text-foreground")
                         )}
                       >
-                        <item.icon 
-                          className={cn(
-                            "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
-                            item.colorClass
-                          )} 
-                          strokeWidth={1.5} 
-                        />
-                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                        <div className={cn(
+                          "p-1.5 rounded-lg transition-all duration-200",
+                          isActive(item.url) 
+                            ? cn("bg-gradient-to-br", item.gradient, "shadow-lg", item.shadow)
+                            : cn("bg-gradient-to-br", item.gradient, "opacity-70 group-hover/link:opacity-100")
+                        )}>
+                          <item.icon 
+                            className={cn(
+                              "w-3.5 h-3.5 shrink-0 text-white transition-transform duration-200 ease-out group-hover/link:scale-110"
+                            )} 
+                            strokeWidth={2} 
+                          />
+                        </div>
+                        {!collapsed && (
+                          <span className={cn(
+                            "text-sm font-medium transition-colors duration-200",
+                            isActive(item.url) ? "text-foreground" : ""
+                          )}>
+                            {item.title}
+                          </span>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -203,23 +250,23 @@ export function AppSidebar() {
                 <Link 
                   to={item.url} 
                   className={cn(
-                    "group/link flex items-center gap-3 rounded-xl transition-all duration-300 ease-out",
+                    "group/link flex items-center gap-3 rounded-xl transition-all duration-200 ease-out",
                     collapsed 
                       ? "justify-center p-3 w-10 h-10" 
                       : "px-3 py-3 w-full",
                     isActive(item.url) 
-                      ? "bg-primary/20 text-primary shadow-lg shadow-primary/20 border border-primary/30" 
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                      ? "bg-highlight/15 text-highlight border border-highlight/30" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
                   <item.icon 
                     className={cn(
-                      "shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
+                      "shrink-0 transition-transform duration-200 ease-out group-hover/link:scale-110",
                       collapsed ? "w-5 h-5" : "w-5 h-5"
                     )} 
                     strokeWidth={2} 
                   />
-                  {!collapsed && <span className="text-sm font-semibold">{item.title}</span>}
+                  {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
