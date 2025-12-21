@@ -210,17 +210,31 @@ export function AppSidebar() {
 
       </SidebarContent>
 
-      {/* Nome do usuário - fixo no rodapé */}
-      {!collapsed && (
-        <SidebarFooter className="px-2 py-4">
-          <Link 
-            to="/configuracoes" 
-            className="flex items-center px-3 py-3 text-slate-400 hover:text-white transition-colors"
-          >
-            <span className="text-sm font-semibold">{user?.nome || 'Usuário'}</span>
-          </Link>
-        </SidebarFooter>
-      )}
+      {/* Foto e nome do usuário - fixo no rodapé */}
+      <SidebarFooter className="px-2 py-4 border-t border-slate-800/50">
+        <Link 
+          to="/configuracoes" 
+          className={cn(
+            "flex items-center gap-3 px-2 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/40 transition-all duration-200",
+            collapsed && "justify-center"
+          )}
+        >
+          {user?.avatar_url ? (
+            <img 
+              src={user.avatar_url} 
+              alt={user?.nome || 'Usuário'}
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-slate-700"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 ring-2 ring-slate-700">
+              {(user?.nome || 'U').charAt(0).toUpperCase()}
+            </div>
+          )}
+          {!collapsed && (
+            <span className="text-sm font-medium truncate">{user?.nome || 'Usuário'}</span>
+          )}
+        </Link>
+      </SidebarFooter>
     </Sidebar>
   );
 }
