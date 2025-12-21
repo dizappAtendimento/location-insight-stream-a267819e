@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      SAAS_Chat_Labels: {
+        Row: {
+          chatName: string | null
+          created_at: string
+          id: number
+          idConexao: number
+          idUsuario: string
+          instanceName: string
+          labelColor: string | null
+          labelId: string
+          labelName: string | null
+          remoteJid: string
+          updated_at: string
+        }
+        Insert: {
+          chatName?: string | null
+          created_at?: string
+          id?: number
+          idConexao: number
+          idUsuario: string
+          instanceName: string
+          labelColor?: string | null
+          labelId: string
+          labelName?: string | null
+          remoteJid: string
+          updated_at?: string
+        }
+        Update: {
+          chatName?: string | null
+          created_at?: string
+          id?: number
+          idConexao?: number
+          idUsuario?: string
+          instanceName?: string
+          labelColor?: string | null
+          labelId?: string
+          labelName?: string | null
+          remoteJid?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       SAAS_Conexões: {
         Row: {
           Apikey: string | null

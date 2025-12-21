@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.crm-webhook]
 verify_jwt = false
+
+[functions.label-webhook]
+verify_jwt = false

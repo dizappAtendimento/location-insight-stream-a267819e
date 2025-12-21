@@ -107,6 +107,8 @@ const WhatsAppGroupsExtractor = () => {
   const [labels, setLabels] = useState<WhatsAppLabel[]>([]);
   const [selectedLabel, setSelectedLabel] = useState<string>('all');
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
+  const [isSyncingLabels, setIsSyncingLabels] = useState(false);
+  const [savedLabels, setSavedLabels] = useState<{labelId: string; labelName: string; remoteJid: string; chatName: string}[]>([]);
   
   // Public groups search states
   const [activeTab, setActiveTab] = useState('my-groups');
@@ -423,33 +425,148 @@ const WhatsAppGroupsExtractor = () => {
     }
   };
 
+  // Sincroniza etiquetas com os chats e salva no banco de dados
+  const syncLabelsToDatabase = async () => {
+    if (!selectedInstance || !user?.id) return;
+    
+    const currentConnection = instances.find(i => i.instanceName === selectedInstance);
+    if (!currentConnection) {
+      toast({ title: "Erro", description: "Conexão não encontrada", variant: "destructive" });
+      return;
+    }
+
+    setIsSyncingLabels(true);
+    try {
+      // 1. Buscar todas as etiquetas
+      const { data: labelsData, error: labelsError } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'fetch-labels', instanceName: selectedInstance }
+      });
+      if (labelsError) throw new Error(labelsError.message);
+      
+      const allLabels = labelsData.labels || [];
+      setLabels(allLabels);
+      console.log('[syncLabels] Labels:', allLabels);
+
+      // 2. Buscar todos os chats
+      const { data: chatsData, error: chatsError } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'fetch-chats', instanceName: selectedInstance }
+      });
+      if (chatsError) throw new Error(chatsError.message);
+      
+      const allChats = chatsData.chats || [];
+      console.log('[syncLabels] Chats:', allChats.length);
+
+      // 3. Limpar etiquetas antigas desta conexão
+      await supabase
+        .from('SAAS_Chat_Labels')
+        .delete()
+        .eq('idConexao', currentConnection.id);
+
+      // 4. Para cada chat com etiquetas, salvar no banco
+      let savedCount = 0;
+      for (const chat of allChats) {
+        const chatLabels = chat.labels || [];
+        if (chatLabels.length === 0) continue;
+
+        for (const labelId of chatLabels) {
+          const labelInfo = allLabels.find((l: WhatsAppLabel) => l.id === labelId);
+          
+          const { error: insertError } = await supabase
+            .from('SAAS_Chat_Labels')
+            .insert({
+              idUsuario: user.id,
+              idConexao: currentConnection.id,
+              instanceName: selectedInstance,
+              remoteJid: chat.remoteJid || chat.id,
+              labelId: labelId,
+              labelName: labelInfo?.name || '',
+              labelColor: String(labelInfo?.color || 0),
+              chatName: chat.pushName || chat.name || ''
+            });
+          
+          if (!insertError) savedCount++;
+        }
+      }
+
+      // 5. Recarregar etiquetas salvas
+      await loadSavedLabels();
+      
+      toast({ 
+        title: "Sincronização concluída", 
+        description: `${savedCount} associações de etiquetas salvas` 
+      });
+    } catch (error) {
+      console.error('[syncLabels] Error:', error);
+      toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao sincronizar", variant: "destructive" });
+    } finally {
+      setIsSyncingLabels(false);
+    }
+  };
+
+  // Carrega etiquetas salvas no banco para a conexão atual
+  const loadSavedLabels = async () => {
+    if (!selectedInstance || !user?.id) return;
+    
+    const currentConnection = instances.find(i => i.instanceName === selectedInstance);
+    if (!currentConnection) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('SAAS_Chat_Labels')
+        .select('labelId, labelName, remoteJid, chatName')
+        .eq('idConexao', currentConnection.id);
+      
+      if (error) throw error;
+      
+      setSavedLabels(data || []);
+      console.log('[loadSavedLabels] Loaded:', data?.length || 0);
+    } catch (error) {
+      console.error('[loadSavedLabels] Error:', error);
+    }
+  };
+
+  // Carrega etiquetas quando seleciona instância
+  useEffect(() => {
+    if (selectedInstance && activeTab === 'chats') {
+      loadSavedLabels();
+      fetchLabels();
+    }
+  }, [selectedInstance, activeTab]);
+
   const fetchChats = async (labelId?: string) => {
     if (!selectedInstance) {
       toast({ title: "Erro", description: "Selecione uma instância conectada", variant: "destructive" });
       return;
     }
+    
+    const currentConnection = instances.find(i => i.instanceName === selectedInstance);
+    
     setIsLoadingChats(true);
     try {
-      const requestBody: any = { action: 'fetch-chats', instanceName: selectedInstance };
-      
-      // Se selecionou uma etiqueta específica (não "all"), passa o labelId
-      if (labelId && labelId !== 'all') {
-        requestBody.data = { labelId };
-      }
-      
+      // Buscar todos os chats
       const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: requestBody
+        body: { action: 'fetch-chats', instanceName: selectedInstance }
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       
-      const chats = data.chats || [];
+      let chats = data.chats || [];
       
       // Filtrar apenas conversas individuais (não grupos)
-      const individualChats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
+      chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
       
-      if (individualChats.length === 0) {
-        toast({ title: "Aviso", description: "Nenhuma conversa encontrada", variant: "destructive" });
+      // Se tem etiqueta selecionada e temos etiquetas salvas, filtrar por elas
+      if (labelId && labelId !== 'all' && savedLabels.length > 0) {
+        const chatsWithLabel = savedLabels
+          .filter(sl => sl.labelId === labelId)
+          .map(sl => sl.remoteJid);
+        
+        chats = chats.filter((c: any) => chatsWithLabel.includes(c.remoteJid));
+        console.log('[fetchChats] Filtered by label:', labelId, 'Found:', chats.length);
+      }
+      
+      if (chats.length === 0) {
+        toast({ title: "Aviso", description: "Nenhuma conversa encontrada" + (labelId && labelId !== 'all' ? " com esta etiqueta" : ""), variant: "destructive" });
         return;
       }
 
@@ -459,7 +576,7 @@ const WhatsAppGroupsExtractor = () => {
         : 'todas';
 
       // Download Excel com contatos do bate-papo
-      const worksheet = XLSX.utils.json_to_sheet(individualChats.map((c: any) => ({
+      const worksheet = XLSX.utils.json_to_sheet(chats.map((c: any) => ({
         'Nome': c.pushName || c.name || '',
         'Telefone': (c.remoteJid || '').replace(/@.*$/, ''),
         'ID': c.remoteJid || c.id || '',
@@ -471,12 +588,12 @@ const WhatsAppGroupsExtractor = () => {
       addRecord({
         type: 'whatsapp-groups',
         segment: `Conversas de ${selectedInstance}${labelId && labelId !== 'all' ? ` (${labelName})` : ''}`,
-        totalResults: individualChats.length,
+        totalResults: chats.length,
         emailsFound: 0,
-        phonesFound: individualChats.length,
+        phonesFound: chats.length,
       });
       
-      toast({ title: "Extração concluída", description: `${individualChats.length} conversas extraídas` });
+      toast({ title: "Extração concluída", description: `${chats.length} conversas extraídas` });
     } catch (error) {
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar conversas", variant: "destructive" });
     } finally {
@@ -1234,14 +1351,70 @@ const WhatsAppGroupsExtractor = () => {
                       </Select>
                     </div>
                     
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
-                        <strong>Nota:</strong> A Evolution API não suporta filtro por etiqueta. Todas as conversas serão extraídas.
-                      </p>
+                    {/* Sincronização de Etiquetas */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Filtrar por Etiqueta</Label>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={syncLabelsToDatabase}
+                          disabled={isSyncingLabels || !selectedInstance}
+                          className="h-7 text-xs"
+                        >
+                          {isSyncingLabels ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                          Sincronizar Etiquetas
+                        </Button>
+                      </div>
+                      
+                      {savedLabels.length === 0 ? (
+                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            <strong>Dica:</strong> Clique em "Sincronizar Etiquetas" para carregar as etiquetas do WhatsApp e poder filtrar conversas.
+                          </p>
+                        </div>
+                      ) : (
+                        <Select 
+                          value={selectedLabel} 
+                          onValueChange={setSelectedLabel}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma etiqueta" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              <span className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full bg-muted-foreground/30" />
+                                Todas as conversas
+                              </span>
+                            </SelectItem>
+                            {labels.map((label) => {
+                              const count = savedLabels.filter(sl => sl.labelId === label.id).length;
+                              return (
+                                <SelectItem key={label.id} value={label.id}>
+                                  <span className="flex items-center gap-2">
+                                    <span 
+                                      className="w-3 h-3 rounded-full" 
+                                      style={{ backgroundColor: getLabelColor(label.color) }} 
+                                    />
+                                    {label.name} ({count})
+                                  </span>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      
+                      {savedLabels.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {new Set(savedLabels.map(sl => sl.labelId)).size} etiquetas com {savedLabels.length} conversas mapeadas
+                        </p>
+                      )}
                     </div>
                     
                     <Button 
-                      onClick={() => fetchChats()} 
+                      onClick={() => fetchChats(selectedLabel)} 
                       className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
                       disabled={isLoadingChats || !selectedInstance}
                     >
