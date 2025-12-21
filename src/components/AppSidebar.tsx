@@ -43,7 +43,7 @@ const disparadorMenuItems = [
   { title: 'Histórico', url: '/historico', icon: Clock },
   { title: 'Conexões', url: '/conexoes', icon: Link2 },
   { title: 'Disparos', url: '/disparos', icon: Send },
-  { title: 'Disparos em Grupo', url: '/disparos-grupo', icon: Users2 },
+  { title: 'Grupo', url: '/disparos-grupo', icon: Users2 },
   { title: 'Listas', url: '/listas', icon: ListChecks },
   { title: 'CRM', url: '/crm', icon: Columns3 },
   { title: 'Maturador', url: '/maturador', icon: Flame },
