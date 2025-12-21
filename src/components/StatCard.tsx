@@ -60,30 +60,30 @@ export function StatCard({
   return (
     <div 
       className={cn(
-        "stat-card group p-5 opacity-0 animate-fade-in-up hover-lift border-l-[3px]",
+        "stat-card group p-4 lg:p-5 opacity-0 animate-fade-in-up hover-lift border-l-2",
         styles.border,
         className
       )}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="relative flex items-start justify-between gap-4">
-        <div className="space-y-3 flex-1 min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="space-y-2 flex-1 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
             {title}
           </p>
           <p className={cn(
-            "text-[2rem] font-bold tracking-tight leading-none transition-colors duration-300",
+            "text-xl sm:text-2xl lg:text-[1.75rem] font-bold tracking-tight leading-none transition-colors duration-200",
             styles.value
           )}>
             {typeof value === 'number' ? value.toLocaleString('pt-BR') : value}
           </p>
           {trend && (
             <p className={cn(
-              "text-xs font-medium flex items-center gap-1.5 pt-0.5",
+              "text-[10px] font-medium flex items-center gap-1",
               trendPositive ? "text-emerald-500" : "text-muted-foreground"
             )}>
               <span className={cn(
-                "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                "w-1 h-1 rounded-full flex-shrink-0",
                 trendPositive ? "bg-emerald-500 animate-pulse-soft" : "bg-muted-foreground/50"
               )} />
               <span className="truncate">{trend}</span>
@@ -91,11 +91,11 @@ export function StatCard({
           )}
         </div>
         <div className={cn(
-          "flex items-center justify-center w-12 h-12 rounded-xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 flex-shrink-0",
+          "flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-lg border transition-all duration-300 group-hover:scale-105 flex-shrink-0",
           styles.icon,
           styles.iconBorder
         )}>
-          <Icon className="w-5 h-5" strokeWidth={1.75} />
+          <Icon className="w-4 h-4" strokeWidth={1.5} />
         </div>
       </div>
     </div>
