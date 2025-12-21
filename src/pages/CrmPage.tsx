@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search, Smartphone, List, Filter } from 'lucide-react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search, Smartphone, List, Filter, Download, LayoutGrid, LayoutList } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -164,6 +164,11 @@ const CrmPage = () => {
     const saved = localStorage.getItem('crm-sound-enabled');
     return saved !== null ? saved === 'true' : true;
   });
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() => {
+    const saved = localStorage.getItem('crm-view-mode');
+    return (saved as 'kanban' | 'list') || 'kanban';
+  });
+  const [selectedColumnFilter, setSelectedColumnFilter] = useState<number | null>(null);
   const initialLoadDone = useRef(false);
 
   // Listas únicas disponíveis nos leads
@@ -174,10 +179,63 @@ const CrmPage = () => {
     return acc;
   }, [] as { id: number; nome: string }[]);
 
-  // Salvar preferência de som no localStorage
+  // Salvar preferências no localStorage
   useEffect(() => {
     localStorage.setItem('crm-sound-enabled', String(soundEnabled));
   }, [soundEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('crm-view-mode', viewMode);
+  }, [viewMode]);
+
+  // Função para exportar leads por coluna
+  const exportLeadsByColumn = (columnId: number | null) => {
+    const columnLeads = columnId 
+      ? filteredLeads.filter(l => l.idColuna === columnId)
+      : filteredLeads;
+    
+    if (columnLeads.length === 0) {
+      toast({ title: "Nenhum lead para exportar", variant: "destructive" });
+      return;
+    }
+
+    const columnName = columnId 
+      ? columns.find(c => c.id === columnId)?.nome || 'Leads'
+      : 'Todos_Leads';
+
+    // Criar CSV
+    const headers = ['Nome', 'Telefone', 'Mensagem', 'Valor', 'Etapa', 'Lista', 'Conexão', 'Data'];
+    const rows = columnLeads.map(lead => {
+      const coluna = columns.find(c => c.id === lead.idColuna);
+      return [
+        lead.nome || '',
+        lead.telefone || '',
+        (lead.mensagem || '').replace(/\n/g, ' ').replace(/"/g, '""'),
+        String(lead.valor || 0),
+        coluna?.nome || '',
+        lead.nomeLista || '',
+        lead.instanceName || '',
+        new Date(lead.created_at).toLocaleDateString('pt-BR')
+      ];
+    });
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${columnName}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({ title: `${columnLeads.length} leads exportados!` });
+  };
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
@@ -711,6 +769,53 @@ const CrmPage = () => {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            {/* Exportar por etapa */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="w-4 h-4" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportLeadsByColumn(null)}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar Todos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Por Etapa</div>
+                {columns.map(column => (
+                  <DropdownMenuItem 
+                    key={column.id} 
+                    onClick={() => exportLeadsByColumn(column.id)}
+                  >
+                    <div className={cn("w-3 h-3 rounded-full mr-2", column.cor)} />
+                    {column.nome} ({getLeadsByColumnFiltered(column.id).length})
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* Toggle de visualização */}
+            <div className="flex items-center border border-border rounded-md">
+              <Button 
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="rounded-r-none"
+                onClick={() => setViewMode('kanban')}
+                title="Visualização Kanban"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="rounded-l-none"
+                onClick={() => setViewMode('list')}
+                title="Visualização em Lista"
+              >
+                <LayoutList className="w-4 h-4" />
+              </Button>
+            </div>
             <Badge variant="outline" className="px-3 py-1">
               {filteredLeads.length} leads
             </Badge>
@@ -768,202 +873,356 @@ const CrmPage = () => {
         </div>
 
         {/* Kanban Board */}
-        <div className={cn(
-          "grid gap-4 flex-1",
-          columns.length <= 4 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : 
-          columns.length <= 6 ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-6" :
-          "grid-cols-1 md:grid-cols-4 lg:grid-cols-8"
-        )} style={{ minHeight: 'calc(100vh - 220px)' }}>
-          {columns.map((column) => (
-            <div
-              key={column.id}
-              className="flex flex-col bg-muted/20 rounded-xl border border-border/50 h-full"
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop(column.id)}
-              style={{ minHeight: 'calc(100vh - 240px)' }}
-            >
-              {/* Column Header */}
-              <div className="p-4 border-b border-border/30">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className={cn("w-3 h-3 rounded-full", column.cor)} />
-                    {editingColumn === column.id ? (
-                      <div className="flex items-center gap-1 flex-1">
-                        <Input
-                          value={columnTitle}
-                          onChange={(e) => setColumnTitle(e.target.value)}
-                          className="h-7 text-sm"
-                          autoFocus
-                        />
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => saveColumnTitle(column.id)}>
-                          <Save className="w-3 h-3" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingColumn(null)}>
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <span 
-                        className="font-semibold text-sm cursor-pointer hover:text-primary flex items-center gap-1"
-                        onClick={() => startEditColumn(column.id, column.nome)}
-                      >
-                        {column.nome}
-                        <Pencil className="w-3 h-3 opacity-0 hover:opacity-100" />
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Badge variant="secondary" className="text-xs">
-                      {getLeadsByColumnFiltered(column.id).length}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <Settings className="w-3 h-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => startEditColumn(column.id, column.nome)}>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Renomear
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Cor</div>
-                        <div className="flex flex-wrap gap-1 px-2 pb-2">
-                          {colorOptions.map(color => (
-                            <button
-                              key={color}
-                              onClick={() => changeColumnColor(column.id, color)}
-                              className={cn(
-                                "w-5 h-5 rounded-full transition-all",
-                                color,
-                                column.cor === color && "ring-2 ring-offset-2 ring-primary"
-                              )}
-                            />
-                          ))}
+        {viewMode === 'kanban' ? (
+          <div className={cn(
+            "grid gap-4 flex-1",
+            columns.length <= 4 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : 
+            columns.length <= 6 ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-6" :
+            "grid-cols-1 md:grid-cols-4 lg:grid-cols-8"
+          )} style={{ minHeight: 'calc(100vh - 220px)' }}>
+            {columns.map((column) => (
+              <div
+                key={column.id}
+                className="flex flex-col bg-muted/20 rounded-xl border border-border/50 h-full"
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(column.id)}
+                style={{ minHeight: 'calc(100vh - 240px)' }}
+              >
+                {/* Column Header */}
+                <div className="p-4 border-b border-border/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className={cn("w-3 h-3 rounded-full", column.cor)} />
+                      {editingColumn === column.id ? (
+                        <div className="flex items-center gap-1 flex-1">
+                          <Input
+                            value={columnTitle}
+                            onChange={(e) => setColumnTitle(e.target.value)}
+                            className="h-7 text-sm"
+                            autoFocus
+                          />
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => saveColumnTitle(column.id)}>
+                            <Save className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingColumn(null)}>
+                            <X className="w-3 h-3" />
+                          </Button>
                         </div>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => deleteColumn(column.id)}
-                          className="text-red-500 focus:text-red-500"
-                          disabled={columns.length <= 1}
+                      ) : (
+                        <span 
+                          className="font-semibold text-sm cursor-pointer hover:text-primary flex items-center gap-1"
+                          onClick={() => startEditColumn(column.id, column.nome)}
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Excluir Coluna
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                  <DollarSign className="w-3 h-3" />
-                  {formatCurrency(getTotalValueByColumn(column.id))}
-                </div>
-              </div>
-
-              {/* Cards */}
-              <div className="flex-1 p-3 space-y-3 overflow-y-auto">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                  </div>
-                ) : getLeadsByColumnFiltered(column.id).length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground h-full">
-                    <Plus className="w-8 h-8 mb-2 opacity-30" />
-                    <span className="text-xs">{searchTerm || selectedListaFilter ? 'Nenhum lead encontrado' : 'Arraste leads aqui'}</span>
-                  </div>
-                ) : (
-                  getLeadsByColumnFiltered(column.id).map((lead) => (
-                    <Card
-                      key={lead.id}
-                      draggable
-                      onDragStart={() => handleDragStart(lead)}
-                      onClick={() => openLeadDetails(lead)}
-                      className={cn(
-                        "cursor-pointer active:cursor-grabbing bg-card hover:bg-muted/30 transition-all border-border/50 hover:border-primary/30 hover:shadow-lg",
-                        blinkingLeadIds.has(lead.id) && "animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background"
+                          {column.nome}
+                          <Pencil className="w-3 h-3 opacity-0 hover:opacity-100" />
+                        </span>
                       )}
-                    >
-                      <CardContent className="p-3 space-y-2">
-                        {/* Lead Header */}
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {lead.nome || 'Sem nome'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {lead.telefone || '-'}
-                            </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="secondary" className="text-xs">
+                        {getLeadsByColumnFiltered(column.id).length}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Settings className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => startEditColumn(column.id, column.nome)}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Renomear
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Cor</div>
+                          <div className="flex flex-wrap gap-1 px-2 pb-2">
+                            {colorOptions.map(color => (
+                              <button
+                                key={color}
+                                onClick={() => changeColumnColor(column.id, color)}
+                                className={cn(
+                                  "w-5 h-5 rounded-full transition-all",
+                                  color,
+                                  column.cor === color && "ring-2 ring-offset-2 ring-primary"
+                                )}
+                              />
+                            ))}
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-50 hover:opacity-100">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {columns.filter(c => c.id !== lead.idColuna).map(col => (
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => deleteColumn(column.id)}
+                            className="text-red-500 focus:text-red-500"
+                            disabled={columns.length <= 1}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir Coluna
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" />
+                    {formatCurrency(getTotalValueByColumn(column.id))}
+                  </div>
+                </div>
+
+                {/* Cards */}
+                <div className="flex-1 p-3 space-y-3 overflow-y-auto">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                    </div>
+                  ) : getLeadsByColumnFiltered(column.id).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground h-full">
+                      <Plus className="w-8 h-8 mb-2 opacity-30" />
+                      <span className="text-xs">{searchTerm || selectedListaFilter ? 'Nenhum lead encontrado' : 'Arraste leads aqui'}</span>
+                    </div>
+                  ) : (
+                    getLeadsByColumnFiltered(column.id).map((lead) => (
+                      <Card
+                        key={lead.id}
+                        draggable
+                        onDragStart={() => handleDragStart(lead)}
+                        onClick={() => openLeadDetails(lead)}
+                        className={cn(
+                          "cursor-pointer active:cursor-grabbing bg-card hover:bg-muted/30 transition-all border-border/50 hover:border-primary/30 hover:shadow-lg",
+                          blinkingLeadIds.has(lead.id) && "animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background"
+                        )}
+                      >
+                        <CardContent className="p-3 space-y-2">
+                          {/* Lead Header */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {lead.nome || 'Sem nome'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {lead.telefone || '-'}
+                              </p>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-50 hover:opacity-100">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {columns.filter(c => c.id !== lead.idColuna).map(col => (
+                                  <DropdownMenuItem 
+                                    key={col.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveLeadToColumn(lead.id, col.id);
+                                    }}
+                                  >
+                                    <ArrowRight className="w-4 h-4 mr-2" />
+                                    Mover para {col.nome}
+                                  </DropdownMenuItem>
+                                ))}
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem 
-                                  key={col.id}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    moveLeadToColumn(lead.id, col.id);
+                                    deleteLead(lead.id);
                                   }}
+                                  className="text-red-500 focus:text-red-500"
                                 >
-                                  <ArrowRight className="w-4 h-4 mr-2" />
-                                  Mover para {col.nome}
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Excluir
                                 </DropdownMenuItem>
-                              ))}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteLead(lead.id);
-                                }}
-                                className="text-red-500 focus:text-red-500"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-
-                        {/* Message - compacto */}
-                        {lead.mensagem && (
-                          <p className="text-xs text-muted-foreground line-clamp-1">
-                            {lead.mensagem}
-                          </p>
-                        )}
-
-                        {/* Footer minimalista */}
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground/70 pt-1">
-                          <span>{formatDate(lead.created_at)}</span>
-                          <div className="flex items-center gap-2">
-                            {lead.instanceName && (
-                              <span className="text-primary/70 truncate max-w-[50px]">{lead.instanceName.split('-')[0]}</span>
-                            )}
-                            {lead.nomeLista && (
-                              <span className="truncate max-w-[50px]">{lead.nomeLista}</span>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 text-green-500 hover:text-green-600"
-                              onClick={(e) => openWhatsApp(lead.telefone, e)}
-                            >
-                              <WhatsAppIcon size={12} />
-                            </Button>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
+
+                          {/* Message - compacto */}
+                          {lead.mensagem && (
+                            <p className="text-xs text-muted-foreground line-clamp-1">
+                              {lead.mensagem}
+                            </p>
+                          )}
+
+                          {/* Footer minimalista */}
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground/70 pt-1">
+                            <span>{formatDate(lead.created_at)}</span>
+                            <div className="flex items-center gap-2">
+                              {lead.instanceName && (
+                                <span className="text-primary/70 truncate max-w-[50px]">{lead.instanceName.split('-')[0]}</span>
+                              )}
+                              {lead.nomeLista && (
+                                <span className="truncate max-w-[50px]">{lead.nomeLista}</span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-green-500 hover:text-green-600"
+                                onClick={(e) => openWhatsApp(lead.telefone, e)}
+                              >
+                                <WhatsAppIcon size={12} />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* List View */
+          <div className="bg-muted/20 rounded-xl border border-border/50 overflow-hidden">
+            {/* List Header - Filtro por etapa */}
+            <div className="p-4 border-b border-border/30 flex items-center gap-3">
+              <span className="text-sm font-medium">Filtrar por etapa:</span>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={selectedColumnFilter === null ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedColumnFilter(null)}
+                >
+                  Todas
+                </Button>
+                {columns.map(column => (
+                  <Button
+                    key={column.id}
+                    variant={selectedColumnFilter === column.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedColumnFilter(column.id)}
+                    className="gap-2"
+                  >
+                    <div className={cn("w-2 h-2 rounded-full", column.cor)} />
+                    {column.nome} ({getLeadsByColumnFiltered(column.id).length})
+                  </Button>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+
+            {/* List Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/30">
+                  <tr className="text-left text-xs text-muted-foreground">
+                    <th className="p-3 font-medium">Etapa</th>
+                    <th className="p-3 font-medium">Nome</th>
+                    <th className="p-3 font-medium">Telefone</th>
+                    <th className="p-3 font-medium">Valor</th>
+                    <th className="p-3 font-medium">Mensagem</th>
+                    <th className="p-3 font-medium">Lista</th>
+                    <th className="p-3 font-medium">Conexão</th>
+                    <th className="p-3 font-medium">Data</th>
+                    <th className="p-3 font-medium">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={9} className="p-8 text-center">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    (selectedColumnFilter 
+                      ? filteredLeads.filter(l => l.idColuna === selectedColumnFilter)
+                      : filteredLeads
+                    ).map((lead) => {
+                      const column = columns.find(c => c.id === lead.idColuna);
+                      return (
+                        <tr 
+                          key={lead.id} 
+                          className="hover:bg-muted/30 cursor-pointer transition-colors"
+                          onClick={() => openLeadDetails(lead)}
+                        >
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <div className={cn("w-2 h-2 rounded-full", column?.cor)} />
+                              <span className="text-xs">{column?.nome || '-'}</span>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <span className="text-sm font-medium">{lead.nome || 'Sem nome'}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className="text-sm text-muted-foreground">{lead.telefone || '-'}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className="text-sm">{formatCurrency(lead.valor)}</span>
+                          </td>
+                          <td className="p-3 max-w-[200px]">
+                            <span className="text-xs text-muted-foreground line-clamp-1">{lead.mensagem || '-'}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className="text-xs text-muted-foreground">{lead.nomeLista || '-'}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className="text-xs text-primary/70">{lead.instanceName?.split('-')[0] || '-'}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className="text-xs text-muted-foreground">{formatDate(lead.created_at)}</span>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-green-500 hover:text-green-600"
+                                onClick={(e) => openWhatsApp(lead.telefone, e)}
+                              >
+                                <WhatsAppIcon size={14} />
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {columns.filter(c => c.id !== lead.idColuna).map(col => (
+                                    <DropdownMenuItem 
+                                      key={col.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveLeadToColumn(lead.id, col.id);
+                                      }}
+                                    >
+                                      <ArrowRight className="w-4 h-4 mr-2" />
+                                      Mover para {col.nome}
+                                    </DropdownMenuItem>
+                                  ))}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteLead(lead.id);
+                                    }}
+                                    className="text-red-500 focus:text-red-500"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                  {!isLoading && filteredLeads.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                        Nenhum lead encontrado
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Lead Detail Modal */}
         <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
