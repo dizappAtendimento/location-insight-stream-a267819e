@@ -99,8 +99,10 @@ const ListasPage = () => {
   const [extractionModalOpen, setExtractionModalOpen] = useState(false);
   const [searchJobs, setSearchJobs] = useState<any[]>([]);
   const [existingListas, setExistingListas] = useState<any[]>([]);
+  const [existingGrupos, setExistingGrupos] = useState<any[]>([]);
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [selectedListaIds, setSelectedListaIds] = useState<number[]>([]);
+  const [selectedGrupoListaIds, setSelectedGrupoListaIds] = useState<number[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [importingExtraction, setImportingExtraction] = useState(false);
   const [newExtractionListName, setNewExtractionListName] = useState("");
@@ -114,7 +116,7 @@ const ListasPage = () => {
   const [excelImportModalOpen, setExcelImportModalOpen] = useState(false);
   const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null);
   const [excelListName, setExcelListName] = useState("");
-  const [importSource, setImportSource] = useState<'extractions' | 'lists'>('extractions');
+  const [importSource, setImportSource] = useState<'extractions' | 'lists' | 'groups'>('extractions');
 
   const fetchListas = async () => {
     if (!user?.id) return;
@@ -542,17 +544,24 @@ const ListasPage = () => {
       if (jobsError) throw jobsError;
       setSearchJobs(jobsData || []);
       
-      // Fetch existing lists with contact counts
+      // Fetch existing lists with contact/group counts
       const { data: listasResult, error: listasError } = await supabase.functions.invoke("disparos-api", {
         body: { action: "get-listas", userId: user.id },
       });
       
       if (listasError) throw listasError;
-      // Filter only contact lists with items
+      
+      // Filter contact lists with items
       const contactLists = (listasResult?.listas || []).filter(
         (l: any) => (l.tipo === 'contacts' || l.tipo === 'contatos') && (l._count || 0) > 0
       );
       setExistingListas(contactLists);
+      
+      // Filter group lists with items
+      const groupLists = (listasResult?.listas || []).filter(
+        (l: any) => (l.tipo === 'groups' || l.tipo === 'grupos') && (l._count || 0) > 0
+      );
+      setExistingGrupos(groupLists);
       
     } catch (error) {
       console.error('Error fetching sources:', error);
@@ -568,8 +577,9 @@ const ListasPage = () => {
     
     const hasExtractions = selectedJobIds.length > 0;
     const hasLists = selectedListaIds.length > 0;
+    const hasGroups = selectedGrupoListaIds.length > 0;
     
-    if (!hasExtractions && !hasLists) {
+    if (!hasExtractions && !hasLists && !hasGroups) {
       toast.error('Selecione pelo menos uma fonte');
       return;
     }
@@ -609,7 +619,7 @@ const ListasPage = () => {
         }
       }
       
-      // Collect contacts from selected existing lists
+      // Collect contacts from selected existing contact lists
       for (const listaId of selectedListaIds) {
         const { data: contatos, error: contatosError } = await supabase
           .from('SAAS_Contatos')
@@ -633,6 +643,54 @@ const ListasPage = () => {
           }
         });
       }
+      
+      // Collect contacts from selected group lists (extracting participant phones if available)
+      for (const listaId of selectedGrupoListaIds) {
+        const { data: grupos, error: gruposError } = await supabase
+          .from('SAAS_Grupos')
+          .select('nome, WhatsAppId, atributos')
+          .eq('idLista', listaId);
+        
+        if (gruposError) throw gruposError;
+        
+        (grupos || []).forEach((g: any) => {
+          // Try to extract phone from WhatsAppId (format: 5511999999999@g.us or similar)
+          if (g.WhatsAppId) {
+            const match = g.WhatsAppId.match(/^(\d+)@/);
+            if (match && match[1]) {
+              let telefone = match[1];
+              if (telefone.length === 10 || telefone.length === 11) {
+                telefone = '55' + telefone;
+              }
+              allContacts.push({
+                nome: g.nome || '',
+                telefone
+              });
+            }
+          }
+          // Also check atributos for participant data
+          if (g.atributos && typeof g.atributos === 'object') {
+            const attrs = g.atributos as Record<string, any>;
+            if (attrs.participants && Array.isArray(attrs.participants)) {
+              attrs.participants.forEach((p: any) => {
+                if (p.id) {
+                  const pMatch = p.id.match(/^(\d+)@/);
+                  if (pMatch && pMatch[1]) {
+                    let telefone = pMatch[1];
+                    if (telefone.length === 10 || telefone.length === 11) {
+                      telefone = '55' + telefone;
+                    }
+                    allContacts.push({
+                      nome: p.name || p.pushname || '',
+                      telefone
+                    });
+                  }
+                }
+              });
+            }
+          }
+        });
+      }
 
       if (allContacts.length === 0) {
         toast.error('Nenhum contato encontrado nas fontes selecionadas');
@@ -641,7 +699,7 @@ const ListasPage = () => {
       }
 
       // Create list
-      const sourcesCount = selectedJobIds.length + selectedListaIds.length;
+      const sourcesCount = selectedJobIds.length + selectedListaIds.length + selectedGrupoListaIds.length;
       const { data: listResult, error: listError } = await supabase.functions.invoke("disparos-api", {
         body: {
           action: "create-lista",
@@ -687,6 +745,7 @@ const ListasPage = () => {
       setExtractionModalOpen(false);
       setSelectedJobIds([]);
       setSelectedListaIds([]);
+      setSelectedGrupoListaIds([]);
       setNewExtractionListName('');
       setValidateWhatsAppExtraction(false);
       setSelectedConnectionId("");
@@ -1169,10 +1228,10 @@ const ListasPage = () => {
               </div>
               
               {/* Tabs for source selection */}
-              <div className="flex gap-2 border-b border-border">
+              <div className="flex gap-2 border-b border-border overflow-x-auto">
                 <button
                   onClick={() => setImportSource('extractions')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     importSource === 'extractions' 
                       ? 'border-primary text-primary' 
                       : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -1182,13 +1241,23 @@ const ListasPage = () => {
                 </button>
                 <button
                   onClick={() => setImportSource('lists')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     importSource === 'lists' 
                       ? 'border-primary text-primary' 
                       : 'border-transparent text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Listas Existentes ({existingListas.length})
+                  Listas de Contatos ({existingListas.length})
+                </button>
+                <button
+                  onClick={() => setImportSource('groups')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    importSource === 'groups' 
+                      ? 'border-primary text-primary' 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Listas de Grupos ({existingGrupos.length})
                 </button>
               </div>
               
@@ -1240,7 +1309,7 @@ const ListasPage = () => {
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : importSource === 'lists' ? (
                 <div className="space-y-2">
                   {existingListas.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -1277,12 +1346,49 @@ const ListasPage = () => {
                     </div>
                   )}
                 </div>
-              )}
+              ) : importSource === 'groups' ? (
+                <div className="space-y-2">
+                  {existingGrupos.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhuma lista de grupos encontrada
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
+                      {existingGrupos.map((lista) => (
+                        <div 
+                          key={lista.id} 
+                          className="flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-muted/30"
+                        >
+                          <Checkbox
+                            checked={selectedGrupoListaIds.includes(lista.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedGrupoListaIds([...selectedGrupoListaIds, lista.id]);
+                              } else {
+                                setSelectedGrupoListaIds(selectedGrupoListaIds.filter(id => id !== lista.id));
+                              }
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{lista.nome}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {lista._count || 0} grupos
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(lista.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
               
               {/* Selection summary */}
-              {(selectedJobIds.length > 0 || selectedListaIds.length > 0) && (
+              {(selectedJobIds.length > 0 || selectedListaIds.length > 0 || selectedGrupoListaIds.length > 0) && (
                 <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
-                  Selecionado: {selectedJobIds.length} extração(ões), {selectedListaIds.length} lista(s)
+                  Selecionado: {selectedJobIds.length} extração(ões), {selectedListaIds.length} lista(s) de contatos, {selectedGrupoListaIds.length} lista(s) de grupos
                 </div>
               )}
               
@@ -1343,6 +1449,7 @@ const ListasPage = () => {
                     setExtractionModalOpen(false);
                     setSelectedJobIds([]);
                     setSelectedListaIds([]);
+                    setSelectedGrupoListaIds([]);
                     setNewExtractionListName('');
                     setValidateWhatsAppExtraction(false);
                     setSelectedConnectionId("");
@@ -1354,7 +1461,7 @@ const ListasPage = () => {
                 <Button
                   className="flex-1 bg-primary hover:bg-primary/90"
                   onClick={handleImportFromSource}
-                  disabled={importingExtraction || (selectedJobIds.length === 0 && selectedListaIds.length === 0) || !newExtractionListName.trim() || (validateWhatsAppExtraction && !selectedConnectionId)}
+                  disabled={importingExtraction || (selectedJobIds.length === 0 && selectedListaIds.length === 0 && selectedGrupoListaIds.length === 0) || !newExtractionListName.trim() || (validateWhatsAppExtraction && !selectedConnectionId)}
                 >
                   {importingExtraction ? (
                     <>
@@ -1362,7 +1469,7 @@ const ListasPage = () => {
                       Importando...
                     </>
                   ) : (
-                    `Importar (${selectedJobIds.length + selectedListaIds.length})`
+                    `Importar (${selectedJobIds.length + selectedListaIds.length + selectedGrupoListaIds.length})`
                   )}
                 </Button>
               </div>
