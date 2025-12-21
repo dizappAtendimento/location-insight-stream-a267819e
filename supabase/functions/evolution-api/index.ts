@@ -514,6 +514,11 @@ serve(async (req) => {
         
         console.log(`[Evolution API] Fetched chats for ${instanceName}: ${Array.isArray(chatsResult) ? chatsResult.length : 0}`);
         
+        // Log primeiro chat para debug da estrutura
+        if (Array.isArray(chatsResult) && chatsResult.length > 0) {
+          console.log(`[Evolution API] Sample chat structure:`, JSON.stringify(chatsResult[0]));
+        }
+        
         return new Response(
           JSON.stringify({ chats: chatsResult || [] }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
