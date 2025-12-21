@@ -108,6 +108,7 @@ const WhatsAppGroupsExtractor = () => {
   const [selectedLabel, setSelectedLabel] = useState<string>('all');
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
   const [isSyncingLabels, setIsSyncingLabels] = useState(false);
+  const [isSettingUpWebhook, setIsSettingUpWebhook] = useState(false);
   const [extractionMode, setExtractionMode] = useState<'all' | 'by-label'>('all');
   
   // Public groups search states
@@ -460,6 +461,41 @@ const WhatsAppGroupsExtractor = () => {
       });
     } finally {
       setIsSyncingLabels(false);
+    }
+  };
+
+  const setupLabelWebhook = async () => {
+    if (!selectedInstance || !user?.id) {
+      toast({ title: "Erro", description: "Selecione uma instância conectada", variant: "destructive" });
+      return;
+    }
+    
+    setIsSettingUpWebhook(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { 
+          action: 'setup-label-webhook', 
+          instanceName: selectedInstance,
+          userId: user.id 
+        }
+      });
+      
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      
+      toast({ 
+        title: "Webhook configurado!", 
+        description: "As etiquetas serão sincronizadas automaticamente quando você atribuir no WhatsApp."
+      });
+    } catch (error) {
+      console.error('Error setting up webhook:', error);
+      toast({ 
+        title: "Erro ao configurar webhook", 
+        description: error instanceof Error ? error.message : "Erro ao configurar webhook", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsSettingUpWebhook(false);
     }
   };
 
@@ -1376,31 +1412,39 @@ const WhatsAppGroupsExtractor = () => {
                           </Select>
                         )}
                         
-                        {/* Botão de sincronização */}
+                        {/* Botão para configurar webhook */}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={syncLabels}
-                          disabled={isSyncingLabels || !selectedInstance}
+                          onClick={setupLabelWebhook}
+                          disabled={isSettingUpWebhook || !selectedInstance}
                           className="w-full"
                         >
-                          {isSyncingLabels ? (
+                          {isSettingUpWebhook ? (
                             <>
                               <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                              Sincronizando...
+                              Configurando...
                             </>
                           ) : (
                             <>
                               <RefreshCw className="w-3 h-3 mr-2" />
-                              Sincronizar Etiquetas com Banco de Dados
+                              Ativar Sincronização Automática
                             </>
                           )}
                         </Button>
                         
-                        <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                          <p className="text-xs text-blue-600 dark:text-blue-400">
-                            <strong>Dica:</strong> Clique em "Sincronizar" para salvar as etiquetas no banco de dados. Isso garante uma filtragem mais confiável.
+                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
+                          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                            ⚠️ Limitação da Evolution API
                           </p>
+                          <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+                            A API não expõe as associações etiqueta↔chat diretamente. Para funcionar:
+                          </p>
+                          <ol className="text-xs text-amber-600/80 dark:text-amber-400/80 list-decimal ml-4 space-y-1">
+                            <li>Clique em "Ativar Sincronização Automática"</li>
+                            <li>No WhatsApp, <strong>remova e adicione novamente</strong> a etiqueta nos contatos desejados</li>
+                            <li>Isso irá capturar e salvar as associações no banco</li>
+                          </ol>
                         </div>
                       </div>
                     )}
