@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWebhookConfigs } from '@/hooks/useWebhookConfigs';
@@ -22,6 +21,9 @@ import {
   Loader2,
   Sparkles,
   Check,
+  Upload,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 
 interface Connection {
@@ -29,6 +31,7 @@ interface Connection {
   name: string;
   instance: string;
   apikey: string;
+  phone?: string;
   isConnected: boolean;
   photo?: string;
 }
@@ -42,14 +45,13 @@ interface Lista {
 interface MessageItem {
   id: number;
   text: string;
-  media: { type: string; filename: string; link: string } | null;
+  media: { type: string; filename: string; link: string; mimetype?: string } | null;
 }
 
 const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 const DIAS_SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-// Função para obter saudação baseada na hora
 const getSaudacao = () => {
   const hora = new Date().getHours();
   if (hora >= 5 && hora < 12) return 'Bom dia';
@@ -57,7 +59,6 @@ const getSaudacao = () => {
   return 'Boa noite';
 };
 
-// Função para substituir variáveis no preview
 const substituirVariaveis = (texto: string) => {
   const now = new Date();
   return texto
@@ -82,6 +83,7 @@ export default function DisparosPage() {
   const [selectedLists, setSelectedLists] = useState<number[]>([]);
   const [messages, setMessages] = useState<MessageItem[]>([{ id: 1, text: '', media: null }]);
   const [loading, setLoading] = useState(false);
+  const [csvContacts, setCsvContacts] = useState<string[]>([]);
   
   // Configurações
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
@@ -122,15 +124,39 @@ export default function DisparosPage() {
       
       const valid = raw.filter(c => (c.NomeConexao || c.name) && (c.instanceName || c.instance_name));
       
-      const mapped: Connection[] = valid.map(c => ({
-        id: c.id,
-        name: c.NomeConexao || c.name,
-        instance: c.instanceName || c.instance_name,
-        apikey: c.Apikey || c.apikey,
-        isConnected: true,
-        photo: c.FotoPerfil || c.fotoPerfil || null
+      // Verificar status de cada conexão
+      const mappedWithStatus: Connection[] = await Promise.all(valid.map(async c => {
+        const instance = c.instanceName || c.instance_name;
+        const apikey = c.Apikey || c.apikey;
+        let isConnected = false;
+        
+        try {
+          if (instance && apikey) {
+            const statusRes = await fetch(`https://evo.dizapp.com.br/instance/connectionState/${instance}`, {
+              headers: { 'apikey': apikey }
+            });
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              const state = statusData.instance?.state || statusData.state;
+              isConnected = state === 'open' || state === 'connected';
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao verificar status da conexão:', err);
+        }
+
+        return {
+          id: c.id,
+          name: c.NomeConexao || c.name,
+          instance: instance,
+          apikey: apikey,
+          phone: c.Telefone || c.telefone,
+          isConnected,
+          photo: c.FotoPerfil || c.fotoPerfil || null
+        };
       }));
-      setConnections(mapped);
+      
+      setConnections(mappedWithStatus);
     } catch (e) {
       console.error(e);
       toast.error('Erro ao carregar conexões');
@@ -161,6 +187,16 @@ export default function DisparosPage() {
     setSelectedConnections(prev => 
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
+  };
+
+  const selectActiveConnections = () => {
+    const activeIds = connections.filter(c => c.isConnected).map(c => c.id);
+    setSelectedConnections(activeIds);
+    if (activeIds.length > 0) {
+      toast.success(`${activeIds.length} conexões ativas selecionadas!`);
+    } else {
+      toast.error('Nenhuma conexão ativa encontrada.');
+    }
   };
 
   const toggleList = (id: number) => {
@@ -201,9 +237,16 @@ export default function DisparosPage() {
       if (!res.ok) throw new Error('Falha no upload');
       const data = await res.json();
       
+      if (!data.link) throw new Error('Link não retornado');
+      
       setMessages(prev => prev.map(m => m.id === id ? {
         ...m,
-        media: { type, filename: file.name, link: data.link }
+        media: { 
+          type, 
+          filename: file.name, 
+          link: data.link,
+          mimetype: file.type 
+        }
       } : m));
       toast.success('Mídia anexada!');
     } catch (e) {
@@ -214,11 +257,34 @@ export default function DisparosPage() {
   const removeMessage = (id: number) => {
     if (messages.length > 1) {
       setMessages(prev => prev.filter(m => m.id !== id));
+    } else {
+      toast.error('Deve haver pelo menos uma mensagem');
     }
   };
 
   const removeMedia = (id: number) => {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, media: null } : m));
+  };
+
+  // Handler para CSV
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      const lines = text.split('\n').filter(line => line.trim());
+      // Pula header, pega primeira coluna, limpa números
+      const contacts = lines.slice(1).map(line => {
+        const phone = line.split(',')[0].trim();
+        return phone.replace(/[^\d]/g, '');
+      }).filter(p => p.length >= 10);
+      
+      setCsvContacts(contacts);
+      toast.success(`${contacts.length} contatos carregados do CSV`);
+    };
+    reader.readAsText(file);
   };
 
   const generateAI = async () => {
@@ -249,8 +315,10 @@ export default function DisparosPage() {
           text: txt,
           media: null
         }));
-        setMessages(newMsgs); 
-        toast.success('Mensagens geradas!');
+        setMessages(prev => [...prev, ...newMsgs]); 
+        toast.success(`${newMsgs.length} mensagens geradas!`);
+      } else {
+        throw new Error('Formato inválido da API');
       }
     } catch (e) {
       toast.error('Erro na IA. Verifique API Key.');
@@ -266,13 +334,19 @@ export default function DisparosPage() {
       toast.error('Selecione uma conexão');
       return;
     }
-    if (selectedLists.length === 0) {
-      toast.error('Selecione uma lista');
+    if (selectedLists.length === 0 && csvContacts.length === 0) {
+      toast.error('Selecione uma lista ou envie um CSV');
       return;
     }
     if (selectedDays.length === 0) {
       toast.error('Selecione dias da semana');
       return;
+    }
+
+    // Aviso de conexões offline
+    const disconnected = connections.filter(c => selectedConnections.includes(c.id) && !c.isConnected);
+    if (disconnected.length > 0) {
+      toast.warning(`Atenção: ${disconnected.length} conexões selecionadas estão offline.`);
     }
     
     setLoading(true);
@@ -283,6 +357,7 @@ export default function DisparosPage() {
         id: c.id,
         instanceName: c.instance,
         nomeConexao: c.name,
+        telefone: c.phone,
         apikey: c.apikey
       }));
 
@@ -312,6 +387,7 @@ export default function DisparosPage() {
       connections: selConnsData,
       idLista: selectedLists,
       messages: messagesData,
+      contacts: csvContacts,
       settings
     };
 
@@ -332,6 +408,7 @@ export default function DisparosPage() {
         setSelectedLists([]);
         setMessages([{ id: 1, text: '', media: null }]);
         setSelectedDays([]);
+        setCsvContacts([]);
       }
     } catch (e: any) {
       toast.error('Erro ao iniciar disparo: ' + e.message);
@@ -346,7 +423,7 @@ export default function DisparosPage() {
         {/* Header */}
         <div className="opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
           <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Disparos de Mensagens</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">Configure e envie mensagens personalizadas</p>
+          <p className="text-muted-foreground text-xs sm:text-sm">Configure e envie mensagens personalizadas para seus contatos</p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr,350px]">
@@ -355,11 +432,22 @@ export default function DisparosPage() {
             {/* Conexões */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Conexões Disponíveis</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Conexões Disponíveis</CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={selectActiveConnections}
+                    className="text-xs"
+                  >
+                    <Wifi className="w-3 h-3 mr-1" />
+                    Selecionar Ativas
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-2 max-h-[200px] overflow-y-auto">
+              <CardContent className="space-y-2 max-h-[250px] overflow-y-auto">
                 {connections.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Buscando...</p>
+                  <p className="text-muted-foreground text-sm">Carregando conexões...</p>
                 ) : (
                   connections.map(conn => (
                     <div
@@ -385,44 +473,90 @@ export default function DisparosPage() {
                         )}
                         <div>
                           <p className="font-medium text-foreground">{conn.name}</p>
-                          <p className="text-xs text-muted-foreground">{conn.instance}</p>
+                          <p className="text-xs text-muted-foreground">{conn.phone || conn.instance}</p>
                         </div>
                       </div>
-                      {selectedConnections.includes(conn.id) && (
-                        <Check className="w-5 h-5 text-primary" />
-                      )}
+                      <div className="flex items-center gap-2">
+                        <div className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
+                          conn.isConnected 
+                            ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' 
+                            : 'bg-destructive/15 text-destructive border border-destructive/30'
+                        }`}>
+                          {conn.isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                          {conn.isConnected ? 'ON' : 'OFF'}
+                        </div>
+                        {selectedConnections.includes(conn.id) && (
+                          <Check className="w-5 h-5 text-primary" />
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
               </CardContent>
+              <div className="px-6 pb-4">
+                <p className="text-xs text-muted-foreground">{selectedConnections.length} conexões selecionadas</p>
+              </div>
             </Card>
 
-            {/* Listas */}
+            {/* Listas & CSV */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Listas de Contatos</CardTitle>
+                <CardTitle className="text-lg">Destinatários</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 max-h-[200px] overflow-y-auto">
-                {lists.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Nenhuma lista ou carregando...</p>
-                ) : (
-                  lists.map(list => (
-                    <div
-                      key={list.id}
-                      onClick={() => toggleList(list.id)}
-                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                        selectedLists.includes(list.id)
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
-                      }`}
-                    >
-                      <span className="font-medium text-foreground">{list.nome}</span>
-                      {selectedLists.includes(list.id) && (
-                        <Check className="w-5 h-5 text-primary" />
-                      )}
+              <CardContent className="space-y-4">
+                {/* Listas */}
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {lists.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">Carregando listas...</p>
+                  ) : (
+                    lists.map(list => (
+                      <div
+                        key={list.id}
+                        onClick={() => toggleList(list.id)}
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                          selectedLists.includes(list.id)
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-lg">
+                            📝
+                          </div>
+                          <span className="font-medium text-foreground">{list.nome}</span>
+                        </div>
+                        {selectedLists.includes(list.id) && (
+                          <Check className="w-5 h-5 text-primary" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* CSV Upload */}
+                <div className="p-4 rounded-lg border border-dashed border-border/50 bg-background/30">
+                  <div className="flex items-center gap-3">
+                    <Upload className="w-5 h-5 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Ou envie um arquivo CSV</p>
+                      <p className="text-xs text-muted-foreground">Primeira coluna deve conter os telefones</p>
                     </div>
-                  ))
-                )}
+                    <label className="cursor-pointer">
+                      <div className="px-3 py-1.5 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
+                        Escolher arquivo
+                      </div>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        onChange={handleCsvUpload}
+                      />
+                    </label>
+                  </div>
+                  {csvContacts.length > 0 && (
+                    <p className="text-xs text-emerald-500 mt-2">✓ {csvContacts.length} contatos encontrados no CSV</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -475,7 +609,7 @@ export default function DisparosPage() {
                       placeholder="Digite sua mensagem... Use variáveis como <nome>, <saudacao>, <data>"
                       value={msg.text}
                       onChange={(e) => updateMessageText(msg.id, e.target.value)}
-                      className="min-h-[100px] resize-none"
+                      className="min-h-[100px] resize-none font-mono text-sm"
                     />
 
                     {msg.media && (
@@ -522,7 +656,7 @@ export default function DisparosPage() {
                   className="w-full border-dashed border-primary text-primary hover:bg-primary/10"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Variação
+                  Nova Variação
                 </Button>
 
                 {/* IA */}
@@ -678,7 +812,7 @@ export default function DisparosPage() {
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full h-12 text-lg"
+              className="w-full h-12 text-lg bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90"
               size="lg"
             >
               {loading ? (
