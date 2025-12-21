@@ -849,23 +849,17 @@ const CrmPage = () => {
                       <CardContent className="p-3 space-y-2">
                         {/* Lead Header */}
                         <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                              <User className="w-4 h-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm truncate max-w-[120px]">
-                                {lead.nome || 'Sem nome'}
-                              </p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Phone className="w-3 h-3" />
-                                {lead.telefone || '-'}
-                              </p>
-                            </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {lead.nome || 'Sem nome'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {lead.telefone || '-'}
+                            </p>
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-50 hover:opacity-100">
                                 <MoreHorizontal className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -897,53 +891,29 @@ const CrmPage = () => {
                           </DropdownMenu>
                         </div>
 
-                        {/* Value */}
-                        {lead.valor > 0 && (
-                          <div className="flex items-center gap-1 text-xs font-medium text-green-500">
-                            <DollarSign className="w-3 h-3" />
-                            {formatCurrency(lead.valor)}
-                          </div>
-                        )}
-
-                        {/* Message */}
+                        {/* Message - compacto */}
                         {lead.mensagem && (
-                          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-2 flex items-start gap-1">
-                            <StickyNote className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                            <span className="line-clamp-2">{lead.mensagem}</span>
-                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {lead.mensagem}
+                          </p>
                         )}
 
-                        {/* Footer */}
-                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatDate(lead.created_at)}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              {lead.instanceName && (
-                                <span className="text-[10px] text-primary/70 font-medium truncate max-w-[80px] flex items-center gap-1">
-                                  <Smartphone className="w-2.5 h-2.5" />
-                                  {lead.instanceName.split('-')[0]}
-                                </span>
-                              )}
-                              {lead.nomeLista && (
-                                <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[80px] flex items-center gap-1">
-                                  <List className="w-2.5 h-2.5" />
-                                  {lead.nomeLista}
-                                </span>
-                              )}
-                            </div>
+                        {/* Footer minimalista */}
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground/70 pt-1">
+                          <span>{formatDate(lead.created_at)}</span>
+                          <div className="flex items-center gap-2">
+                            {lead.nomeLista && (
+                              <span className="truncate max-w-[60px]">{lead.nomeLista}</span>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 text-green-500 hover:text-green-600"
+                              onClick={(e) => openWhatsApp(lead.telefone, e)}
+                            >
+                              <WhatsAppIcon size={12} />
+                            </Button>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-500/10"
-                            onClick={(e) => openWhatsApp(lead.telefone, e)}
-                            title="Abrir WhatsApp"
-                          >
-                            <WhatsAppIcon size={14} />
-                          </Button>
                         </div>
                       </CardContent>
                     </Card>
