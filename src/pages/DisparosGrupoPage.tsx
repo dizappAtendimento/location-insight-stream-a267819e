@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Send,
@@ -18,806 +18,697 @@ import {
   FileAudio,
   FileText,
   RefreshCw,
-  Clock,
   Users,
   CheckCircle,
   Loader2,
   Sparkles,
-  Info,
-  ChevronDown,
-  Bold,
-  Italic,
-  Strikethrough,
-  Code,
+  AlertTriangle,
+  Calendar,
+  Clock,
+  X,
 } from 'lucide-react';
 
 interface Connection {
   id: number;
-  instanceName: string | null;
-  NomeConexao: string | null;
-  Telefone: string | null;
-  FotoPerfil: string | null;
-  Apikey: string | null;
-  status?: 'open' | 'close';
+  name: string;
+  instance: string;
+  phone?: string;
+  apikey: string;
+  isConnected?: boolean;
 }
 
 interface Lista {
   id: number;
   nome: string;
   tipo: string | null;
-  campos: any;
 }
 
 interface MessageItem {
   id: number;
   text: string;
-  mediaType: 'image' | 'video' | 'audio' | 'document' | null;
-  mediaUrl: string | null;
-  mediaName: string | null;
+  media: {
+    type: string;
+    filename: string;
+    link: string;
+  } | null;
 }
-
-const defaultVariables = [
-  { name: 'nome', label: 'Nome do Grupo' },
-];
-
-const timeVariables = [
-  { name: 'saudacao', label: 'Saudação (Bom dia/tarde/noite)' },
-  { name: 'hora', label: 'Hora atual' },
-  { name: 'data', label: 'Data atual' },
-  { name: 'diadasemana', label: 'Dia da semana' },
-  { name: 'mes', label: 'Mês' },
-];
 
 export default function DisparosGrupoPage() {
   const { user } = useAuth();
+  
+  // Estados principais
   const [connections, setConnections] = useState<Connection[]>([]);
-  const [listas, setListas] = useState<Lista[]>([]);
-  const [selectedConnection, setSelectedConnection] = useState<number | null>(null);
-  const [selectedListas, setSelectedListas] = useState<number[]>([]);
-  const [messages, setMessages] = useState<MessageItem[]>([
-    { id: 1, text: '', mediaType: null, mediaUrl: null, mediaName: null }
-  ]);
-  const [mentionAll, setMentionAll] = useState(false);
-  const [enableAI, setEnableAI] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
+  const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
+  const [lists, setLists] = useState<Lista[]>([]);
+  const [selectedLists, setSelectedLists] = useState<number[]>([]);
+  const [messages, setMessages] = useState<MessageItem[]>([{ id: 1, text: '', media: null }]);
+  const [sendDate, setSendDate] = useState('');
+  const [markAll, setMarkAll] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // AI States
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiCount, setAiCount] = useState(3);
+  const [aiInstructions, setAiInstructions] = useState('');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [isLoadingConnections, setIsLoadingConnections] = useState(false);
-  const [isLoadingListas, setIsLoadingListas] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
-  const timeDropdownRef = useRef<HTMLDivElement>(null);
-  const textareaRefs = useRef<{ [key: number]: HTMLTextAreaElement | null }>({});
 
+  // Variáveis de tempo disponíveis
+  const timeVariables = ['saudacao', 'hora', 'data', 'diadasemana', 'mes'];
+
+  // --- Carregar dados iniciais ---
   useEffect(() => {
-    fetchConnections();
-    fetchListas();
-  }, [user]);
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) {
-        setShowTimeDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const fetchConnections = async () => {
-    if (!user?.id) return;
-    setIsLoadingConnections(true);
+  const loadData = async () => {
+    setIsLoadingData(true);
     try {
-      const { data, error } = await supabase.functions.invoke('disparos-api', {
-        body: {
-          action: 'get-connections',
-          userId: user.id,
-        },
+      await Promise.all([loadConnections(), loadLists()]);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  const loadConnections = async () => {
+    try {
+      const res = await fetch('https://app.dizapp.com.br/listarconexoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id })
       });
-
-      if (error) throw error;
-
-      const connectionsData = data?.connections || [];
+      const data = await res.json();
+      const rawConns = data.Conexoes || (Array.isArray(data) ? data : []);
       
-      // Fetch status for each connection
-      const connectionsWithStatus: Connection[] = await Promise.all(
-        connectionsData.map(async (conn: any) => {
-          try {
-            const response = await supabase.functions.invoke('evolution-api', {
-              body: {
-                action: 'status',
-                instanceName: conn.instanceName,
-                apikey: conn.Apikey,
-              },
-            });
-            return {
-              ...conn,
-              status: (response.data?.state === 'open' ? 'open' : 'close') as 'open' | 'close',
-            };
-          } catch {
-            return { ...conn, status: 'close' as const };
-          }
-        })
-      );
-
-      setConnections(connectionsWithStatus);
-    } catch (error) {
-      console.error('Error fetching connections:', error);
+      const validConns = rawConns
+        .filter((c: any) => c.instanceName || c.NomeConexao)
+        .map((c: any) => ({
+          id: c.id || c.ID,
+          name: c.NomeConexao || c.nomeConexao || c.name,
+          instance: c.instanceName || c.instance_name,
+          phone: c.Telefone || c.telefone,
+          apikey: c.Apikey || c.apikey,
+          isConnected: true
+        }));
+      
+      setConnections(validConns);
+    } catch (e) {
+      console.error(e);
       toast.error('Erro ao carregar conexões');
-    } finally {
-      setIsLoadingConnections(false);
     }
   };
 
-  const fetchListas = async () => {
-    if (!user?.id) return;
-    setIsLoadingListas(true);
+  const loadLists = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('disparos-api', {
-        body: {
-          action: 'get-listas',
-          userId: user.id,
-        },
+      const res = await fetch('https://app.dizapp.com.br/puxar-lista', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id })
       });
-
-      if (error) throw error;
-      // Filter only group lists
-      const allListas = data?.listas || [];
-      const groupListas = allListas.filter((lista: Lista) => lista.tipo === 'Grupos');
-      setListas(groupListas);
-    } catch (error) {
-      console.error('Error fetching listas:', error);
+      const data = await res.json();
+      const rawLists = data.data || (Array.isArray(data) ? data : []);
+      
+      // Filtra apenas tipo 'groups'
+      setLists(rawLists.filter((l: any) => l.tipo === 'groups' || l.tipo === 'Grupos'));
+    } catch (e) {
+      console.error(e);
       toast.error('Erro ao carregar listas');
-    } finally {
-      setIsLoadingListas(false);
     }
   };
 
-  const selectConnection = (id: number) => {
-    setSelectedConnection(selectedConnection === id ? null : id);
+  // --- Handlers ---
+  const handleSelectConnection = (conn: Connection) => {
+    setSelectedConnection(selectedConnection?.id === conn.id ? null : conn);
   };
 
-  const toggleLista = (id: number) => {
-    setSelectedListas(prev =>
+  const toggleList = (id: number) => {
+    setSelectedLists(prev => 
       prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]
     );
   };
 
   const addMessage = () => {
-    const newId = Math.max(...messages.map(m => m.id), 0) + 1;
-    setMessages([...messages, { id: newId, text: '', mediaType: null, mediaUrl: null, mediaName: null }]);
+    setMessages(prev => [...prev, { id: Date.now(), text: '', media: null }]);
   };
 
   const removeMessage = (id: number) => {
     if (messages.length > 1) {
-      setMessages(messages.filter(m => m.id !== id));
+      setMessages(prev => prev.filter(m => m.id !== id));
     }
   };
 
   const updateMessageText = (id: number, text: string) => {
-    setMessages(messages.map(m => m.id === id ? { ...m, text } : m));
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, text } : m));
   };
 
-  const insertVariable = (messageId: number, variable: string) => {
-    const textarea = textareaRefs.current[messageId];
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const currentText = messages.find(m => m.id === messageId)?.text || '';
-      const newText = currentText.substring(0, start) + `<${variable}>` + currentText.substring(end);
-      updateMessageText(messageId, newText);
-      setTimeout(() => {
-        textarea.focus();
-        const newPosition = start + variable.length + 2;
-        textarea.setSelectionRange(newPosition, newPosition);
-      }, 0);
-    }
-  };
-
-  const insertFormat = (messageId: number, format: 'bold' | 'italic' | 'strike' | 'mono') => {
-    const textarea = textareaRefs.current[messageId];
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const currentText = messages.find(m => m.id === messageId)?.text || '';
-      const selectedText = currentText.substring(start, end);
-      
-      let formattedText = '';
-      switch (format) {
-        case 'bold':
-          formattedText = `*${selectedText}*`;
-          break;
-        case 'italic':
-          formattedText = `_${selectedText}_`;
-          break;
-        case 'strike':
-          formattedText = `~${selectedText}~`;
-          break;
-        case 'mono':
-          formattedText = `\`\`\`${selectedText}\`\`\``;
-          break;
+  const insertVariable = (msgId: number, variable: string) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id === msgId) {
+        return { ...m, text: m.text + ` <${variable}> ` };
       }
-      
-      const newText = currentText.substring(0, start) + formattedText + currentText.substring(end);
-      updateMessageText(messageId, newText);
-    }
+      return m;
+    }));
   };
 
-  const handleMediaUpload = async (messageId: number, file: File, type: 'image' | 'video' | 'audio' | 'document') => {
+  const handleFileUpload = async (msgId: number, file: File, type: string) => {
+    if (!file) return;
+    if (file.size > 16 * 1024 * 1024) {
+      toast.error('Arquivo muito grande (Max 16MB)');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-      const fileName = `${user?.id}/${Date.now()}_${file.name}`;
-      const { data, error } = await supabase.storage
-        .from('arquivos')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage.from('arquivos').getPublicUrl(fileName);
+      const res = await fetch('https://app.dizapp.com.br/uploadmedia', {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) throw new Error('Upload falhou');
       
-      setMessages(messages.map(m => 
-        m.id === messageId 
-          ? { ...m, mediaType: type, mediaUrl: urlData.publicUrl, mediaName: file.name }
-          : m
-      ));
+      const data = await res.json();
+      if (!data.link) throw new Error('Link não retornado');
+
+      setMessages(prev => prev.map(m => m.id === msgId ? {
+        ...m,
+        media: {
+          filename: file.name,
+          type: type,
+          link: data.link
+        }
+      } : m));
       
-      toast.success('Mídia enviada com sucesso!');
-    } catch (error) {
-      console.error('Error uploading media:', error);
-      toast.error('Erro ao enviar mídia');
+      toast.success('Arquivo anexado com sucesso!');
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro no upload da mídia');
     }
   };
 
-  const removeMedia = (messageId: number) => {
-    setMessages(messages.map(m => 
-      m.id === messageId 
-        ? { ...m, mediaType: null, mediaUrl: null, mediaName: null }
-        : m
-    ));
+  const removeMedia = (msgId: number) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, media: null } : m));
   };
 
-  const generateWithAI = async () => {
-    if (!aiPrompt.trim()) {
-      toast.error('Digite uma descrição para a mensagem');
+  // --- AI Generation ---
+  const generateAI = async () => {
+    const seeds = messages.filter(m => m.text.trim()).map(m => m.text);
+    if (seeds.length === 0) {
+      toast.error('Escreva pelo menos uma mensagem base');
       return;
     }
 
     setIsGeneratingAI(true);
     try {
-      const { data, error } = await supabase.functions.invoke('disparos-api', {
-        body: {
-          action: 'generate-ai-message',
+      const res = await fetch('https://app.dizapp.com.br/gerarmensagem-ia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           userId: user?.id,
-          disparoData: { 
-            prompt: aiPrompt,
-            currentMessages: messages.map(m => m.text).filter(t => t.trim())
-          }
-        }
+          variacoesMensagens: seeds,
+          instrucoesAdicionais: aiInstructions,
+          quantidadeMensagens: parseInt(String(aiCount)),
+          tipo: 'grupos'
+        })
       });
-
-      if (error) throw error;
-
-      if (data?.error) {
-        if (data.error.includes('API key')) {
-          toast.error('Configure sua API key do ChatGPT em Conexões');
-        } else {
-          toast.error(data.error);
-        }
-        return;
+      
+      const data = await res.json();
+      if (data?.mensagens?.mensagens) {
+        const newMsgs = data.mensagens.mensagens.map((txt: string, idx: number) => ({
+          id: Date.now() + idx,
+          text: txt,
+          media: null
+        }));
+        setMessages(prev => [...prev, ...newMsgs]);
+        toast.success('Mensagens geradas com IA!');
       }
-
-      if (data?.message) {
-        setMessages(prev => {
-          const updated = [...prev];
-          if (updated.length > 0) {
-            updated[0] = { ...updated[0], text: data.message };
-          }
-          return updated;
-        });
-        toast.success('Mensagem gerada com sucesso!');
-      }
-    } catch (error: any) {
-      console.error('Error generating AI message:', error);
-      toast.error('Erro ao gerar mensagem com IA');
+    } catch (e) {
+      toast.error('Erro ao gerar com IA');
     } finally {
       setIsGeneratingAI(false);
     }
   };
 
+  // --- Submit ---
   const handleSubmit = async () => {
     if (!selectedConnection) {
       toast.error('Selecione uma conexão');
       return;
     }
-    if (selectedListas.length === 0) {
-      toast.error('Selecione pelo menos uma lista de grupos');
+    if (selectedLists.length === 0) {
+      toast.error('Selecione uma lista de grupos');
       return;
     }
-    if (messages.every(m => !m.text.trim() && !m.mediaUrl)) {
-      toast.error('Adicione pelo menos uma mensagem');
+    if (!sendDate) {
+      toast.error('Selecione a data de envio');
+      return;
+    }
+    if (!messages.some(m => m.text.trim() || m.media)) {
+      toast.error('Adicione uma mensagem válida');
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const mensagens = messages.map(m => ({
+    setLoading(true);
+
+    const payload = {
+      userId: user?.id,
+      connections: [{
+        id: selectedConnection.id,
+        instanceName: selectedConnection.instance,
+        nomeConexao: selectedConnection.name,
+        telefone: selectedConnection.phone,
+        apikey: selectedConnection.apikey
+      }],
+      idLista: selectedLists,
+      messages: messages.filter(m => m.text || m.media).map(m => ({
         text: m.text,
-        media: m.mediaUrl ? { link: m.mediaUrl } : null,
-      }));
+        type: 'text',
+        media: m.media
+      })),
+      contacts: [],
+      settings: {
+        scheduleData: new Date(sendDate).toISOString(),
+        mencionarTodos: markAll
+      }
+    };
 
-      const connection = connections.find(c => c.id === selectedConnection);
-
-      const payload = {
-        userId: user?.id,
-        connections: [{ id: selectedConnection }],
-        idLista: selectedListas,
-        mensagens,
-        settings: {
-          mencionarTodos: mentionAll,
-        },
-      };
-
-      const { data, error } = await supabase.rpc('create_disparo_grupo', {
-        p_payload: payload,
+    try {
+      const res = await fetch('https://app.dizapp.com.br/db56b0fb-cc58-4d51-8755-d7e04ccaa120123', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-
-      if (error) throw error;
-
-      toast.success('Disparo para grupos criado com sucesso!');
       
-      // Reset form
-      setSelectedConnection(null);
-      setSelectedListas([]);
-      setMessages([{ id: 1, text: '', mediaType: null, mediaUrl: null, mediaName: null }]);
-      setMentionAll(false);
-    } catch (error: any) {
-      console.error('Error creating disparo grupo:', error);
-      toast.error(error?.message || 'Erro ao criar disparo');
+      const result = await res.json();
+      
+      if (result.plano) {
+        toast.error(`Limite atingido: ${result.plano}`);
+      } else {
+        toast.success('Disparo em grupos agendado!');
+        // Reset form
+        setSelectedConnection(null);
+        setSelectedLists([]);
+        setMessages([{ id: 1, text: '', media: null }]);
+        setSendDate('');
+        setMarkAll(false);
+      }
+    } catch (e: any) {
+      toast.error('Erro ao agendar: ' + e.message);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
+  // --- Render ---
   return (
     <DashboardLayout>
       <div className="p-6 max-w-7xl mx-auto">
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Disparos em Grupos
           </h1>
           <p className="text-muted-foreground">
-            Envie mensagens para grupos do WhatsApp
+            Envie mensagens para múltiplos grupos do WhatsApp.
           </p>
         </div>
 
-        <div className="grid gap-6">
-          {/* Conexões */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Conexão WhatsApp</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={fetchConnections}
-                  disabled={isLoadingConnections}
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoadingConnections ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Selecione uma conexão para enviar mensagens aos grupos
-              </p>
-            </CardHeader>
-            <CardContent>
-              {isLoadingConnections ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Form Area */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Conexões */}
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Selecione uma conexão *</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={loadConnections}
+                    disabled={isLoadingData}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+                  </Button>
                 </div>
-              ) : connections.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                  Nenhuma conexão encontrada
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[200px] overflow-y-auto pr-2">
-                  {connections.map((conn) => (
-                    <div
-                      key={conn.id}
-                      onClick={() => selectConnection(conn.id)}
-                      className={`relative p-4 rounded-lg border cursor-pointer transition-all ${
-                        selectedConnection === conn.id
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border/50 bg-muted/20 hover:border-primary/40'
-                      }`}
-                    >
-                      {selectedConnection === conn.id && (
-                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle className="w-3 h-3 text-primary-foreground" />
-                        </div>
-                      )}
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-                          {conn.FotoPerfil ? (
-                            <img src={conn.FotoPerfil} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-primary font-bold">
-                              {conn.NomeConexao?.charAt(0).toUpperCase() || 'W'}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{conn.NomeConexao || 'Conexão'}</p>
-                          <p className="text-xs text-muted-foreground truncate">{conn.Telefone}</p>
-                        </div>
-                      </div>
-                      <Badge
-                        variant={conn.status === 'open' ? 'default' : 'destructive'}
-                        className="absolute top-2 right-2 text-[10px] px-1.5"
-                        style={selectedConnection === conn.id ? { top: '28px' } : {}}
-                      >
-                        {conn.status === 'open' ? 'Online' : 'Offline'}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedConnection && (
-                <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
-                  Conexão selecionada: <span className="text-primary font-medium">
-                    {connections.find(c => c.id === selectedConnection)?.NomeConexao || 'Conexão'}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Listas de Grupos */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Listas de Grupos</CardTitle>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={fetchListas}
-                  disabled={isLoadingListas}
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoadingListas ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingListas ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-              ) : listas.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>Nenhuma lista de grupos encontrada</p>
-                  <p className="text-xs mt-1">Crie uma lista do tipo "Grupos" primeiro</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[200px] overflow-y-auto pr-2">
-                  {listas.map((lista) => (
-                    <div
-                      key={lista.id}
-                      onClick={() => toggleLista(lista.id)}
-                      className={`relative p-4 rounded-lg border cursor-pointer transition-all ${
-                        selectedListas.includes(lista.id)
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border/50 bg-muted/20 hover:border-primary/40'
-                      }`}
-                    >
-                      {selectedListas.includes(lista.id) && (
-                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle className="w-3 h-3 text-primary-foreground" />
-                        </div>
-                      )}
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Users className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{lista.nome}</p>
-                          <p className="text-xs text-muted-foreground">Grupos</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedListas.length > 0 && (
-                <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
-                  <span className="text-primary font-medium">{selectedListas.length}</span> lista(s) de grupos selecionada(s)
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Mensagens */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Mensagens</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {messages.map((message, index) => (
-                <div
-                  key={message.id}
-                  className="p-4 rounded-lg border border-border/50 bg-muted/20"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-primary">
-                      Mensagem {index + 1}
-                    </span>
-                    {messages.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeMessage(message.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+              </CardHeader>
+              <CardContent>
+                {isLoadingData ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   </div>
-
-                  {/* Variáveis */}
-                  <div className="mb-3">
-                    <Label className="text-xs text-muted-foreground mb-2 block">
-                      Variáveis disponíveis
-                    </Label>
-                    <div className="flex flex-wrap gap-2">
-                      {defaultVariables.map((v) => (
-                        <Button
-                          key={v.name}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => insertVariable(message.id, v.name)}
-                          className="text-xs h-7 px-2"
-                        >
-                          {`<${v.name}>`}
-                        </Button>
-                      ))}
-                      
-                      {/* Time variables dropdown */}
-                      <div className="relative" ref={timeDropdownRef}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowTimeDropdown(!showTimeDropdown)}
-                          className="text-xs h-7 px-2"
-                        >
-                          <Clock className="w-3 h-3 mr-1" />
-                          Tempo
-                          <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${showTimeDropdown ? 'rotate-180' : ''}`} />
-                        </Button>
-                        {showTimeDropdown && (
-                          <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-lg p-2 shadow-lg min-w-[200px]">
-                            {timeVariables.map((v) => (
-                              <Button
-                                key={v.name}
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  insertVariable(message.id, v.name);
-                                  setShowTimeDropdown(false);
-                                }}
-                                className="w-full justify-start text-xs h-8"
-                              >
-                                {v.label}
-                              </Button>
-                            ))}
+                ) : connections.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                    Nenhuma conexão encontrada
+                  </div>
+                ) : (
+                  <div className="grid gap-3 max-h-[200px] overflow-y-auto pr-2">
+                    {connections.map((conn) => (
+                      <div
+                        key={conn.id}
+                        onClick={() => handleSelectConnection(conn)}
+                        className={`relative p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                          selectedConnection?.id === conn.id
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border/50 bg-muted/20 hover:border-primary/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-primary font-bold">
+                              {conn.name?.charAt(0).toUpperCase() || 'W'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{conn.name}</p>
+                            <p className="text-xs text-muted-foreground">{conn.instance}</p>
+                          </div>
+                        </div>
+                        {selectedConnection?.id === conn.id && (
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-primary-foreground" />
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Formatting buttons */}
-                  <div className="flex gap-2 mb-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => insertFormat(message.id, 'bold')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Bold className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => insertFormat(message.id, 'italic')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Italic className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => insertFormat(message.id, 'strike')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Strikethrough className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => insertFormat(message.id, 'mono')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Code className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <Textarea
-                    ref={(el) => { textareaRefs.current[message.id] = el; }}
-                    value={message.text}
-                    onChange={(e) => updateMessageText(message.id, e.target.value)}
-                    placeholder="Digite sua mensagem para os grupos..."
-                    className="min-h-[100px] font-mono text-sm"
-                  />
-
-                  {/* Media upload */}
-                  <div className="grid grid-cols-4 gap-2 mt-3">
-                    {[
-                      { type: 'image' as const, icon: Image, label: 'Imagem', accept: 'image/*' },
-                      { type: 'video' as const, icon: Video, label: 'Vídeo', accept: 'video/*' },
-                      { type: 'audio' as const, icon: FileAudio, label: 'Áudio', accept: 'audio/*' },
-                      { type: 'document' as const, icon: FileText, label: 'Doc', accept: '.pdf,.doc,.docx,.xls,.xlsx' },
-                    ].map((media) => (
-                      <label
-                        key={media.type}
-                        className={`relative flex flex-col items-center justify-center p-3 rounded-lg border cursor-pointer transition-all ${
-                          message.mediaType === media.type
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border/50 hover:border-primary/40'
-                        }`}
-                      >
-                        <input
-                          type="file"
-                          accept={media.accept}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleMediaUpload(message.id, file, media.type);
-                          }}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                        <media.icon className="w-5 h-5 mb-1" />
-                        <span className="text-xs">{media.label}</span>
-                      </label>
                     ))}
                   </div>
+                )}
+              </CardContent>
+            </Card>
 
-                  {/* Media preview */}
-                  {message.mediaUrl && (
-                    <div className="mt-3 p-3 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-sm truncate max-w-[200px]">{message.mediaName}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeMedia(message.id)}
-                        className="text-destructive"
+            {/* Listas de Grupos */}
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-lg">Listas de grupos *</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {lists.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>Nenhuma lista de grupos encontrada.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 max-h-[200px] overflow-y-auto pr-2">
+                    {lists.map((list) => (
+                      <div
+                        key={list.id}
+                        onClick={() => toggleList(list.id)}
+                        className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                          selectedLists.includes(list.id)
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border/50 bg-muted/20 hover:border-primary/40'
+                        }`}
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              <Button
-                variant="outline"
-                onClick={addMessage}
-                className="w-full border-dashed"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Mensagem
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Configurações */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Configurações</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Mencionar todos */}
-              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/20 border border-border/50">
-                <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-sm">Mencionar Todos</p>
-                    <p className="text-xs text-muted-foreground">
-                      Menciona todos os participantes do grupo (@all)
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={mentionAll}
-                  onCheckedChange={setMentionAll}
-                />
-              </div>
-
-              {/* AI */}
-              <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-emerald-500" />
-                    <div>
-                      <p className="font-medium text-sm">Gerar com IA</p>
-                      <p className="text-xs text-muted-foreground">
-                        Use ChatGPT para variar suas mensagens
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={enableAI}
-                    onCheckedChange={setEnableAI}
-                  />
-                </div>
-
-                {enableAI && (
-                  <div className="space-y-3 pt-3 border-t border-border/30">
-                    <Textarea
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="Descreva o tipo de mensagem que deseja gerar..."
-                      className="min-h-[80px]"
-                    />
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                      <Info className="w-4 h-4 text-emerald-500 mt-0.5" />
-                      <p className="text-xs text-emerald-500">
-                        A IA irá variar a mensagem para cada grupo, mantendo o mesmo contexto.
-                      </p>
-                    </div>
-                    <Button 
-                      className="w-full bg-emerald-600 hover:bg-emerald-700"
-                      onClick={generateWithAI}
-                      disabled={isGeneratingAI || !aiPrompt.trim()}
-                    >
-                      {isGeneratingAI ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Gerando...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Gerar Mensagem com IA
-                        </>
-                      )}
-                    </Button>
+                        <span className="font-medium text-sm">{list.nome}</span>
+                        {selectedLists.includes(list.id) && (
+                          <CheckCircle className="w-5 h-5 text-primary" />
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Botão Enviar */}
-          <Button
-            size="lg"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full h-14 text-lg font-semibold"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Criando disparo...
-              </>
-            ) : (
-              <>
-                <Send className="w-5 h-5 mr-2" />
-                Iniciar Disparo para Grupos
-              </>
-            )}
-          </Button>
+                {/* Aviso do WhatsApp */}
+                {selectedConnection && selectedLists.length > 0 && (
+                  <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-yellow-500">
+                      Certifique-se que o WhatsApp selecionado está em todos os grupos da lista.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Mensagens */}
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Mensagens *</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {messages.map((msg, idx) => (
+                  <div key={msg.id} className="p-4 rounded-lg border border-border/50 bg-muted/20 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Mensagem {idx + 1}</span>
+                      {messages.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeMessage(msg.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Variáveis de Tempo */}
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">Variáveis de tempo:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {timeVariables.map(v => (
+                          <Badge
+                            key={v}
+                            variant="outline"
+                            className="cursor-pointer hover:bg-primary/20 hover:border-primary"
+                            onClick={() => insertVariable(msg.id, v)}
+                          >
+                            {v}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Textarea
+                      value={msg.text}
+                      onChange={(e) => updateMessageText(msg.id, e.target.value)}
+                      placeholder="Digite sua mensagem aqui..."
+                      className="min-h-[100px] bg-background/50"
+                    />
+
+                    {/* Upload de Mídia */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { type: 'image', icon: Image, label: 'IMAGEM' },
+                        { type: 'video', icon: Video, label: 'VÍDEO' },
+                        { type: 'audio', icon: FileAudio, label: 'ÁUDIO' },
+                        { type: 'document', icon: FileText, label: 'DOC' },
+                      ].map(({ type, icon: Icon, label }) => (
+                        <label
+                          key={type}
+                          className="flex flex-col items-center justify-center gap-1 p-3 rounded-lg border border-border/50 bg-muted/20 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+                        >
+                          <Icon className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">{label}</span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={(e) => e.target.files?.[0] && handleFileUpload(msg.id, e.target.files[0], type)}
+                          />
+                        </label>
+                      ))}
+                    </div>
+
+                    {/* Preview de Mídia Anexada */}
+                    {msg.media && (
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/30">
+                        <span className="text-sm text-foreground">
+                          📎 {msg.media.filename} ({msg.media.type})
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeMedia(msg.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <Button
+                  variant="outline"
+                  onClick={addMessage}
+                  className="w-full border-dashed"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Mensagem
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* AI Settings */}
+            <Card className="border-green-500/30 bg-green-500/5 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-green-500" />
+                    <CardTitle className="text-lg">Gerar com IA</CardTitle>
+                  </div>
+                  <Switch
+                    checked={aiEnabled}
+                    onCheckedChange={setAiEnabled}
+                  />
+                </div>
+              </CardHeader>
+              {aiEnabled && (
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Quantidade:</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={aiCount}
+                        onChange={(e) => setAiCount(parseInt(e.target.value) || 3)}
+                        className="bg-background/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Instruções:</Label>
+                      <Textarea
+                        value={aiInstructions}
+                        onChange={(e) => setAiInstructions(e.target.value)}
+                        placeholder="Ex: Use um tom profissional e persuasivo..."
+                        className="min-h-[60px] bg-background/50"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={generateAI}
+                    disabled={isGeneratingAI}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    {isGeneratingAI ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Gerar Mensagens
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Configurações Finais */}
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-lg">Configurações</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Data para envio *
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      value={sendDate}
+                      onChange={(e) => setSendDate(e.target.value)}
+                      className="bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Marcar todos (@todos)</Label>
+                    <div
+                      onClick={() => setMarkAll(!markAll)}
+                      className={`w-14 h-8 rounded-full cursor-pointer transition-all flex items-center px-1 ${
+                        markAll ? 'bg-primary' : 'bg-muted'
+                      }`}
+                    >
+                      <div
+                        className={`w-6 h-6 rounded-full bg-white flex items-center justify-center text-xs transition-transform ${
+                          markAll ? 'translate-x-6' : 'translate-x-0'
+                        }`}
+                      >
+                        {markAll ? '✓' : '✗'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Submit Button */}
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full h-14 text-lg font-semibold"
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Agendando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5 mr-2" />
+                  Agendar Disparo
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Phone Preview */}
+          <div className="hidden lg:block">
+            <div className="sticky top-24">
+              <div className="w-full max-w-[320px] mx-auto bg-black rounded-[35px] p-3 border-4 border-zinc-700">
+                <div className="bg-[#e5ddd5] rounded-[25px] overflow-hidden h-[600px] flex flex-col">
+                  {/* Header */}
+                  <div className="bg-[#075e54] px-4 py-3 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-zinc-300 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-zinc-600" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm">Grupo Exemplo</p>
+                      <p className="text-white/70 text-xs">você, +42 pessoas</p>
+                    </div>
+                  </div>
+
+                  {/* Chat Area */}
+                  <div className="flex-1 p-4 overflow-y-auto">
+                    {messages[0]?.text || messages[0]?.media ? (
+                      <div className="bg-[#dcf8c6] p-2 px-3 rounded-lg max-w-[85%] ml-auto">
+                        {messages[0].media && (
+                          <div className="bg-black/10 p-2 rounded mb-2 text-xs">
+                            📎 {messages[0].media.filename}
+                          </div>
+                        )}
+                        <p className="text-black text-sm whitespace-pre-wrap">
+                          {messages[0].text}
+                        </p>
+                        <p className="text-right text-[10px] text-black/50 mt-1">
+                          {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center text-zinc-500 text-sm mt-20">
+                        Digite uma mensagem para ver o preview
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </DashboardLayout>
