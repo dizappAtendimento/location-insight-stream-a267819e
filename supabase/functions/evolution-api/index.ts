@@ -440,6 +440,59 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "setup-label-webhook":
+        // Configura o webhook para capturar eventos de labels
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: "userId é obrigatório" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.log(`[Evolution API] Setting up label webhook for ${instanceName}`);
+        
+        const webhookUrl = `${SUPABASE_URL}/functions/v1/label-webhook`;
+        
+        // Configura webhook na Evolution API
+        const webhookConfig = {
+          url: webhookUrl,
+          webhook_by_events: true,
+          webhook_base64: false,
+          events: [
+            "LABELS_EDIT",
+            "LABELS_ASSOCIATION"
+          ]
+        };
+        
+        response = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(webhookConfig),
+        });
+        
+        const webhookResult = await response.json();
+        console.log(`[Evolution API] Webhook setup result:`, JSON.stringify(webhookResult));
+        
+        if (response.ok) {
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: "Webhook configurado. As etiquetas serão sincronizadas automaticamente quando atribuídas no WhatsApp.",
+              webhookUrl 
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } else {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: webhookResult?.message || "Falha ao configurar webhook",
+              details: webhookResult
+            }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
       case "fetch-chats":
         // Busca conversas/chats
         response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
