@@ -11,9 +11,6 @@ import {
   Instagram,
   Linkedin,
   MapPin,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
   Headphones,
   CreditCard,
 } from 'lucide-react';
@@ -213,41 +210,22 @@ export function AppSidebar() {
 
       </SidebarContent>
 
-      {/* Sistema - fixo no rodapé */}
-      <SidebarFooter className="px-2 py-4 space-y-1">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={isActive('/configuracoes')}
-              tooltip={user?.nome || 'Configurações'}
-              className="p-0 h-auto"
-            >
-              <Link 
-                to="/configuracoes" 
-                className={cn(
-                  "group/link flex items-center gap-3 rounded-xl transition-all duration-300 ease-out",
-                  collapsed 
-                    ? "justify-center p-3 w-10 h-10" 
-                    : "px-3 py-3 w-full",
-                  isActive('/configuracoes') 
-                    ? "bg-primary/20 text-primary shadow-lg shadow-primary/20 border border-primary/30" 
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                )}
-              >
-                <Settings 
-                  className={cn(
-                    "shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
-                    collapsed ? "w-5 h-5" : "w-5 h-5"
-                  )} 
-                  strokeWidth={2} 
-                />
-                {!collapsed && <span className="text-sm font-semibold">{user?.nome || 'Configurações'}</span>}
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      {/* Nome do usuário - fixo no rodapé */}
+      {!collapsed && (
+        <SidebarFooter className="px-2 py-4">
+          <Link 
+            to="/configuracoes" 
+            className={cn(
+              "flex items-center px-3 py-3 rounded-xl transition-all duration-300 ease-out w-full",
+              isActive('/configuracoes') 
+                ? "bg-primary/20 text-primary shadow-lg shadow-primary/20 border border-primary/30" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <span className="text-sm font-semibold">{user?.nome || 'Usuário'}</span>
+          </Link>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }
