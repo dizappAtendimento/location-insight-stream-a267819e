@@ -110,6 +110,7 @@ const ListasPage = () => {
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [importingExtraction, setImportingExtraction] = useState(false);
   const [newExtractionListName, setNewExtractionListName] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   
   // WhatsApp validation states
   const [validateWhatsApp, setValidateWhatsApp] = useState(false);
@@ -1286,6 +1287,7 @@ const ListasPage = () => {
             setValidateWhatsAppExtraction(false);
             setSelectedConnectionId("");
             setImportSource('extractions');
+            setLocationFilter("");
           }
         }}>
           <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1359,53 +1361,90 @@ const ListasPage = () => {
                 </div>
               ) : importSource === 'extractions' ? (
                 <div className="space-y-2">
+                  {/* Location Filter */}
+                  {searchJobs.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Filtrar por Localidade</Label>
+                      <Select 
+                        value={locationFilter} 
+                        onValueChange={(value) => {
+                          setLocationFilter(value);
+                          // When filter changes, update selection to only include filtered items
+                          if (value === "") {
+                            setSelectedJobIds(searchJobs.map(j => j.id));
+                          } else {
+                            const filteredIds = searchJobs
+                              .filter(j => (j.location || '').toLowerCase().includes(value.toLowerCase()))
+                              .map(j => j.id);
+                            setSelectedJobIds(filteredIds);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="bg-background/50">
+                          <SelectValue placeholder="Todas as localidades" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          <SelectItem value="">Todas as localidades</SelectItem>
+                          {/* Get unique locations from searchJobs */}
+                          {[...new Set(searchJobs.map(j => j.location).filter(Boolean))].map((location) => (
+                            <SelectItem key={location} value={location}>
+                              {location}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
                   {searchJobs.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       Nenhuma extração encontrada
                     </div>
                   ) : (
                     <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
-                      {searchJobs.map((job) => {
-                        const resultsCount = job.total_found || (Array.isArray(job.results) ? job.results.length : 0);
-                        const phonesCount = job.phonesFound ?? (Array.isArray(job.results) 
-                          ? job.results.filter((r: any) => r.phone).length 
-                          : 0);
-                        const sourceLabel = job.source === 'local' 
-                          ? (job.type === 'whatsapp-groups' ? 'WhatsApp' : job.type === 'places' ? 'Google Places' : job.type || 'Local')
-                          : 'Google Places';
-                        
-                        return (
-                          <div 
-                            key={job.id} 
-                            className="flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-muted/30"
-                          >
-                            <Checkbox
-                              checked={selectedJobIds.includes(job.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedJobIds([...selectedJobIds, job.id]);
-                                } else {
-                                  setSelectedJobIds(selectedJobIds.filter(id => id !== job.id));
-                                }
-                              }}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">
-                                {job.query}
-                                <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                                  {sourceLabel}
-                                </span>
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {job.location || 'Sem localização'} • {resultsCount} resultados • {phonesCount} com telefone
-                              </p>
+                      {searchJobs
+                        .filter(job => !locationFilter || (job.location || '').toLowerCase().includes(locationFilter.toLowerCase()))
+                        .map((job) => {
+                          const resultsCount = job.total_found || (Array.isArray(job.results) ? job.results.length : 0);
+                          const phonesCount = job.phonesFound ?? (Array.isArray(job.results) 
+                            ? job.results.filter((r: any) => r.phone).length 
+                            : 0);
+                          const sourceLabel = job.source === 'local' 
+                            ? (job.type === 'whatsapp-groups' ? 'WhatsApp' : job.type === 'places' ? 'Google Places' : job.type || 'Local')
+                            : 'Google Places';
+                          
+                          return (
+                            <div 
+                              key={job.id} 
+                              className="flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-muted/30"
+                            >
+                              <Checkbox
+                                checked={selectedJobIds.includes(job.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedJobIds([...selectedJobIds, job.id]);
+                                  } else {
+                                    setSelectedJobIds(selectedJobIds.filter(id => id !== job.id));
+                                  }
+                                }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">
+                                  {job.query}
+                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                    {sourceLabel}
+                                  </span>
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {job.location || 'Sem localização'} • {resultsCount} resultados • {phonesCount} com telefone
+                                </p>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(job.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                              </span>
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(job.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                            </span>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   )}
                 </div>
