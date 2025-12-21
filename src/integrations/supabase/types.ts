@@ -60,6 +60,7 @@ export type Database = {
         Row: {
           Apikey: string | null
           created_at: string
+          crmAtivo: boolean | null
           FotoPerfil: string | null
           id: number
           idUsuario: string | null
@@ -70,6 +71,7 @@ export type Database = {
         Insert: {
           Apikey?: string | null
           created_at?: string
+          crmAtivo?: boolean | null
           FotoPerfil?: string | null
           id?: number
           idUsuario?: string | null
@@ -80,6 +82,7 @@ export type Database = {
         Update: {
           Apikey?: string | null
           created_at?: string
+          crmAtivo?: boolean | null
           FotoPerfil?: string | null
           id?: number
           idUsuario?: string | null
