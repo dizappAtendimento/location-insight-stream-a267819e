@@ -729,6 +729,34 @@ const CrmPage = () => {
           </div>
         </div>
 
+        {/* Stats Cards */}
+        <div className={cn(
+          "grid gap-3 mb-4",
+          columns.length <= 4 ? "grid-cols-2 md:grid-cols-4" : 
+          columns.length <= 6 ? "grid-cols-3 md:grid-cols-6" :
+          "grid-cols-4 md:grid-cols-8"
+        )}>
+          {columns.map((column) => {
+            const columnLeads = getLeadsByColumnFiltered(column.id);
+            const columnValue = getTotalValueByColumn(column.id);
+            return (
+              <div 
+                key={`stat-${column.id}`}
+                className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50"
+              >
+                <div className={cn("w-2 h-8 rounded-full", column.cor)} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground truncate">{column.nome}</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-bold">{columnLeads.length}</span>
+                    <span className="text-xs text-muted-foreground">{formatCurrency(columnValue)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Kanban Board */}
         <div className={cn(
           "grid gap-4 flex-1",
