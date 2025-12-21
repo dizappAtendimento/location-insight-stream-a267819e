@@ -9,15 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Crown, 
   Zap, 
-  Database, 
   Check, 
   Send, 
   Link2, 
   List, 
-  Contact, 
-  Instagram, 
-  Linkedin, 
-  MapPin,
+  Contact,
   LogOut,
   MessageCircle
 } from 'lucide-react';
@@ -31,9 +27,6 @@ interface Plan {
   qntContatos: number | null;
   qntDisparos: number | null;
   qntListas: number | null;
-  qntInstagram: number | null;
-  qntLinkedin: number | null;
-  qntPlaces: number | null;
   tipo: string | null;
 }
 
@@ -78,13 +71,12 @@ export default function ContratarPage() {
 
   const handleContactSales = (plan: Plan) => {
     const message = encodeURIComponent(
-      `Olá! Tenho interesse no plano ${plan.nome} (${plan.tipo === 'extrator' ? 'Extrator' : 'Disparador'}) - R$ ${plan.preco?.toFixed(2).replace('.', ',')}. Poderia me ajudar?`
+      `Olá! Tenho interesse no plano ${plan.nome} - R$ ${plan.preco?.toFixed(2).replace('.', ',')}. Poderia me ajudar?`
     );
     window.open(`https://wa.me/5511999999999?text=${message}`, '_blank');
   };
 
   const disparadorPlans = plans.filter(p => p.tipo === 'disparador' || !p.tipo);
-  const extratorPlans = plans.filter(p => p.tipo === 'extrator');
 
   const getPlanColors = (index: number) => {
     const colors = [
@@ -129,62 +121,36 @@ export default function ContratarPage() {
         </CardHeader>
         
         <CardContent className="relative space-y-6">
-          {plan.tipo === 'extrator' ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Instagram className="w-4 h-4 text-pink-500" />
-                  <span className="text-sm"><strong>{plan.qntInstagram?.toLocaleString('pt-BR')}</strong> extrações Instagram/mês</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Linkedin className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm"><strong>{plan.qntLinkedin?.toLocaleString('pt-BR')}</strong> extrações LinkedIn/mês</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-500" />
-                  <span className="text-sm"><strong>{plan.qntPlaces?.toLocaleString('pt-BR')}</strong> extrações Google Places/mês</span>
-                </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <Check className="w-5 h-5 text-emerald-500 shrink-0" />
+              <div className="flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-cyan-500" />
+                <span className="text-sm"><strong>{plan.qntConexoes}</strong> conexões WhatsApp</span>
               </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Link2 className="w-4 h-4 text-cyan-500" />
-                  <span className="text-sm"><strong>{plan.qntConexoes}</strong> conexões WhatsApp</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <List className="w-4 h-4 text-violet-500" />
-                  <span className="text-sm"><strong>{plan.qntListas}</strong> listas de contatos</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Contact className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm"><strong>{plan.qntContatos?.toLocaleString('pt-BR')}</strong> contatos</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Send className="w-4 h-4 text-orange-500" />
-                  <span className="text-sm"><strong>{plan.qntDisparos?.toLocaleString('pt-BR')}</strong> disparos/mês</span>
-                </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <Check className="w-5 h-5 text-emerald-500 shrink-0" />
+              <div className="flex items-center gap-2">
+                <List className="w-4 h-4 text-violet-500" />
+                <span className="text-sm"><strong>{plan.qntListas}</strong> listas de contatos</span>
               </div>
             </div>
-          )}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <Check className="w-5 h-5 text-emerald-500 shrink-0" />
+              <div className="flex items-center gap-2">
+                <Contact className="w-4 h-4 text-amber-500" />
+                <span className="text-sm"><strong>{plan.qntContatos?.toLocaleString('pt-BR')}</strong> contatos</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <Check className="w-5 h-5 text-emerald-500 shrink-0" />
+              <div className="flex items-center gap-2">
+                <Send className="w-4 h-4 text-orange-500" />
+                <span className="text-sm"><strong>{plan.qntDisparos?.toLocaleString('pt-BR')}</strong> disparos/mês</span>
+              </div>
+            </div>
+          </div>
           
           <Button 
             onClick={() => handleContactSales(plan)}
@@ -246,60 +212,20 @@ export default function ContratarPage() {
       {/* Plans Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <div className="flex justify-center">
-              <TabsList className="bg-card border border-border/40 p-1.5 h-auto">
-                <TabsTrigger 
-                  value="disparador" 
-                  className="gap-2 px-6 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
-                >
-                  <Zap className="w-4 h-4" />
-                  Disparador WhatsApp
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="extrator" 
-                  className="gap-2 px-6 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                >
-                  <Database className="w-4 h-4" />
-                  Extrator de Leads
-                </TabsTrigger>
-              </TabsList>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
             </div>
-
-            <TabsContent value="disparador" className="mt-0">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                </div>
-              ) : disparadorPlans.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">
-                  <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum plano disponível no momento</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
-                  {disparadorPlans.map((plan, index) => renderPlanCard(plan, index))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="extrator" className="mt-0">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-                </div>
-              ) : extratorPlans.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">
-                  <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum plano disponível no momento</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
-                  {extratorPlans.map((plan, index) => renderPlanCard(plan, index))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          ) : disparadorPlans.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum plano disponível no momento</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
+              {disparadorPlans.map((plan, index) => renderPlanCard(plan, index))}
+            </div>
+          )}
         </div>
       </section>
 
