@@ -12,6 +12,7 @@ import {
   Linkedin,
   MapPin,
   Settings,
+  MessageCircle,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,47 +48,37 @@ const disparadorMenuItems = [
   { title: 'Maturador', url: '/maturador', icon: Flame },
 ];
 
-// Itens do extrator com cores vibrantes
+// Itens do extrator com design circular moderno
 const extractorItems = [
   { 
     title: 'Instagram', 
     url: '/instagram', 
     icon: Instagram, 
-    gradient: 'from-pink-500 via-purple-500 to-orange-400',
-    shadow: 'shadow-pink-500/30',
-    hoverBg: 'hover:bg-pink-500/10',
-    activeBg: 'bg-gradient-to-r from-pink-500/20 to-purple-500/20',
-    borderColor: 'border-pink-500/40'
+    ringColor: 'ring-pink-500',
+    iconColor: 'text-pink-500',
+    hoverRing: 'group-hover/link:ring-pink-400',
+    activeRing: 'ring-2',
+    glowColor: 'group-hover/link:shadow-[0_0_12px_rgba(236,72,153,0.4)]'
   },
   { 
     title: 'LinkedIn', 
     url: '/linkedin', 
     icon: Linkedin, 
-    gradient: 'from-blue-500 to-blue-600',
-    shadow: 'shadow-blue-500/30',
-    hoverBg: 'hover:bg-blue-500/10',
-    activeBg: 'bg-blue-500/15',
-    borderColor: 'border-blue-500/40'
-  },
-  { 
-    title: 'Google Places', 
-    url: '/places', 
-    icon: MapPin, 
-    gradient: 'from-emerald-400 to-green-500',
-    shadow: 'shadow-emerald-500/30',
-    hoverBg: 'hover:bg-emerald-500/10',
-    activeBg: 'bg-emerald-500/15',
-    borderColor: 'border-emerald-500/40'
+    ringColor: 'ring-blue-500',
+    iconColor: 'text-blue-500',
+    hoverRing: 'group-hover/link:ring-blue-400',
+    activeRing: 'ring-2',
+    glowColor: 'group-hover/link:shadow-[0_0_12px_rgba(59,130,246,0.4)]'
   },
   { 
     title: 'WhatsApp', 
     url: '/grupos', 
     icon: WhatsAppIcon, 
-    gradient: 'from-green-400 to-green-500',
-    shadow: 'shadow-green-500/30',
-    hoverBg: 'hover:bg-green-500/10',
-    activeBg: 'bg-green-500/15',
-    borderColor: 'border-green-500/40'
+    ringColor: 'ring-green-500',
+    iconColor: 'text-green-500',
+    hoverRing: 'group-hover/link:ring-green-400',
+    activeRing: 'ring-2',
+    glowColor: 'group-hover/link:shadow-[0_0_12px_rgba(34,197,94,0.4)]'
   },
 ];
 
@@ -175,7 +166,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Extratores - Design Premium */}
+        {/* Extratores - Design Circular */}
         {hasExtrator && (
           <SidebarGroup className="mb-4">
             <SidebarGroupLabel className={cn(
@@ -185,7 +176,7 @@ export function AppSidebar() {
               Extratores
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
+              <SidebarMenu className={cn("space-y-2", collapsed && "flex flex-col items-center")}>
                 {extractorItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -197,30 +188,29 @@ export function AppSidebar() {
                       <Link 
                         to={item.url} 
                         className={cn(
-                          "group/link flex items-center gap-3 px-2 py-2.5 rounded-xl transition-all duration-200 ease-out w-full",
-                          collapsed && "justify-center px-0",
-                          isActive(item.url) 
-                            ? cn("border", item.activeBg, item.borderColor, item.shadow, "shadow-lg")
-                            : cn("text-muted-foreground", item.hoverBg, "hover:text-foreground")
+                          "group/link flex items-center gap-3 px-2 py-2 rounded-xl transition-all duration-300 ease-out w-full",
+                          collapsed && "justify-center px-0"
                         )}
                       >
                         <div className={cn(
-                          "p-1.5 rounded-lg transition-all duration-200",
-                          isActive(item.url) 
-                            ? cn("bg-gradient-to-br", item.gradient, "shadow-lg", item.shadow)
-                            : cn("bg-gradient-to-br", item.gradient, "opacity-70 group-hover/link:opacity-100")
+                          "relative p-2.5 rounded-full ring-1 transition-all duration-300 ease-out",
+                          item.ringColor,
+                          item.hoverRing,
+                          item.glowColor,
+                          isActive(item.url) && cn(item.activeRing, "shadow-lg")
                         )}>
                           <item.icon 
                             className={cn(
-                              "w-3.5 h-3.5 shrink-0 text-white transition-transform duration-200 ease-out group-hover/link:scale-110"
+                              "w-4 h-4 shrink-0 transition-all duration-300 ease-out",
+                              item.iconColor
                             )} 
-                            strokeWidth={2} 
+                            strokeWidth={1.5} 
                           />
                         </div>
                         {!collapsed && (
                           <span className={cn(
                             "text-sm font-medium transition-colors duration-200",
-                            isActive(item.url) ? "text-foreground" : ""
+                            isActive(item.url) ? "text-foreground" : "text-muted-foreground"
                           )}>
                             {item.title}
                           </span>
