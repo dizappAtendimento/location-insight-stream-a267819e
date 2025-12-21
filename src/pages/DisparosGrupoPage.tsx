@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWebhookConfigs } from '@/hooks/useWebhookConfigs';
 import {
   Send,
   Plus,
@@ -27,7 +25,19 @@ import {
   Calendar,
   Clock,
   X,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
+
+// URLs da API
+const API_URLS = {
+  listarConexoes: 'https://api.dizapp.com.br/listarconexoes',
+  puxarLista: 'https://api.dizapp.com.br/puxar-lista',
+  uploadMedia: 'https://api.dizapp.com.br/uploadmedia',
+  gerarMensagemIA: 'https://api.dizapp.com.br/gerarmensagem-ia',
+  disparoGrupo: 'https://api.dizapp.com.br/grupo-salvar',
+  evoStatus: 'https://evo.dizapp.com.br/instance/connectionState',
+};
 
 interface Connection {
   id: number;
@@ -57,7 +67,6 @@ interface MessageItem {
 
 export default function DisparosGrupoPage() {
   const { user } = useAuth();
-  const { configs, loading: configsLoading } = useWebhookConfigs();
   
   // Estados principais
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -106,10 +115,10 @@ export default function DisparosGrupoPage() {
 
   // --- Carregar dados iniciais ---
   useEffect(() => {
-    if (user?.id && !configsLoading) {
+    if (user?.id) {
       loadData();
     }
-  }, [user?.id, configsLoading]);
+  }, [user?.id]);
 
   const loadData = async () => {
     setIsLoadingData(true);
@@ -122,7 +131,7 @@ export default function DisparosGrupoPage() {
 
   const loadConnections = async () => {
     try {
-      const res = await fetch(configs.webhook_listar_conexoes, {
+      const res = await fetch(API_URLS.listarConexoes, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id })
@@ -130,19 +139,41 @@ export default function DisparosGrupoPage() {
       const data = await res.json();
       const rawConns = data.Conexoes || (Array.isArray(data) ? data : []);
       
-      const validConns = rawConns
-        .filter((c: any) => c.instanceName || c.NomeConexao)
-        .map((c: any) => ({
+      const validConns = rawConns.filter((c: any) => c.instanceName || c.NomeConexao);
+      
+      // Verificar status de cada conexão
+      const mappedWithStatus: Connection[] = await Promise.all(validConns.map(async (c: any) => {
+        const instance = c.instanceName || c.instance_name;
+        const apikey = c.Apikey || c.apikey;
+        let isConnected = false;
+        
+        try {
+          if (instance && apikey) {
+            const statusRes = await fetch(`${API_URLS.evoStatus}/${instance}`, {
+              headers: { 'apikey': apikey }
+            });
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              const state = statusData.instance?.state || statusData.state;
+              isConnected = state === 'open' || state === 'connected';
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao verificar status da conexão:', err);
+        }
+
+        return {
           id: c.id || c.ID,
           name: c.NomeConexao || c.nomeConexao || c.name,
-          instance: c.instanceName || c.instance_name,
+          instance: instance,
           phone: c.Telefone || c.telefone,
-          apikey: c.Apikey || c.apikey,
-          isConnected: true,
+          apikey: apikey,
+          isConnected,
           photo: c.FotoPerfil || c.fotoPerfil || null
-        }));
+        };
+      }));
       
-      setConnections(validConns);
+      setConnections(mappedWithStatus);
     } catch (e) {
       console.error(e);
       toast.error('Erro ao carregar conexões');
@@ -151,7 +182,7 @@ export default function DisparosGrupoPage() {
 
   const loadLists = async () => {
     try {
-      const res = await fetch(configs.webhook_puxar_lista, {
+      const res = await fetch(API_URLS.puxarLista, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id })
@@ -185,6 +216,8 @@ export default function DisparosGrupoPage() {
   const removeMessage = (id: number) => {
     if (messages.length > 1) {
       setMessages(prev => prev.filter(m => m.id !== id));
+    } else {
+      toast.error('Deve haver pelo menos uma mensagem');
     }
   };
 
@@ -212,7 +245,7 @@ export default function DisparosGrupoPage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch(configs.webhook_upload_media, {
+      const res = await fetch(API_URLS.uploadMedia, {
         method: 'POST',
         body: formData
       });
@@ -245,13 +278,13 @@ export default function DisparosGrupoPage() {
   const generateAI = async () => {
     const seeds = messages.filter(m => m.text.trim()).map(m => m.text);
     if (seeds.length === 0) {
-      toast.error('Escreva pelo menos uma mensagem base');
+      toast.error('Escreva pelo menos uma mensagem base para a IA');
       return;
     }
 
     setIsGeneratingAI(true);
     try {
-      const res = await fetch(configs.webhook_gerar_mensagem_ia, {
+      const res = await fetch(API_URLS.gerarMensagemIA, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -271,7 +304,9 @@ export default function DisparosGrupoPage() {
           media: null
         }));
         setMessages(prev => [...prev, ...newMsgs]);
-        toast.success('Mensagens geradas com IA!');
+        toast.success(`${newMsgs.length} mensagens geradas com IA!`);
+      } else {
+        throw new Error('Formato inválido da API');
       }
     } catch (e) {
       toast.error('Erro ao gerar com IA');
@@ -299,6 +334,11 @@ export default function DisparosGrupoPage() {
       return;
     }
 
+    // Aviso de conexão offline
+    if (!selectedConnection.isConnected) {
+      toast.warning('Atenção: A conexão selecionada está offline.');
+    }
+
     setLoading(true);
 
     const payload = {
@@ -311,7 +351,7 @@ export default function DisparosGrupoPage() {
         apikey: selectedConnection.apikey
       }],
       idLista: selectedLists,
-      messages: messages.filter(m => m.text || m.media).map(m => ({
+      mensagens: messages.filter(m => m.text || m.media).map(m => ({
         text: m.text,
         type: 'text',
         media: m.media
@@ -324,7 +364,7 @@ export default function DisparosGrupoPage() {
     };
 
     try {
-      const res = await fetch(configs.webhook_disparo_grupo, {
+      const res = await fetch(API_URLS.disparoGrupo, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -416,14 +456,24 @@ export default function DisparosGrupoPage() {
                           )}
                           <div>
                             <p className="font-medium text-sm">{conn.name}</p>
-                            <p className="text-xs text-muted-foreground">{conn.instance}</p>
+                            <p className="text-xs text-muted-foreground">{conn.phone || conn.instance}</p>
                           </div>
                         </div>
-                        {selectedConnection?.id === conn.id && (
-                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                            <CheckCircle className="w-4 h-4 text-primary-foreground" />
+                        <div className="flex items-center gap-2">
+                          <div className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
+                            conn.isConnected 
+                              ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' 
+                              : 'bg-destructive/15 text-destructive border border-destructive/30'
+                          }`}>
+                            {conn.isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                            {conn.isConnected ? 'ON' : 'OFF'}
                           </div>
-                        )}
+                          {selectedConnection?.id === conn.id && (
+                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                              <CheckCircle className="w-4 h-4 text-primary-foreground" />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -488,102 +538,99 @@ export default function DisparosGrupoPage() {
                   <div key={msg.id} className="p-4 rounded-lg border border-border/50 bg-muted/20 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Mensagem {idx + 1}</span>
-                      {messages.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeMessage(msg.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeMessage(msg.id)}
+                        className="text-destructive hover:text-destructive"
+                        disabled={messages.length <= 1}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
 
-                    {/* Variáveis de Tempo */}
+                    {/* Variáveis */}
                     <div>
-                      <p className="text-xs text-muted-foreground mb-2">Variáveis de tempo:</p>
+                      <p className="text-xs text-muted-foreground mb-2">Variáveis disponíveis:</p>
                       <div className="flex flex-wrap gap-2">
                         {timeVariables.map(v => (
-                          <Badge
+                          <button
                             key={v}
-                            variant="outline"
-                            className="cursor-pointer hover:bg-primary/20 hover:border-primary"
+                            type="button"
                             onClick={() => insertVariable(msg.id, v)}
+                            className="px-2 py-1 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
                           >
                             {v}
-                          </Badge>
+                          </button>
                         ))}
                       </div>
                     </div>
 
                     <Textarea
+                      placeholder="Digite sua mensagem... Use variáveis como <saudacao>, <data>"
                       value={msg.text}
                       onChange={(e) => updateMessageText(msg.id, e.target.value)}
-                      placeholder="Digite sua mensagem aqui..."
-                      className="min-h-[100px] bg-background/50"
+                      className="min-h-[100px] resize-none font-mono text-sm"
                     />
 
-                    {/* Upload de Mídia */}
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { type: 'image', icon: Image, label: 'IMAGEM' },
-                        { type: 'video', icon: Video, label: 'VÍDEO' },
-                        { type: 'audio', icon: FileAudio, label: 'ÁUDIO' },
-                        { type: 'document', icon: FileText, label: 'DOC' },
-                      ].map(({ type, icon: Icon, label }) => (
-                        <label
-                          key={type}
-                          className="flex flex-col items-center justify-center gap-1 p-3 rounded-lg border border-border/50 bg-muted/20 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+                    {/* Media preview */}
+                    {msg.media && (
+                      <div className="flex items-center justify-between p-2 rounded bg-primary/10 border border-primary/20">
+                        <span className="text-sm">📎 {msg.media.filename} ({msg.media.type})</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeMedia(msg.id)}
+                          className="text-destructive hover:text-destructive h-6 w-6 p-0"
                         >
-                          <Icon className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">{label}</span>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Media buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { type: 'image', icon: Image, label: 'Imagem' },
+                        { type: 'video', icon: Video, label: 'Vídeo' },
+                        { type: 'audio', icon: FileAudio, label: 'Áudio' },
+                        { type: 'document', icon: FileText, label: 'Documento' },
+                      ].map(({ type, icon: Icon, label }) => (
+                        <label key={type} className="cursor-pointer">
+                          <div className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-muted hover:bg-muted/80 transition-colors">
+                            <Icon className="w-3 h-3" />
+                            {label}
+                          </div>
                           <input
                             type="file"
                             className="hidden"
+                            accept={type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : type === 'audio' ? 'audio/*' : '*'}
                             onChange={(e) => e.target.files?.[0] && handleFileUpload(msg.id, e.target.files[0], type)}
                           />
                         </label>
                       ))}
                     </div>
-
-                    {/* Preview de Mídia Anexada */}
-                    {msg.media && (
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/30">
-                        <span className="text-sm text-foreground">
-                          📎 {msg.media.filename} ({msg.media.type})
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeMedia(msg.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 ))}
 
                 <Button
                   variant="outline"
                   onClick={addMessage}
-                  className="w-full border-dashed"
+                  className="w-full border-dashed border-primary text-primary hover:bg-primary/10"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Mensagem
+                  Nova Variação
                 </Button>
               </CardContent>
             </Card>
 
-            {/* AI Settings */}
-            <Card className="border-green-500/30 bg-green-500/5 backdrop-blur-sm">
+            {/* IA */}
+            <Card className="border-emerald-500/30 bg-emerald-500/5 backdrop-blur-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-green-500" />
-                    <CardTitle className="text-lg">Gerar com IA</CardTitle>
+                    <Sparkles className="w-5 h-5 text-emerald-500" />
+                    <CardTitle className="text-lg">🤖 Gerar com IA</CardTitle>
                   </div>
                   <Switch
                     checked={aiEnabled}
@@ -593,32 +640,27 @@ export default function DisparosGrupoPage() {
               </CardHeader>
               {aiEnabled && (
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Quantidade:</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={aiCount}
-                        onChange={(e) => setAiCount(parseInt(e.target.value) || 3)}
-                        className="bg-background/50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Instruções:</Label>
-                      <Textarea
-                        value={aiInstructions}
-                        onChange={(e) => setAiInstructions(e.target.value)}
-                        placeholder="Ex: Use um tom profissional e persuasivo..."
-                        className="min-h-[60px] bg-background/50"
-                      />
-                    </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Input
+                      type="number"
+                      value={aiCount}
+                      onChange={e => setAiCount(Number(e.target.value))}
+                      className="w-16"
+                      min={1}
+                      max={10}
+                    />
+                    <Input
+                      type="text"
+                      placeholder="Instruções (ex: seja persuasivo)"
+                      value={aiInstructions}
+                      onChange={e => setAiInstructions(e.target.value)}
+                      className="flex-1 min-w-[200px]"
+                    />
                   </div>
                   <Button
                     onClick={generateAI}
                     disabled={isGeneratingAI}
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700"
                   >
                     {isGeneratingAI ? (
                       <>
@@ -683,7 +725,7 @@ export default function DisparosGrupoPage() {
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full h-14 text-lg font-semibold"
+              className="w-full h-14 text-lg font-semibold bg-violet-600 hover:bg-violet-700"
               size="lg"
             >
               {loading ? (
