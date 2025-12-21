@@ -514,52 +514,23 @@ const WhatsAppGroupsExtractor = () => {
     
     setIsLoadingChats(true);
     try {
-      let chats: any[] = [];
-      let labelName = 'todas';
+      // Buscar todos os chats
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'fetch-chats', instanceName: selectedInstance }
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
       
-      // Se modo por etiqueta, usa o endpoint específico para buscar chats por label
-      if (extractionMode === 'by-label' && selectedLabel && selectedLabel !== 'all') {
-        console.log('[fetchChats] Fetching chats by label:', selectedLabel);
-        
-        const { data, error } = await supabase.functions.invoke('evolution-api', {
-          body: { 
-            action: 'fetch-chats-by-label', 
-            instanceName: selectedInstance,
-            data: { labelId: selectedLabel }
-          }
-        });
-        if (error) throw new Error(error.message);
-        if (data?.error) throw new Error(data.error);
-        
-        const rawChats = data.chats;
-        chats = Array.isArray(rawChats) ? rawChats : [];
-        labelName = labels.find(l => l.id === selectedLabel)?.name || 'etiqueta';
-        
-        // Filtrar apenas conversas individuais (não grupos)
-        chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
-        
-        console.log('[fetchChats] Chats with label:', selectedLabel, 'Found:', chats.length);
-      } else {
-        // Buscar todos os chats
-        const { data, error } = await supabase.functions.invoke('evolution-api', {
-          body: { action: 'fetch-chats', instanceName: selectedInstance }
-        });
-        if (error) throw new Error(error.message);
-        if (data?.error) throw new Error(data.error);
-        
-        const rawChats = data.chats;
-        chats = Array.isArray(rawChats) ? rawChats : [];
-        
-        // Filtrar apenas conversas individuais (não grupos)
-        chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
-      }
+      const rawChats = data.chats;
+      let chats = Array.isArray(rawChats) ? rawChats : [];
+      
+      // Filtrar apenas conversas individuais (não grupos)
+      chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
       
       if (chats.length === 0) {
         toast({ 
           title: "Aviso", 
-          description: extractionMode === 'by-label' 
-            ? "Nenhuma conversa encontrada com esta etiqueta." 
-            : "Nenhuma conversa encontrada", 
+          description: "Nenhuma conversa encontrada", 
           variant: "destructive" 
         });
         return;
@@ -573,11 +544,11 @@ const WhatsAppGroupsExtractor = () => {
       })));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Conversas');
-      XLSX.writeFile(workbook, `conversas_${selectedInstance}_${labelName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(workbook, `conversas_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
       
       addRecord({
         type: 'whatsapp-groups',
-        segment: `Conversas de ${selectedInstance}${extractionMode === 'by-label' ? ` (${labelName})` : ''}`,
+        segment: `Conversas de ${selectedInstance}`,
         totalResults: chats.length,
         emailsFound: 0,
         phonesFound: chats.length,
@@ -1341,122 +1312,18 @@ const WhatsAppGroupsExtractor = () => {
                       </Select>
                     </div>
                     
-                    {/* Modo de extração */}
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">Modo de Extração</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          variant={extractionMode === 'all' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setExtractionMode('all')}
-                          className={extractionMode === 'all' ? 'bg-[#25D366] hover:bg-[#20BD5A]' : ''}
-                        >
-                          Todas as conversas
-                        </Button>
-                        <Button
-                          variant={extractionMode === 'by-label' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            setExtractionMode('by-label');
-                            if (labels.length === 0) fetchLabels();
-                          }}
-                          className={extractionMode === 'by-label' ? 'bg-[#25D366] hover:bg-[#20BD5A]' : ''}
-                        >
-                          Por Etiqueta
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {extractionMode === 'by-label' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm font-medium">Selecione a Etiqueta</Label>
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={fetchLabels}
-                              disabled={isLoadingLabels}
-                              className="h-7 text-xs"
-                            >
-                              {isLoadingLabels ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                              <span className="ml-1">Atualizar</span>
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {labels.length === 0 ? (
-                          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                            <p className="text-xs text-amber-600 dark:text-amber-400">
-                              {isLoadingLabels ? 'Carregando etiquetas...' : 'Clique em "Atualizar" para carregar as etiquetas.'}
-                            </p>
-                          </div>
-                        ) : (
-                          <Select value={selectedLabel} onValueChange={setSelectedLabel}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma etiqueta" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {labels.map((label) => (
-                                <SelectItem key={label.id} value={label.id}>
-                                  <span className="flex items-center gap-2">
-                                    <span 
-                                      className="w-3 h-3 rounded-full" 
-                                      style={{ backgroundColor: getLabelColor(label.color) }} 
-                                    />
-                                    {label.name}
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                        
-                        {/* Botão para configurar webhook */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={setupLabelWebhook}
-                          disabled={isSettingUpWebhook || !selectedInstance}
-                          className="w-full"
-                        >
-                          {isSettingUpWebhook ? (
-                            <>
-                              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                              Configurando...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="w-3 h-3 mr-2" />
-                              Ativar Sincronização Automática
-                            </>
-                          )}
-                        </Button>
-                        
-                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
-                          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                            ⚠️ Limitação da Evolution API
-                          </p>
-                          <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
-                            A API não expõe as associações etiqueta↔chat diretamente. Para funcionar:
-                          </p>
-                          <ol className="text-xs text-amber-600/80 dark:text-amber-400/80 list-decimal ml-4 space-y-1">
-                            <li>Clique em "Ativar Sincronização Automática"</li>
-                            <li>No WhatsApp, <strong>remova e adicione novamente</strong> a etiqueta nos contatos desejados</li>
-                            <li>Isso irá capturar e salvar as associações no banco</li>
-                          </ol>
-                        </div>
-                      </div>
-                    )}
-                    
                     <Button 
                       onClick={fetchChats} 
                       className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
-                      disabled={isLoadingChats || !selectedInstance || (extractionMode === 'by-label' && !selectedLabel)}
+                      disabled={isLoadingChats || !selectedInstance}
                     >
                       {isLoadingChats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MessageSquare className="w-4 h-4 mr-2" />}
-                      {isLoadingChats ? 'Extraindo conversas...' : extractionMode === 'all' ? 'Extrair Todas as Conversas' : 'Extrair por Etiqueta'}
+                      {isLoadingChats ? 'Extraindo conversas...' : 'Extrair Todas as Conversas'}
                     </Button>
+                    
+                    <p className="text-xs text-muted-foreground text-center">
+                      Extrai todos os contatos das suas conversas do WhatsApp
+                    </p>
                   </>
                 )}
               </CardContent>
