@@ -117,26 +117,30 @@ const playNewLeadSound = () => {
 const playMessageSound = () => {
   try {
     const audioContext = getAudioContext();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    oscillator.type = 'sine';
-    
-    // Som duplo de mensagem
     const now = audioContext.currentTime;
-    oscillator.frequency.setValueAtTime(1000, now);
-    oscillator.frequency.setValueAtTime(1200, now + 0.1);
-    oscillator.frequency.setValueAtTime(1000, now + 0.2);
-    oscillator.frequency.setValueAtTime(1200, now + 0.3);
     
-    gainNode.gain.setValueAtTime(0.4, now);
-    gainNode.gain.setValueAtTime(0.4, now + 0.3);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    // Criar múltiplos osciladores para um som mais rico tipo WhatsApp
+    const playTone = (freq: number, startTime: number, duration: number) => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+      gain.gain.setValueAtTime(0.5, startTime + duration - 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    };
     
-    oscillator.start(now);
-    oscillator.stop(now + 0.4);
+    // Som estilo "pop pop" do WhatsApp - duas notas rápidas
+    playTone(1567.98, now, 0.12); // G6
+    playTone(2093.00, now + 0.12, 0.15); // C7
     
     console.log('💬 Som de mensagem tocado');
   } catch (error) {
