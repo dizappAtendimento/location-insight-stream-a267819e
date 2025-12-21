@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { 
   Table, 
   TableBody, 
@@ -30,7 +30,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit2, RefreshCw, UserPlus, Zap, Database, Eye, Copy, Users, Sparkles, Ban, UserCheck } from 'lucide-react';
+import { Search, Edit2, RefreshCw, UserPlus, Send, Eye, Copy, Users, Sparkles, Ban, UserCheck } from 'lucide-react';
 import { format, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -104,7 +104,6 @@ export function AdminUsers() {
   });
 
   const disparadorPlans = plans.filter(p => !p.tipo || p.tipo === 'disparador');
-  const extratorPlans = plans.filter(p => p.tipo === 'extrator');
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -490,68 +489,31 @@ export function AdminUsers() {
                     </div>
                   </div>
 
-                  <Tabs defaultValue="disparador" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-muted/50">
-                      <TabsTrigger value="disparador" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                        <Zap className="w-3 h-3" />
-                        Disparador
-                      </TabsTrigger>
-                      <TabsTrigger value="extrator" className="gap-1.5 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
-                        <Database className="w-3 h-3" />
-                        Extrator
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="disparador" className="space-y-3 mt-3">
-                      <div className="space-y-2">
-                        <Label>Plano Disparador</Label>
-                        <Select value={addForm.plano} onValueChange={(value) => setAddForm({ ...addForm, plano: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um plano" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {disparadorPlans.map((plan) => (
-                              <SelectItem key={plan.id} value={plan.id.toString()}>
-                                {plan.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Validade Disparador</Label>
-                        <Input
-                          type="date"
-                          value={addForm.dataValidade}
-                          onChange={(e) => setAddForm({ ...addForm, dataValidade: e.target.value })}
-                        />
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="extrator" className="space-y-3 mt-3">
-                      <div className="space-y-2">
-                        <Label>Plano Extrator</Label>
-                        <Select value={addForm.plano_extrator} onValueChange={(value) => setAddForm({ ...addForm, plano_extrator: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um plano" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {extratorPlans.map((plan) => (
-                              <SelectItem key={plan.id} value={plan.id.toString()}>
-                                {plan.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Validade Extrator</Label>
-                        <Input
-                          type="date"
-                          value={addForm.dataValidade_extrator}
-                          onChange={(e) => setAddForm({ ...addForm, dataValidade_extrator: e.target.value })}
-                        />
-                      </div>
-                    </TabsContent>
-                  </Tabs>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Plano</Label>
+                      <Select value={addForm.plano} onValueChange={(value) => setAddForm({ ...addForm, plano: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um plano" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {disparadorPlans.map((plan) => (
+                            <SelectItem key={plan.id} value={plan.id.toString()}>
+                              {plan.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Validade</Label>
+                      <Input
+                        type="date"
+                        value={addForm.dataValidade}
+                        onChange={(e) => setAddForm({ ...addForm, dataValidade: e.target.value })}
+                      />
+                    </div>
+                  </div>
 
                   <Button onClick={handleAddUser} className="w-full bg-gradient-to-r from-primary to-primary/80">
                     Criar Usuário
@@ -696,7 +658,6 @@ export function AdminUsers() {
         )}
       </CardContent>
 
-      {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -730,68 +691,31 @@ export function AdminUsers() {
               />
             </div>
 
-            <Tabs defaultValue="disparador" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-muted/50">
-                <TabsTrigger value="disparador" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Zap className="w-3 h-3" />
-                  Disparador
-                </TabsTrigger>
-                <TabsTrigger value="extrator" className="gap-1.5 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
-                  <Database className="w-3 h-3" />
-                  Extrator
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="disparador" className="space-y-3 mt-3">
-                <div className="space-y-2">
-                  <Label>Plano Disparador</Label>
-                  <Select value={editForm.plano} onValueChange={(value) => setEditForm({ ...editForm, plano: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um plano" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {disparadorPlans.map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id.toString()}>
-                          {plan.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Validade Disparador</Label>
-                  <Input
-                    type="date"
-                    value={editForm.dataValidade}
-                    onChange={(e) => setEditForm({ ...editForm, dataValidade: e.target.value })}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="extrator" className="space-y-3 mt-3">
-                <div className="space-y-2">
-                  <Label>Plano Extrator</Label>
-                  <Select value={editForm.plano_extrator} onValueChange={(value) => setEditForm({ ...editForm, plano_extrator: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um plano" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {extratorPlans.map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id.toString()}>
-                          {plan.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Validade Extrator</Label>
-                  <Input
-                    type="date"
-                    value={editForm.dataValidade_extrator}
-                    onChange={(e) => setEditForm({ ...editForm, dataValidade_extrator: e.target.value })}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Plano</Label>
+                <Select value={editForm.plano} onValueChange={(value) => setEditForm({ ...editForm, plano: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um plano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {disparadorPlans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id.toString()}>
+                        {plan.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Validade</Label>
+                <Input
+                  type="date"
+                  value={editForm.dataValidade}
+                  onChange={(e) => setEditForm({ ...editForm, dataValidade: e.target.value })}
+                />
+              </div>
+            </div>
 
             <Button onClick={handleSaveUser} className="w-full bg-gradient-to-r from-primary to-primary/80">
               Salvar Alterações

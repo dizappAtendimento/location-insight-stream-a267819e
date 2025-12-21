@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Instagram, Linkedin, MapPin, Sparkles, Crown, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -71,7 +71,7 @@ export function AdminPlans() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [planForm, setPlanForm] = useState(defaultPlanForm);
-  const [activeTab, setActiveTab] = useState('disparador');
+  
 
   const fetchPlans = async () => {
     setIsLoading(true);
@@ -209,7 +209,6 @@ export function AdminPlans() {
   };
 
   const disparadorPlans = plans.filter(p => p.tipo === 'disparador' || !p.tipo);
-  const extratorPlans = plans.filter(p => p.tipo === 'extrator');
 
   // Get color based on plan name/price for variety
   const getPlanColors = (plan: Plan, index: number) => {
@@ -308,77 +307,45 @@ export function AdminPlans() {
             </Badge>
           </div>
           
-          {plan.tipo === 'extrator' ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors">
-                <div className="p-2 rounded-lg bg-pink-500/10">
-                  <Instagram className="w-4 h-4 text-pink-500" />
-                </div>
-                <div className="flex-1">
-                  <span className="text-xs text-muted-foreground">Instagram</span>
-                  <p className="text-sm font-semibold">{plan.qntInstagram?.toLocaleString('pt-BR') || 0}/mês</p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <Link2 className="w-4 h-4 text-cyan-500" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Conexões</p>
+                  <p className="text-sm font-semibold">{plan.qntConexoes || 0}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Linkedin className="w-4 h-4 text-blue-500" />
-                </div>
-                <div className="flex-1">
-                  <span className="text-xs text-muted-foreground">LinkedIn</span>
-                  <p className="text-sm font-semibold">{plan.qntLinkedin?.toLocaleString('pt-BR') || 0}/mês</p>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <List className="w-4 h-4 text-violet-500" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Listas</p>
+                  <p className="text-sm font-semibold">{plan.qntListas || 0}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <MapPin className="w-4 h-4 text-emerald-500" />
-                </div>
-                <div className="flex-1">
-                  <span className="text-xs text-muted-foreground">Google Places</span>
-                  <p className="text-sm font-semibold">{plan.qntPlaces?.toLocaleString('pt-BR') || 0}/mês</p>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <Contact className="w-4 h-4 text-amber-500" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Contatos</p>
+                  <p className="text-sm font-semibold">{plan.qntContatos?.toLocaleString('pt-BR') || 0}</p>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                  <Link2 className="w-4 h-4 text-cyan-500" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Conexões</p>
-                    <p className="text-sm font-semibold">{plan.qntConexoes || 0}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                  <List className="w-4 h-4 text-violet-500" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Listas</p>
-                    <p className="text-sm font-semibold">{plan.qntListas || 0}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                  <Contact className="w-4 h-4 text-amber-500" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Contatos</p>
-                    <p className="text-sm font-semibold">{plan.qntContatos?.toLocaleString('pt-BR') || 0}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                  <Send className="w-4 h-4 text-orange-500" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Disparos</p>
-                    <p className="text-sm font-semibold">{plan.qntDisparos?.toLocaleString('pt-BR') || 0}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                <Search className="w-4 h-4 text-emerald-500" />
-                <div className="flex-1">
-                  <p className="text-[10px] text-muted-foreground">Consultas/Extrações</p>
-                  <p className="text-sm font-semibold">{plan.qntExtracoes?.toLocaleString('pt-BR') || 0}/mês</p>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <Send className="w-4 h-4 text-orange-500" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Disparos</p>
+                  <p className="text-sm font-semibold">{plan.qntDisparos?.toLocaleString('pt-BR') || 0}</p>
                 </div>
               </div>
             </div>
-          )}
+            <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+              <Search className="w-4 h-4 text-emerald-500" />
+              <div className="flex-1">
+                <p className="text-[10px] text-muted-foreground">Consultas/Extrações</p>
+                <p className="text-sm font-semibold">{plan.qntExtracoes?.toLocaleString('pt-BR') || 0}/mês</p>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -409,29 +376,17 @@ export function AdminPlans() {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <TabsList className="bg-card border border-border/40 p-1.5 h-auto">
-            <TabsTrigger 
-              value="disparador" 
-              className="gap-2 px-4 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
-            >
-              <Send className="w-4 h-4" />
-              Disparador ({disparadorPlans.length})
-            </TabsTrigger>
-            <TabsTrigger 
-              value="extrator" 
-              className="gap-2 px-4 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
-            >
-              <MapPin className="w-4 h-4" />
-              Extrator ({extratorPlans.length})
-            </TabsTrigger>
-          </TabsList>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Send className="w-5 h-5 text-primary" />
+            Planos Disparador ({disparadorPlans.length})
+          </h3>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 
-                onClick={() => handleNewPlan(activeTab)} 
+                onClick={() => handleNewPlan('disparador')} 
                 className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
               >
                 <Plus className="w-4 h-4" />
@@ -446,21 +401,6 @@ export function AdminPlans() {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
-                <div className="space-y-2">
-                  <Label>Tipo do Plano</Label>
-                  <Select 
-                    value={planForm.tipo} 
-                    onValueChange={(value) => setPlanForm({ ...planForm, tipo: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="disparador">Disparador</SelectItem>
-                      <SelectItem value="extrator">Extrator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2">
                   <Label>Nome do Plano</Label>
                   <Input
@@ -479,105 +419,58 @@ export function AdminPlans() {
                     placeholder="0.00"
                   />
                 </div>
-                
-                {planForm.tipo === 'extrator' ? (
-                  <div className="space-y-4">
-                    <p className="text-sm font-medium text-muted-foreground">Limites de Extração por Mês</p>
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                          <Instagram className="w-4 h-4 text-pink-400" />
-                          Instagram
-                        </Label>
-                        <Input
-                          type="number"
-                          value={planForm.qntInstagram}
-                          onChange={(e) => setPlanForm({ ...planForm, qntInstagram: e.target.value })}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                          <Linkedin className="w-4 h-4 text-[#0A66C2]" />
-                          LinkedIn
-                        </Label>
-                        <Input
-                          type="number"
-                          value={planForm.qntLinkedin}
-                          onChange={(e) => setPlanForm({ ...planForm, qntLinkedin: e.target.value })}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-emerald-400" />
-                          Google Places
-                        </Label>
-                        <Input
-                          type="number"
-                          value={planForm.qntPlaces}
-                          onChange={(e) => setPlanForm({ ...planForm, qntPlaces: e.target.value })}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Conexões</Label>
+                    <Input
+                      type="number"
+                      value={planForm.qntConexoes}
+                      onChange={(e) => setPlanForm({ ...planForm, qntConexoes: e.target.value })}
+                      placeholder="0"
+                    />
                   </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Conexões</Label>
-                        <Input
-                          type="number"
-                          value={planForm.qntConexoes}
-                          onChange={(e) => setPlanForm({ ...planForm, qntConexoes: e.target.value })}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Listas</Label>
-                        <Input
-                          type="number"
-                          value={planForm.qntListas}
-                          onChange={(e) => setPlanForm({ ...planForm, qntListas: e.target.value })}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Contatos</Label>
-                        <Input
-                          type="number"
-                          value={planForm.qntContatos}
-                          onChange={(e) => setPlanForm({ ...planForm, qntContatos: e.target.value })}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Disparos</Label>
-                        <Input
-                          type="number"
-                          value={planForm.qntDisparos}
-                          onChange={(e) => setPlanForm({ ...planForm, qntDisparos: e.target.value })}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Search className="w-4 h-4 text-emerald-500" />
-                        Consultas/Extrações por Mês
-                      </Label>
-                      <Input
-                        type="number"
-                        value={planForm.qntExtracoes}
-                        onChange={(e) => setPlanForm({ ...planForm, qntExtracoes: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
-                  </>
-                )}
+                  <div className="space-y-2">
+                    <Label>Listas</Label>
+                    <Input
+                      type="number"
+                      value={planForm.qntListas}
+                      onChange={(e) => setPlanForm({ ...planForm, qntListas: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Contatos</Label>
+                    <Input
+                      type="number"
+                      value={planForm.qntContatos}
+                      onChange={(e) => setPlanForm({ ...planForm, qntContatos: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Disparos</Label>
+                    <Input
+                      type="number"
+                      value={planForm.qntDisparos}
+                      onChange={(e) => setPlanForm({ ...planForm, qntDisparos: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Search className="w-4 h-4 text-emerald-500" />
+                    Consultas/Extrações por Mês
+                  </Label>
+                  <Input
+                    type="number"
+                    value={planForm.qntExtracoes}
+                    onChange={(e) => setPlanForm({ ...planForm, qntExtracoes: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
 
                 <Button onClick={handleSavePlan} className="w-full mt-4 bg-gradient-to-r from-primary to-primary/80">
                   {editingPlan ? 'Salvar Alterações' : 'Criar Plano'}
@@ -587,46 +480,24 @@ export function AdminPlans() {
           </Dialog>
         </div>
 
-        <TabsContent value="disparador" className="space-y-6 mt-0">
-          {disparadorPlans.length === 0 ? (
-            <Card className="border-border/40 border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="p-4 rounded-full bg-muted/50 mb-4">
-                  <Send className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Nenhum plano de disparador</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Crie seu primeiro plano de disparador clicando no botão acima
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {disparadorPlans.map((plan, index) => renderPlanCard(plan, index))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="extrator" className="space-y-6 mt-0">
-          {extratorPlans.length === 0 ? (
-            <Card className="border-border/40 border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="p-4 rounded-full bg-muted/50 mb-4">
-                  <MapPin className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Nenhum plano de extrator</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Crie seu primeiro plano de extrator clicando no botão acima
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {extratorPlans.map((plan, index) => renderPlanCard(plan, index))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+        {disparadorPlans.length === 0 ? (
+          <Card className="border-border/40 border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="p-4 rounded-full bg-muted/50 mb-4">
+                <Send className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Nenhum plano de disparador</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Crie seu primeiro plano de disparador clicando no botão acima
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {disparadorPlans.map((plan, index) => renderPlanCard(plan, index))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
