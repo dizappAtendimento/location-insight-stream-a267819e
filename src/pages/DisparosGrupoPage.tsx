@@ -57,7 +57,7 @@ interface MessageItem {
 
 export default function DisparosGrupoPage() {
   const { user } = useAuth();
-  const { configs } = useWebhookConfigs();
+  const { configs, loading: configsLoading } = useWebhookConfigs();
   
   // Estados principais
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -106,10 +106,10 @@ export default function DisparosGrupoPage() {
 
   // --- Carregar dados iniciais ---
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !configsLoading) {
       loadData();
     }
-  }, [user?.id]);
+  }, [user?.id, configsLoading]);
 
   const loadData = async () => {
     setIsLoadingData(true);

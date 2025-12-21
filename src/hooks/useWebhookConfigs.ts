@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface WebhookConfigs {
@@ -12,45 +12,66 @@ interface WebhookConfigs {
 }
 
 const DEFAULT_CONFIGS: WebhookConfigs = {
-  webhook_listar_conexoes: 'https://app.dizapp.com.br/listarconexoes',
-  webhook_puxar_lista: 'https://app.dizapp.com.br/puxar-lista',
-  webhook_upload_media: 'https://app.dizapp.com.br/uploadmedia',
-  webhook_gerar_mensagem_ia: 'https://app.dizapp.com.br/gerarmensagem-ia',
-  webhook_disparo_individual: 'https://app.dizapp.com.br/db56b0fb-cc58-4d51-8755-d7e04ccaa120',
-  webhook_disparo_grupo: 'https://app.dizapp.com.br/db56b0fb-cc58-4d51-8755-d7e04ccaa120123',
+  webhook_listar_conexoes: 'https://n8n.dizapp.com.br/listarconexoes',
+  webhook_puxar_lista: 'https://n8n.dizapp.com.br/puxar-lista',
+  webhook_upload_media: 'https://n8n.dizapp.com.br/uploadmedia',
+  webhook_gerar_mensagem_ia: 'https://n8n.dizapp.com.br/gerarmensagem-ia',
+  webhook_disparo_individual: 'https://app.dizapp.com.br/individual-salvar',
+  webhook_disparo_grupo: 'https://n8n.dizapp.com.br/webhook/grupo-salvar',
+};
+
+// Cache global para evitar múltiplas requisições
+let cachedConfigs: WebhookConfigs | null = null;
+let fetchPromise: Promise<WebhookConfigs> | null = null;
+
+const fetchConfigsOnce = async (): Promise<WebhookConfigs> => {
+  if (cachedConfigs) return cachedConfigs;
+  
+  if (fetchPromise) return fetchPromise;
+  
+  fetchPromise = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('saas_configuracoes')
+        .select('chave, valor')
+        .eq('categoria', 'webhooks');
+
+      if (error) throw error;
+
+      const configMap: WebhookConfigs = { ...DEFAULT_CONFIGS };
+      if (data && data.length > 0) {
+        data.forEach((item) => {
+          if (item.chave && item.valor) {
+            configMap[item.chave] = item.valor;
+          }
+        });
+      }
+      cachedConfigs = configMap;
+      return configMap;
+    } catch (e) {
+      console.error('Erro ao carregar configurações de webhooks:', e);
+      return DEFAULT_CONFIGS;
+    }
+  })();
+  
+  return fetchPromise;
 };
 
 export function useWebhookConfigs() {
-  const [configs, setConfigs] = useState<WebhookConfigs>(DEFAULT_CONFIGS);
-  const [loading, setLoading] = useState(true);
+  const [configs, setConfigs] = useState<WebhookConfigs>(cachedConfigs || DEFAULT_CONFIGS);
+  const [loading, setLoading] = useState(!cachedConfigs);
 
   useEffect(() => {
-    const fetchConfigs = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('saas_configuracoes')
-          .select('chave, valor')
-          .eq('categoria', 'webhooks');
+    if (cachedConfigs) {
+      setConfigs(cachedConfigs);
+      setLoading(false);
+      return;
+    }
 
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          const configMap: WebhookConfigs = { ...DEFAULT_CONFIGS };
-          data.forEach((item) => {
-            if (item.chave && item.valor) {
-              configMap[item.chave] = item.valor;
-            }
-          });
-          setConfigs(configMap);
-        }
-      } catch (e) {
-        console.error('Erro ao carregar configurações de webhooks:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchConfigs();
+    fetchConfigsOnce().then((result) => {
+      setConfigs(result);
+      setLoading(false);
+    });
   }, []);
 
   return { configs, loading };

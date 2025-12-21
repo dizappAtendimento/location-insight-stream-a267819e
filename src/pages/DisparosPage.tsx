@@ -73,7 +73,7 @@ const substituirVariaveis = (texto: string) => {
 
 export default function DisparosPage() {
   const { user } = useAuth();
-  const { configs } = useWebhookConfigs();
+  const { configs, loading: configsLoading } = useWebhookConfigs();
   
   // Estados principais
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -102,11 +102,11 @@ export default function DisparosPage() {
 
   // Carregamento inicial
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !configsLoading) {
       loadConnections(user.id);
       loadLists(user.id);
     }
-  }, [user]);
+  }, [user, configsLoading]);
 
   const loadConnections = async (userId: string) => {
     try {
