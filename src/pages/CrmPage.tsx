@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +54,26 @@ const defaultColumns = [
   { nome: 'Fechado', cor: 'bg-green-500', ordem: 3 },
 ];
 
+// Função para tocar som de notificação
+const playNotificationSound = () => {
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // Nota A5
+  oscillator.frequency.setValueAtTime(1108.73, audioContext.currentTime + 0.1); // Nota C#6
+  oscillator.frequency.setValueAtTime(1318.51, audioContext.currentTime + 0.2); // Nota E6
+  
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.4);
+};
+
 const CrmPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -67,6 +87,8 @@ const CrmPage = () => {
   const [columnTitle, setColumnTitle] = useState('');
   const [isAddingLead, setIsAddingLead] = useState(false);
   const [newLead, setNewLead] = useState({ nome: '', telefone: '', valor: 0, mensagem: '' });
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const initialLoadDone = useRef(false);
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
@@ -111,6 +133,8 @@ const CrmPage = () => {
         valor: Number(l.valor) || 0,
         created_at: l.created_at,
       })) || []);
+      
+      initialLoadDone.current = true;
     } catch (error: any) {
       console.error('Erro ao carregar CRM:', error);
       toast({ title: "Erro ao carregar dados", variant: "destructive" });
@@ -122,6 +146,57 @@ const CrmPage = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time subscription para novos leads
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('crm-leads-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'SAAS_CRM_Leads',
+          filter: `idUsuario=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Novo lead recebido:', payload);
+          
+          const newLeadData = payload.new as any;
+          const lead: CrmLead = {
+            id: newLeadData.id,
+            idColuna: newLeadData.idColuna,
+            nome: newLeadData.nome,
+            telefone: newLeadData.telefone,
+            mensagem: newLeadData.mensagem,
+            valor: Number(newLeadData.valor) || 0,
+            created_at: newLeadData.created_at,
+          };
+          
+          // Verifica se o lead já existe (evita duplicatas)
+          setLeads(prev => {
+            if (prev.some(l => l.id === lead.id)) return prev;
+            return [lead, ...prev];
+          });
+          
+          // Só toca som se já carregou inicialmente (não toca no primeiro load)
+          if (initialLoadDone.current && soundEnabled) {
+            playNotificationSound();
+            toast({ 
+              title: "🔔 Novo Lead!", 
+              description: `${lead.nome || 'Novo contato'} - ${lead.telefone}` 
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, soundEnabled, toast]);
 
   const moveLeadToColumn = async (leadId: number, newColunaId: number) => {
     try {
@@ -400,6 +475,14 @@ const CrmPage = () => {
             <Badge variant="secondary" className="px-3 py-1">
               {formatCurrency(leads.reduce((sum, l) => sum + (l.valor || 0), 0))}
             </Badge>
+            <Button 
+              onClick={() => setSoundEnabled(!soundEnabled)} 
+              variant={soundEnabled ? "default" : "outline"} 
+              size="sm"
+              title={soundEnabled ? "Som ativado" : "Som desativado"}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </Button>
             <Button onClick={() => setIsAddingLead(true)} size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Novo Lead
