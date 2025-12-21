@@ -362,174 +362,201 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
 
   return (
     <DashboardLayout>
-      <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Settings className="w-5 h-5 text-muted-foreground" />
-          <h1 className="text-xl font-semibold text-foreground">Configurações</h1>
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Configurações</h1>
+          <p className="text-xs text-muted-foreground mt-1">Gerencie seu perfil, preferências e integrações</p>
         </div>
 
         <Tabs defaultValue="perfil" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="perfil" className="gap-2">
-              <User className="w-4 h-4" />
-              <span className="hidden sm:inline">Perfil</span>
+          <TabsList className="w-full flex mb-6 p-1 bg-muted/30 rounded-lg">
+            <TabsTrigger value="perfil" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all">
+              <User className="w-3.5 h-3.5" />
+              <span>Perfil</span>
             </TabsTrigger>
-            <TabsTrigger value="planos" className="gap-2">
-              <CreditCard className="w-4 h-4" />
-              <span className="hidden sm:inline">Planos</span>
+            <TabsTrigger value="planos" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all">
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Planos</span>
             </TabsTrigger>
-            <TabsTrigger value="api" className="gap-2">
-              <Code className="w-4 h-4" />
-              <span className="hidden sm:inline">API Docs</span>
+            <TabsTrigger value="api" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all">
+              <Code className="w-3.5 h-3.5" />
+              <span>API</span>
             </TabsTrigger>
-            <TabsTrigger value="webhook" className="gap-2">
-              <Webhook className="w-4 h-4" />
-              <span className="hidden sm:inline">Webhook</span>
+            <TabsTrigger value="webhook" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all">
+              <Webhook className="w-3.5 h-3.5" />
+              <span>Webhook</span>
             </TabsTrigger>
           </TabsList>
 
           {/* PERFIL TAB */}
           <TabsContent value="perfil" className="space-y-6">
+            {/* Profile Card */}
+            <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-border/30">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">Informações Pessoais</h2>
+                  {!isEditingProfile ? (
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditingProfile(true)} className="h-7 text-xs text-muted-foreground hover:text-foreground">
+                      <Pencil className="w-3 h-3 mr-1" /> Editar
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" className="h-7" onClick={() => { setIsEditingProfile(false); setProfileData({ nome: user?.nome || '', telefone: user?.telefone || '' }); }}>
+                        <X className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" className="h-7 text-xs" onClick={handleSaveProfile} disabled={isSavingProfile}>
+                        {isSavingProfile ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3 mr-1" />} Salvar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-4 sm:p-5">
+                <div className="flex items-start gap-4">
+                  {/* Avatar */}
+                  <div className="relative group shrink-0">
+                    <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
+                    <div 
+                      className="w-16 h-16 rounded-full overflow-hidden bg-muted cursor-pointer transition-all hover:ring-2 hover:ring-primary/30" 
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-xl font-semibold">
+                          {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                      {isUploadingAvatar ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
+                    </div>
+                  </div>
+
+                  {/* User Info */}
+                  <div className="flex-1 min-w-0">
+                    {isEditingProfile ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Nome</Label>
+                          <Input value={profileData.nome} onChange={(e) => setProfileData(prev => ({ ...prev, nome: e.target.value }))} placeholder="Seu nome" className="h-8 mt-1 text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Telefone</Label>
+                          <Input value={profileData.telefone} onChange={(e) => setProfileData(prev => ({ ...prev, telefone: e.target.value }))} placeholder="Seu telefone" className="h-8 mt-1 text-sm" />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-foreground">{user?.nome || 'Usuário'}</p>
+                          <span className={cn(
+                            "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                            (user?.statusDisparador || user?.statusExtrator) 
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
+                              : "bg-red-500/10 text-red-600 dark:text-red-400"
+                          )}>
+                            {(user?.statusDisparador || user?.statusExtrator) ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5"><Mail className="w-3 h-3" />{user?.Email || '-'}</span>
+                          <span className="flex items-center gap-1.5"><Phone className="w-3 h-3" />{user?.telefone || '-'}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-6">
-                {/* Profile Section */}
-                <section className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-medium text-foreground">Informações Pessoais</h2>
-                    {!isEditingProfile ? (
-                      <Button variant="ghost" size="sm" onClick={() => setIsEditingProfile(true)} className="h-8 text-xs">
-                        <Pencil className="w-3 h-3 mr-1" /> Editar
-                      </Button>
-                    ) : (
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-8" onClick={() => { setIsEditingProfile(false); setProfileData({ nome: user?.nome || '', telefone: user?.telefone || '' }); }}>
-                          <X className="w-3 h-3" />
+                {/* Security Card */}
+                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                  <div className="p-4 sm:p-5 border-b border-border/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                        <h2 className="text-sm font-semibold text-foreground">Segurança</h2>
+                      </div>
+                      {!isChangingPassword && (
+                        <Button variant="ghost" size="sm" onClick={() => setIsChangingPassword(true)} className="h-7 text-xs text-muted-foreground hover:text-foreground">
+                          <Pencil className="w-3 h-3 mr-1" /> Alterar
                         </Button>
-                        <Button size="sm" className="h-8 text-xs" onClick={handleSaveProfile} disabled={isSavingProfile}>
-                          <Save className="w-3 h-3 mr-1" /> Salvar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 rounded-lg bg-card border border-border/50">
-                    <div className="relative group shrink-0">
-                      <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
-                      <div className="w-16 h-16 rounded-full overflow-hidden bg-muted cursor-pointer transition-opacity hover:opacity-80" onClick={() => fileInputRef.current?.click()}>
-                        {avatarUrl ? (
-                          <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-xl font-semibold">
-                            {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
-                          </div>
-                        )}
-                      </div>
-                      <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                        {isUploadingAvatar ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
-                      </div>
-                    </div>
-
-                    <div className="flex-1 min-w-0 space-y-3">
-                      {isEditingProfile ? (
-                        <div className="space-y-3">
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Nome</Label>
-                            <Input value={profileData.nome} onChange={(e) => setProfileData(prev => ({ ...prev, nome: e.target.value }))} placeholder="Seu nome" className="h-9 mt-1" />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Telefone</Label>
-                            <Input value={profileData.telefone} onChange={(e) => setProfileData(prev => ({ ...prev, telefone: e.target.value }))} placeholder="Seu telefone" className="h-9 mt-1" />
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div>
-                            <p className="font-medium text-foreground">{user?.nome || 'Usuário'}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <span className={cn("w-1.5 h-1.5 rounded-full", (user?.statusDisparador || user?.statusExtrator) ? "bg-emerald-500" : "bg-red-500")}></span>
-                              {(user?.statusDisparador || user?.statusExtrator) ? 'Ativo' : 'Inativo'}
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1.5"><Mail className="w-3 h-3" />{user?.Email || '-'}</span>
-                            <span className="flex items-center gap-1.5"><Phone className="w-3 h-3" />{user?.telefone || '-'}</span>
-                          </div>
-                        </>
                       )}
                     </div>
                   </div>
-                </section>
-
-                {/* Password Section */}
-                <section className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-medium text-foreground flex items-center gap-2"><Lock className="w-4 h-4" /> Segurança</h2>
-                    {!isChangingPassword && (
-                      <Button variant="ghost" size="sm" onClick={() => setIsChangingPassword(true)} className="h-8 text-xs">
-                        <Pencil className="w-3 h-3 mr-1" /> Alterar senha
-                      </Button>
-                    )}
-                  </div>
-
-                  {isChangingPassword ? (
-                    <div className="p-4 rounded-lg bg-card border border-border/50 space-y-4">
+                  
+                  <div className="p-4 sm:p-5">
+                    {isChangingPassword ? (
                       <div className="space-y-3">
                         <div className="relative">
                           <Label className="text-xs text-muted-foreground">Senha atual</Label>
                           <div className="relative mt-1">
-                            <Input type={showCurrentPassword ? "text" : "password"} value={passwordData.currentPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))} placeholder="Digite sua senha atual" className="h-9 pr-10" />
-                            <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                              {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            <Input type={showCurrentPassword ? "text" : "password"} value={passwordData.currentPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))} placeholder="Digite sua senha atual" className="h-8 pr-9 text-sm" />
+                            <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                              {showCurrentPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
                           </div>
                         </div>
                         <div className="relative">
                           <Label className="text-xs text-muted-foreground">Nova senha</Label>
                           <div className="relative mt-1">
-                            <Input type={showNewPassword ? "text" : "password"} value={passwordData.newPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))} placeholder="Digite a nova senha" className="h-9 pr-10" />
-                            <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                              {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            <Input type={showNewPassword ? "text" : "password"} value={passwordData.newPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))} placeholder="Digite a nova senha" className="h-8 pr-9 text-sm" />
+                            <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                              {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
                           </div>
                         </div>
                         <div className="relative">
                           <Label className="text-xs text-muted-foreground">Confirmar nova senha</Label>
                           <div className="relative mt-1">
-                            <Input type={showConfirmPassword ? "text" : "password"} value={passwordData.confirmPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))} placeholder="Confirme a nova senha" className="h-9 pr-10" />
-                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            <Input type={showConfirmPassword ? "text" : "password"} value={passwordData.confirmPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))} placeholder="Confirme a nova senha" className="h-8 pr-9 text-sm" />
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                              {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
                           </div>
                         </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setIsChangingPassword(false); setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' }); }}>
+                            Cancelar
+                          </Button>
+                          <Button size="sm" className="h-7 text-xs" onClick={handleChangePassword} disabled={isSavingPassword}>
+                            {isSavingPassword ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} Salvar
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" className="h-8" onClick={() => { setIsChangingPassword(false); setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' }); }}>
-                          <X className="w-3 h-3 mr-1" /> Cancelar
-                        </Button>
-                        <Button size="sm" className="h-8 text-xs" onClick={handleChangePassword} disabled={isSavingPassword}>
-                          {isSavingPassword ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />} Salvar
-                        </Button>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center">
+                          <Shield className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Senha</p>
+                          <p className="text-xs text-muted-foreground">••••••••</p>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/50">
-                      <div>
-                        <p className="text-sm text-foreground">Senha</p>
-                        <p className="text-xs text-muted-foreground">••••••••</p>
-                      </div>
-                    </div>
-                  )}
-                </section>
+                    )}
+                  </div>
+                </div>
 
                 {/* Admin Panel */}
                 {isAdmin && (
-                  <section className="space-y-4">
-                    <h2 className="text-sm font-medium text-foreground flex items-center gap-2"><Shield className="w-4 h-4" /> Administração</h2>
+                  <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                    <div className="p-4 sm:p-5 border-b border-border/30">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-amber-500" />
+                        <h2 className="text-sm font-semibold text-foreground">Administração</h2>
+                      </div>
+                    </div>
                     <Link to="/admin">
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer group">
+                      <div className="p-4 sm:p-5 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer group">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                          <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
                             <Shield className="w-4 h-4 text-amber-500" />
                           </div>
                           <div>
@@ -540,68 +567,99 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </Link>
-                  </section>
+                  </div>
                 )}
               </div>
 
               {/* Right Column */}
               <div className="space-y-6">
-                {/* Theme Section */}
-                <section className="space-y-4">
-                  <h2 className="text-sm font-medium text-foreground flex items-center gap-2"><Moon className="w-4 h-4" /> Tema</h2>
-                  <div className="flex gap-2">
-                    {themeOptions.map((option) => (
-                      <Button key={option.value} variant={theme === option.value ? 'secondary' : 'ghost'} size="sm" onClick={() => setTheme(option.value)} className={cn("h-9 flex-1", theme === option.value && "bg-secondary")}>
-                        <option.icon className="w-4 h-4 mr-2" /> {option.label}
-                      </Button>
-                    ))}
+                {/* Theme Card */}
+                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                  <div className="p-4 sm:p-5 border-b border-border/30">
+                    <div className="flex items-center gap-2">
+                      <Moon className="w-4 h-4 text-muted-foreground" />
+                      <h2 className="text-sm font-semibold text-foreground">Aparência</h2>
+                    </div>
                   </div>
-                </section>
+                  <div className="p-4 sm:p-5">
+                    <div className="grid grid-cols-3 gap-2">
+                      {themeOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setTheme(option.value)}
+                          className={cn(
+                            "flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all text-xs",
+                            theme === option.value 
+                              ? "bg-primary/10 border-primary/30 text-foreground" 
+                              : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                          )}
+                        >
+                          <option.icon className="w-4 h-4" />
+                          <span>{option.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-                {/* Notifications & Export */}
-                <section className="space-y-4">
-                  <h2 className="text-sm font-medium text-foreground flex items-center gap-2"><Bell className="w-4 h-4" /> Preferências</h2>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/50">
-                    <div>
-                      <p className="text-sm text-foreground">Alertas de extração</p>
-                      <p className="text-xs text-muted-foreground">Notificar ao concluir</p>
-                    </div>
-                    <Switch checked={settings.notifications} onCheckedChange={(checked) => updateSetting('notifications', checked)} />
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/50">
-                    <div>
-                      <p className="text-sm text-foreground">Exportação automática</p>
-                      <p className="text-xs text-muted-foreground">Baixar após extração</p>
-                    </div>
-                    <Switch checked={settings.autoExport} onCheckedChange={(checked) => updateSetting('autoExport', checked)} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Formato de exportação</Label>
-                      <Select value={settings.exportFormat} onValueChange={(v) => updateSetting('exportFormat', v as AppSettings['exportFormat'])}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="xlsx">Excel</SelectItem>
-                          <SelectItem value="csv">CSV</SelectItem>
-                          <SelectItem value="json">JSON</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Máx. resultados</Label>
-                      <Select value={settings.maxResults} onValueChange={(v) => updateSetting('maxResults', v)}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="100">100</SelectItem>
-                          <SelectItem value="500">500</SelectItem>
-                          <SelectItem value="1000">1000</SelectItem>
-                        </SelectContent>
-                      </Select>
+                {/* Preferences Card */}
+                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                  <div className="p-4 sm:p-5 border-b border-border/30">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-muted-foreground" />
+                      <h2 className="text-sm font-semibold text-foreground">Preferências</h2>
                     </div>
                   </div>
-                </section>
+                  <div className="p-4 sm:p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Alertas de extração</p>
+                        <p className="text-xs text-muted-foreground">Notificar ao concluir</p>
+                      </div>
+                      <Switch checked={settings.notifications} onCheckedChange={(checked) => updateSetting('notifications', checked)} />
+                    </div>
+                    <Separator className="bg-border/30" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Exportação automática</p>
+                        <p className="text-xs text-muted-foreground">Baixar após extração</p>
+                      </div>
+                      <Switch checked={settings.autoExport} onCheckedChange={(checked) => updateSetting('autoExport', checked)} />
+                    </div>
+                    <Separator className="bg-border/30" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Formato</Label>
+                        <Select value={settings.exportFormat} onValueChange={(v) => updateSetting('exportFormat', v as AppSettings['exportFormat'])}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="xlsx">Excel</SelectItem>
+                            <SelectItem value="csv">CSV</SelectItem>
+                            <SelectItem value="json">JSON</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Máx. resultados</Label>
+                        <Select value={settings.maxResults} onValueChange={(v) => updateSetting('maxResults', v)}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="100">100</SelectItem>
+                            <SelectItem value="500">500</SelectItem>
+                            <SelectItem value="1000">1000</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Footer */}
+            <p className="text-xs text-muted-foreground text-center pt-4">
+              v1.0.0 • Dezembro 2024
+            </p>
           </TabsContent>
 
           {/* PLANOS TAB */}
