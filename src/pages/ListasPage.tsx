@@ -1145,6 +1145,18 @@ const ListasPage = () => {
                         Grupos
                       </span>
                     </SelectItem>
+                    <SelectItem value="importado">
+                      <span className="flex items-center gap-2">
+                        <Database className="w-4 h-4 text-green-500" />
+                        Importado
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="extraido">
+                      <span className="flex items-center gap-2">
+                        <Download className="w-4 h-4 text-blue-500" />
+                        Extraído
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1796,28 +1808,30 @@ const ListasPage = () => {
                               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
                                 lista.tipo === "contatos" || lista.tipo === "contacts"
                                   ? "bg-primary/10 text-primary border border-primary/30"
+                                  : lista.tipo === "importado"
+                                  ? "bg-green-500/10 text-green-500 border border-green-500/30"
+                                  : lista.tipo === "extraido"
+                                  ? "bg-blue-500/10 text-blue-500 border border-blue-500/30"
                                   : "bg-yellow-500/10 text-yellow-500 border border-yellow-500/30"
                               }`}
                             >
                               {lista.tipo === "contatos" || lista.tipo === "contacts" ? (
                                 <Users className="w-3.5 h-3.5" />
+                              ) : lista.tipo === "importado" ? (
+                                <Database className="w-3.5 h-3.5" />
+                              ) : lista.tipo === "extraido" ? (
+                                <Download className="w-3.5 h-3.5" />
                               ) : (
                                 <MessageSquare className="w-3.5 h-3.5" />
                               )}
-                              {lista.tipo === "contatos" || lista.tipo === "contacts" ? "Contatos" : "Grupos"}
+                              {lista.tipo === "contatos" || lista.tipo === "contacts" 
+                                ? "Contatos" 
+                                : lista.tipo === "importado" 
+                                ? "Importado" 
+                                : lista.tipo === "extraido" 
+                                ? "Extraído" 
+                                : "Grupos"}
                             </span>
-                            {lista.descricao?.toLowerCase().includes('importado') && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/30">
-                                <Database className="w-3 h-3" />
-                                Importado
-                              </span>
-                            )}
-                            {(lista.descricao?.toLowerCase().includes('extraído') || lista.descricao?.toLowerCase().includes('extraido')) && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/30">
-                                <Download className="w-3 h-3" />
-                                Extraído
-                              </span>
-                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
@@ -1937,6 +1951,18 @@ const ListasPage = () => {
                       <span className="flex items-center gap-2">
                         <MessageSquare className="w-4 h-4 text-yellow-500" />
                         Grupos
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="importado">
+                      <span className="flex items-center gap-2">
+                        <Database className="w-4 h-4 text-green-500" />
+                        Importado
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="extraido">
+                      <span className="flex items-center gap-2">
+                        <Download className="w-4 h-4 text-blue-500" />
+                        Extraído
                       </span>
                     </SelectItem>
                   </SelectContent>
