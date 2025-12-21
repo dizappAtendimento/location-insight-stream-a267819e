@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Instagram, Linkedin, MapPin } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Instagram, Linkedin, MapPin, Sparkles, Crown } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -208,115 +208,185 @@ export function AdminPlans() {
   const disparadorPlans = plans.filter(p => p.tipo === 'disparador' || !p.tipo);
   const extratorPlans = plans.filter(p => p.tipo === 'extrator');
 
-  const renderPlanCard = (plan: Plan) => (
-    <Card key={plan.id} className="bg-card/50 border-border/50 hover:border-primary/30 transition-all duration-300 group">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">{plan.nome}</CardTitle>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => handleEditPlan(plan)}
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Excluir Plano</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tem certeza que deseja excluir o plano "{plan.nome}"? Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={() => handleDeletePlan(plan.id)}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Excluir
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-        <p className="text-2xl font-bold text-primary">
-          R$ {plan.preco?.toFixed(2).replace('.', ',')}
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span>Usuários</span>
-          </div>
-          <Badge variant="secondary">{plan.total_usuarios || 0}</Badge>
-        </div>
+  // Get color based on plan name/price for variety
+  const getPlanColors = (plan: Plan, index: number) => {
+    const colors = [
+      { gradient: 'from-violet-500 to-purple-600', bg: 'from-violet-500/10 to-purple-600/5', text: 'text-violet-500', border: 'border-violet-500/20' },
+      { gradient: 'from-blue-500 to-cyan-500', bg: 'from-blue-500/10 to-cyan-500/5', text: 'text-blue-500', border: 'border-blue-500/20' },
+      { gradient: 'from-emerald-500 to-teal-500', bg: 'from-emerald-500/10 to-teal-500/5', text: 'text-emerald-500', border: 'border-emerald-500/20' },
+      { gradient: 'from-orange-500 to-amber-500', bg: 'from-orange-500/10 to-amber-500/5', text: 'text-orange-500', border: 'border-orange-500/20' },
+      { gradient: 'from-pink-500 to-rose-500', bg: 'from-pink-500/10 to-rose-500/5', text: 'text-pink-500', border: 'border-pink-500/20' },
+    ];
+    return colors[index % colors.length];
+  };
+
+  const renderPlanCard = (plan: Plan, index: number) => {
+    const colors = getPlanColors(plan, index);
+    const isPremium = (plan.preco || 0) > 50;
+    
+    return (
+      <Card 
+        key={plan.id} 
+        className={`relative overflow-hidden border-border/40 bg-card hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 group ${colors.border}`}
+      >
+        {/* Background gradient */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} opacity-50 group-hover:opacity-70 transition-opacity duration-500`} />
         
-        {plan.tipo === 'extrator' ? (
-          <div className="space-y-2 pt-2 border-t border-border/50">
-            <div className="flex items-center gap-2 text-sm">
-              <Instagram className="w-4 h-4 text-pink-400" />
-              <span className="text-muted-foreground">Instagram:</span>
-              <span className="font-medium">{plan.qntInstagram?.toLocaleString('pt-BR') || 0}/mês</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Linkedin className="w-4 h-4 text-[#0A66C2]" />
-              <span className="text-muted-foreground">LinkedIn:</span>
-              <span className="font-medium">{plan.qntLinkedin?.toLocaleString('pt-BR') || 0}/mês</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-emerald-400" />
-              <span className="text-muted-foreground">Google Places:</span>
-              <span className="font-medium">{plan.qntPlaces?.toLocaleString('pt-BR') || 0}/mês</span>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Link2 className="w-3.5 h-3.5" />
-              <span>{plan.qntConexoes || 0} conexões</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <List className="w-3.5 h-3.5" />
-              <span>{plan.qntListas || 0} listas</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Contact className="w-3.5 h-3.5" />
-              <span>{plan.qntContatos?.toLocaleString('pt-BR') || 0} contatos</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Send className="w-3.5 h-3.5" />
-              <span>{plan.qntDisparos?.toLocaleString('pt-BR') || 0} disparos</span>
+        {/* Decorative glow */}
+        <div className={`absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-br ${colors.gradient} opacity-10 blur-3xl group-hover:opacity-20 transition-opacity duration-500`} />
+        
+        {/* Premium indicator */}
+        {isPremium && (
+          <div className="absolute top-3 right-3">
+            <div className={`p-1.5 rounded-lg bg-gradient-to-br ${colors.gradient}`}>
+              <Crown className="w-3.5 h-3.5 text-white" />
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
-  );
+
+        <CardHeader className="relative pb-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="text-xl font-bold">{plan.nome}</CardTitle>
+              <p className={`text-3xl font-bold ${colors.text} mt-2`}>
+                R$ {plan.preco?.toFixed(2).replace('.', ',')}
+              </p>
+            </div>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-muted/50"
+                onClick={() => handleEditPlan(plan)}
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir Plano</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem certeza que deseja excluir o plano "{plan.nome}"? Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => handleDeletePlan(plan.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="relative space-y-4">
+          {/* Users count */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
+            <div className="flex items-center gap-2.5 text-muted-foreground">
+              <Users className="w-4 h-4" />
+              <span className="text-sm font-medium">Usuários</span>
+            </div>
+            <Badge variant="secondary" className="text-xs font-bold px-2.5">
+              {plan.total_usuarios || 0}
+            </Badge>
+          </div>
+          
+          {plan.tipo === 'extrator' ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors">
+                <div className="p-2 rounded-lg bg-pink-500/10">
+                  <Instagram className="w-4 h-4 text-pink-500" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs text-muted-foreground">Instagram</span>
+                  <p className="text-sm font-semibold">{plan.qntInstagram?.toLocaleString('pt-BR') || 0}/mês</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <Linkedin className="w-4 h-4 text-blue-500" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs text-muted-foreground">LinkedIn</span>
+                  <p className="text-sm font-semibold">{plan.qntLinkedin?.toLocaleString('pt-BR') || 0}/mês</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors">
+                <div className="p-2 rounded-lg bg-emerald-500/10">
+                  <MapPin className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs text-muted-foreground">Google Places</span>
+                  <p className="text-sm font-semibold">{plan.qntPlaces?.toLocaleString('pt-BR') || 0}/mês</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <Link2 className="w-4 h-4 text-cyan-500" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Conexões</p>
+                  <p className="text-sm font-semibold">{plan.qntConexoes || 0}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <List className="w-4 h-4 text-violet-500" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Listas</p>
+                  <p className="text-sm font-semibold">{plan.qntListas || 0}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <Contact className="w-4 h-4 text-amber-500" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Contatos</p>
+                  <p className="text-sm font-semibold">{plan.qntContatos?.toLocaleString('pt-BR') || 0}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <Send className="w-4 h-4 text-orange-500" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Disparos</p>
+                  <p className="text-sm font-semibold">{plan.qntDisparos?.toLocaleString('pt-BR') || 0}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="bg-card/50 border-border/50 animate-pulse">
-            <CardContent className="p-6">
+          <Card key={i} className="border-border/40 animate-pulse overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-muted/20 to-muted/5" />
+            <CardContent className="relative p-6">
               <div className="h-6 bg-muted rounded w-32 mb-4" />
-              <div className="space-y-2">
-                <div className="h-4 bg-muted rounded w-24" />
-                <div className="h-4 bg-muted rounded w-20" />
+              <div className="h-8 bg-muted rounded w-24 mb-6" />
+              <div className="space-y-3">
+                <div className="h-12 bg-muted rounded-xl" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="h-16 bg-muted rounded-lg" />
+                  <div className="h-16 bg-muted rounded-lg" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -326,15 +396,21 @@ export function AdminPlans() {
   }
 
   return (
-    <div className="space-y-4">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <div className="flex items-center justify-between">
-          <TabsList className="bg-card/50 border border-border/50">
-            <TabsTrigger value="disparador" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+    <div className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <TabsList className="bg-card border border-border/40 p-1.5 h-auto">
+            <TabsTrigger 
+              value="disparador" 
+              className="gap-2 px-4 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
+            >
               <Send className="w-4 h-4" />
               Disparador ({disparadorPlans.length})
             </TabsTrigger>
-            <TabsTrigger value="extrator" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger 
+              value="extrator" 
+              className="gap-2 px-4 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
+            >
               <MapPin className="w-4 h-4" />
               Extrator ({extratorPlans.length})
             </TabsTrigger>
@@ -342,14 +418,20 @@ export function AdminPlans() {
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => handleNewPlan(activeTab)} className="gap-2">
+              <Button 
+                onClick={() => handleNewPlan(activeTab)} 
+                className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
+              >
                 <Plus className="w-4 h-4" />
                 Novo Plano
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>{editingPlan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  {editingPlan ? 'Editar Plano' : 'Novo Plano'}
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
                 <div className="space-y-2">
@@ -472,8 +554,8 @@ export function AdminPlans() {
                     </div>
                   </>
                 )}
-                
-                <Button onClick={handleSavePlan} className="w-full">
+
+                <Button onClick={handleSavePlan} className="w-full mt-4 bg-gradient-to-r from-primary to-primary/80">
                   {editingPlan ? 'Salvar Alterações' : 'Criar Plano'}
                 </Button>
               </div>
@@ -481,29 +563,43 @@ export function AdminPlans() {
           </Dialog>
         </div>
 
-        <TabsContent value="disparador" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {disparadorPlans.map(renderPlanCard)}
-          </div>
-          {disparadorPlans.length === 0 && (
-            <Card className="bg-card/50 border-border/50">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                Nenhum plano de disparador cadastrado
+        <TabsContent value="disparador" className="space-y-6 mt-0">
+          {disparadorPlans.length === 0 ? (
+            <Card className="border-border/40 border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="p-4 rounded-full bg-muted/50 mb-4">
+                  <Send className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Nenhum plano de disparador</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Crie seu primeiro plano de disparador clicando no botão acima
+                </p>
               </CardContent>
             </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {disparadorPlans.map((plan, index) => renderPlanCard(plan, index))}
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="extrator" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {extratorPlans.map(renderPlanCard)}
-          </div>
-          {extratorPlans.length === 0 && (
-            <Card className="bg-card/50 border-border/50">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                Nenhum plano de extrator cadastrado
+        <TabsContent value="extrator" className="space-y-6 mt-0">
+          {extratorPlans.length === 0 ? (
+            <Card className="border-border/40 border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="p-4 rounded-full bg-muted/50 mb-4">
+                  <MapPin className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Nenhum plano de extrator</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Crie seu primeiro plano de extrator clicando no botão acima
+                </p>
               </CardContent>
             </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {extratorPlans.map((plan, index) => renderPlanCard(plan, index))}
+            </div>
           )}
         </TabsContent>
       </Tabs>
