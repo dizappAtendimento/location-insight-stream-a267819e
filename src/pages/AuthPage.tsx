@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,23 @@ export default function AuthPage() {
   
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle OAuth errors from URL
+  useEffect(() => {
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    
+    if (error) {
+      const message = errorDescription 
+        ? decodeURIComponent(errorDescription.replace(/\+/g, ' '))
+        : 'Erro ao fazer login com Google. Tente novamente.';
+      toast.error(message);
+      
+      // Clear the error from URL
+      window.history.replaceState({}, '', '/auth');
+    }
+  }, [searchParams]);
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
