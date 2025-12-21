@@ -13,6 +13,10 @@ import {
   MapPin,
   Headphones,
   CreditCard,
+  Sun,
+  Bell,
+  Settings,
+  LogOut,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +33,14 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
 
@@ -63,7 +75,7 @@ const extractorItems = [
 export function AppSidebar() {
   const location = useLocation();
   const { state, setOpen } = useSidebar();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const collapsed = state === 'collapsed';
 
   const isActive = (path: string) => location.pathname === path;
@@ -212,28 +224,64 @@ export function AppSidebar() {
 
       {/* Foto e nome do usuário - fixo no rodapé */}
       <SidebarFooter className="px-2 py-4 border-t border-slate-800/50">
-        <Link 
-          to="/configuracoes" 
-          className={cn(
-            "flex items-center gap-3 px-2 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/40 transition-all duration-200",
-            collapsed && "justify-center"
-          )}
-        >
-          {user?.avatar_url ? (
-            <img 
-              src={user.avatar_url} 
-              alt={user?.nome || 'Usuário'}
-              className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-slate-700"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 ring-2 ring-slate-700">
-              {(user?.nome || 'U').charAt(0).toUpperCase()}
-            </div>
-          )}
-          {!collapsed && (
-            <span className="text-sm font-medium truncate">{user?.nome || 'Usuário'}</span>
-          )}
-        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button 
+              className={cn(
+                "flex items-center gap-3 px-2 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/40 transition-all duration-200 w-full",
+                collapsed && "justify-center"
+              )}
+            >
+              {user?.avatar_url ? (
+                <img 
+                  src={user.avatar_url} 
+                  alt={user?.nome || 'Usuário'}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-slate-700"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 ring-2 ring-slate-700">
+                  {(user?.nome || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+              {!collapsed && (
+                <span className="text-sm font-medium truncate">{user?.nome || 'Usuário'}</span>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            side="top" 
+            align="start" 
+            className="w-56 bg-[#1a1d2e] border-slate-700"
+          >
+            <DropdownMenuLabel className="flex flex-col gap-0.5">
+              <span className="text-white font-medium">{user?.nome || 'Usuário'}</span>
+              <span className="text-xs text-slate-400 font-normal">{user?.Email || ''}</span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-slate-700" />
+            <DropdownMenuItem className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer">
+              <Sun className="w-4 h-4 mr-2" />
+              Modo Claro
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer">
+              <Bell className="w-4 h-4 mr-2" />
+              Notificações
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer">
+              <Link to="/configuracoes">
+                <Settings className="w-4 h-4 mr-2" />
+                Configurações
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-slate-700" />
+            <DropdownMenuItem 
+              onClick={logout}
+              className="text-red-400 hover:text-red-300 focus:text-red-300 focus:bg-slate-700/50 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );
