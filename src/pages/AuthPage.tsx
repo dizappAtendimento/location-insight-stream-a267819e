@@ -128,15 +128,32 @@ export default function AuthPage() {
     
     const { error } = await login(email.trim(), password);
     
-    setIsLoading(false);
-
     if (error) {
+      setIsLoading(false);
       toast.error(error);
       return;
     }
 
-    toast.success('Login realizado com sucesso!');
-    navigate('/');
+    // Check if user is admin
+    try {
+      const { data: adminCheck } = await supabase.functions.invoke('admin-api', {
+        body: { action: 'check-admin-self', email: email.trim() }
+      });
+
+      toast.success('Login realizado com sucesso!');
+      
+      if (adminCheck?.isAdmin) {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch {
+      // If check fails, go to home
+      toast.success('Login realizado com sucesso!');
+      navigate('/');
+    }
+    
+    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
