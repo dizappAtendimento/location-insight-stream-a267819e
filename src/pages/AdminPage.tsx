@@ -9,7 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { AdminStats } from '@/components/admin/AdminStats';
 import { AdminUsers } from '@/components/admin/AdminUsers';
 import { AdminPlans } from '@/components/admin/AdminPlans';
-import { Shield, Users, CreditCard, BarChart3 } from 'lucide-react';
+import { AdminSuperAdmins } from '@/components/admin/AdminSuperAdmins';
+import { Shield, Users, CreditCard, BarChart3, Crown } from 'lucide-react';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -96,6 +97,10 @@ export default function AdminPage() {
               <CreditCard className="w-4 h-4" />
               Planos
             </TabsTrigger>
+            <TabsTrigger value="admins" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Crown className="w-4 h-4" />
+              Super Admins
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="stats" className="space-y-6">
@@ -108,6 +113,10 @@ export default function AdminPage() {
 
           <TabsContent value="plans" className="space-y-6">
             <AdminPlans />
+          </TabsContent>
+
+          <TabsContent value="admins" className="space-y-6">
+            <AdminSuperAdmins />
           </TabsContent>
         </Tabs>
       </div>

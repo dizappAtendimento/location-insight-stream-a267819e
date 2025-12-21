@@ -819,6 +819,158 @@ serve(async (req) => {
         );
       }
 
+      case 'get-admins': {
+        // Get all admin users with their user info
+        const { data: adminRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('role', 'admin')
+          .order('created_at', { ascending: true });
+
+        if (rolesError) {
+          console.error('[Admin API] Error fetching admin roles:', rolesError);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao buscar administradores' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Get user info for each admin
+        const adminsWithInfo = await Promise.all(
+          (adminRoles || []).map(async (role) => {
+            const { data: userInfo } = await supabase
+              .from('SAAS_Usuarios')
+              .select('Email, nome')
+              .eq('id', role.user_id)
+              .single();
+
+            return {
+              ...role,
+              user_email: userInfo?.Email || null,
+              user_name: userInfo?.nome || null,
+            };
+          })
+        );
+
+        console.log(`[Admin API] Found ${adminsWithInfo.length} admins`);
+
+        return new Response(
+          JSON.stringify({ admins: adminsWithInfo }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'add-admin': {
+        const { email } = body;
+        
+        if (!email) {
+          return new Response(
+            JSON.stringify({ error: 'Email é obrigatório' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Find user by email
+        const { data: userToAdd, error: userError } = await supabase
+          .from('SAAS_Usuarios')
+          .select('id, Email, nome')
+          .eq('Email', email)
+          .single();
+
+        if (userError || !userToAdd) {
+          console.error('[Admin API] User not found:', email);
+          return new Response(
+            JSON.stringify({ error: 'Usuário não encontrado com este email' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if already admin
+        const { data: existingRole } = await supabase
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', userToAdd.id)
+          .eq('role', 'admin')
+          .single();
+
+        if (existingRole) {
+          return new Response(
+            JSON.stringify({ error: 'Este usuário já é um administrador' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Add admin role
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userToAdd.id,
+            role: 'admin'
+          });
+
+        if (insertError) {
+          console.error('[Admin API] Error adding admin role:', insertError);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao adicionar administrador' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Added admin role for user ${userToAdd.Email}`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'remove-admin': {
+        const removeUserId = body.userId;
+        
+        if (!removeUserId) {
+          return new Response(
+            JSON.stringify({ error: 'userId é obrigatório' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if this is the first/primary admin (prevent removal)
+        const { data: allAdmins } = await supabase
+          .from('user_roles')
+          .select('user_id, created_at')
+          .eq('role', 'admin')
+          .order('created_at', { ascending: true });
+
+        if (allAdmins && allAdmins.length > 0 && allAdmins[0].user_id === removeUserId) {
+          return new Response(
+            JSON.stringify({ error: 'Não é possível remover o administrador principal' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Remove admin role
+        const { error: deleteError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', removeUserId)
+          .eq('role', 'admin');
+
+        if (deleteError) {
+          console.error('[Admin API] Error removing admin role:', deleteError);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao remover administrador' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Removed admin role for user ${removeUserId}`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Ação inválida' }),
