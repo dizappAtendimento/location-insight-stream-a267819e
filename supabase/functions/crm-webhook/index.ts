@@ -28,7 +28,13 @@ Deno.serve(async (req) => {
 
     // Formato Evolution API
     if (body.data?.key?.remoteJid) {
-      telefone = body.data.key.remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+      // Se o remoteJid termina com @lid, usar remoteJidAlt que contém o telefone real
+      const remoteJid = body.data.key.remoteJid;
+      if (remoteJid.endsWith('@lid') && body.data.key.remoteJidAlt) {
+        telefone = body.data.key.remoteJidAlt.replace('@s.whatsapp.net', '').replace('@g.us', '');
+      } else {
+        telefone = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '').replace('@lid', '');
+      }
       nome = body.data.pushName || null;
       mensagem = body.data.message?.conversation || 
                  body.data.message?.extendedTextMessage?.text ||
@@ -200,7 +206,7 @@ Deno.serve(async (req) => {
     }
 
     // Criar novo lead na primeira coluna
-    console.log(`Criando novo lead na coluna ${colunaId}`);
+    console.log(`Criando novo lead na coluna ${colunaId}, instanceName: ${instanceName}`);
     const { data: newLead, error: leadError } = await supabase
       .from('SAAS_CRM_Leads')
       .insert({
@@ -210,6 +216,7 @@ Deno.serve(async (req) => {
         telefone: telefone,
         mensagem: mensagem?.slice(0, 1000) || null,
         valor: 0,
+        instanceName: instanceName,
       })
       .select('id')
       .single();

@@ -192,6 +192,7 @@ export type Database = {
           id: number
           idColuna: number
           idUsuario: string
+          instanceName: string | null
           mensagem: string | null
           nome: string | null
           telefone: string | null
@@ -203,6 +204,7 @@ export type Database = {
           id?: number
           idColuna: number
           idUsuario: string
+          instanceName?: string | null
           mensagem?: string | null
           nome?: string | null
           telefone?: string | null
@@ -214,6 +216,7 @@ export type Database = {
           id?: number
           idColuna?: number
           idUsuario?: string
+          instanceName?: string | null
           mensagem?: string | null
           nome?: string | null
           telefone?: string | null
