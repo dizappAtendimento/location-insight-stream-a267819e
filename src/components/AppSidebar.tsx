@@ -14,10 +14,12 @@ import {
   Headphones,
   CreditCard,
   Sun,
+  Moon,
   Bell,
   Settings,
   LogOut,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -42,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 
 // Itens sempre visíveis
@@ -76,9 +79,20 @@ export function AppSidebar() {
   const location = useLocation();
   const { state, setOpen } = useSidebar();
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const collapsed = state === 'collapsed';
 
   const isActive = (path: string) => location.pathname === path;
+  const isDark = theme === 'dark';
+
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark');
+    toast.success(isDark ? 'Modo claro ativado' : 'Modo escuro ativado');
+  };
+
+  const handleNotifications = () => {
+    toast.info('Você não tem novas notificações');
+  };
 
   // Filtrar menu baseado nos produtos ativos
   const hasDisparador = user?.statusDisparador === true;
@@ -258,11 +272,17 @@ export function AppSidebar() {
               <span className="text-xs text-slate-400 font-normal">{user?.Email || ''}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-700" />
-            <DropdownMenuItem className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer">
-              <Sun className="w-4 h-4 mr-2" />
-              Modo Claro
+            <DropdownMenuItem 
+              onClick={toggleTheme}
+              className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer"
+            >
+              {isDark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+              {isDark ? 'Modo Claro' : 'Modo Escuro'}
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer">
+            <DropdownMenuItem 
+              onClick={handleNotifications}
+              className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer"
+            >
               <Bell className="w-4 h-4 mr-2" />
               Notificações
             </DropdownMenuItem>
