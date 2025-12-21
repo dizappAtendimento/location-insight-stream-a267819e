@@ -41,7 +41,7 @@ serve(async (req) => {
     // Query user by email using service role (bypasses RLS)
     const { data: user, error } = await supabase
       .from('SAAS_Usuarios')
-      .select('id, nome, Email, telefone, status, "Status Ex", senha, avatar_url, banido')
+      .select('id, nome, Email, telefone, status, "Status Ex", senha, avatar_url, banido, dataValidade, dataValidade_extrator, plano, plano_extrator')
       .eq('Email', email)
       .maybeSingle();
 
@@ -78,6 +78,28 @@ serve(async (req) => {
       );
     }
 
+    // Fetch plan names if they exist
+    let planoNome = null;
+    let planoExtratorNome = null;
+
+    if (user.plano) {
+      const { data: planData } = await supabase
+        .from('SAAS_Planos')
+        .select('nome')
+        .eq('id', user.plano)
+        .maybeSingle();
+      planoNome = planData?.nome || null;
+    }
+
+    if (user.plano_extrator) {
+      const { data: planExtratorData } = await supabase
+        .from('SAAS_Planos')
+        .select('nome')
+        .eq('id', user.plano_extrator)
+        .maybeSingle();
+      planoExtratorNome = planExtratorData?.nome || null;
+    }
+
     console.log(`[Login] Success for: ${email}`);
 
     // Return user data without password
@@ -92,6 +114,12 @@ serve(async (req) => {
           statusDisparador: user.status === true,
           statusExtrator: user['Status Ex'] === true,
           avatar_url: user.avatar_url,
+          dataValidade: user.dataValidade,
+          dataValidadeExtrator: user.dataValidade_extrator,
+          planoId: user.plano,
+          planoExtratorId: user.plano_extrator,
+          planoNome,
+          planoExtratorNome,
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
