@@ -113,6 +113,10 @@ interface AvailablePlan {
   qntContatos: number | null;
   qntDisparos: number | null;
   qntListas: number | null;
+  qntPlaces: number | null;
+  qntInstagram: number | null;
+  qntLinkedin: number | null;
+  qntExtracoes: number | null;
   destaque: boolean | null;
   tipo: string | null;
 }
@@ -1016,23 +1020,44 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                             <div className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-emerald-500 shrink-0" />
                               <Link2 className="w-3 h-3 text-cyan-500" />
-                              <span><strong>{plan.qntConexoes}</strong> conexões</span>
+                              <span><strong>{formatLimit(plan.qntConexoes)}</strong> conexões</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-emerald-500 shrink-0" />
                               <List className="w-3 h-3 text-violet-500" />
-                              <span><strong>{plan.qntListas}</strong> listas</span>
+                              <span><strong>{formatLimit(plan.qntListas)}</strong> listas</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-emerald-500 shrink-0" />
                               <Contact className="w-3 h-3 text-amber-500" />
-                              <span><strong>{plan.qntContatos?.toLocaleString('pt-BR')}</strong> contatos</span>
+                              <span><strong>{formatLimit(plan.qntContatos)}</strong> contatos</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-emerald-500 shrink-0" />
                               <Send className="w-3 h-3 text-orange-500" />
-                              <span><strong>{plan.qntDisparos?.toLocaleString('pt-BR')}</strong> disparos/mês</span>
+                              <span><strong>{formatLimit(plan.qntDisparos)}</strong> disparos/mês</span>
                             </div>
+                            {(plan.qntPlaces && plan.qntPlaces > 0) && (
+                              <div className="flex items-center gap-2">
+                                <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span className="w-3 h-3 text-green-500 text-[10px] font-bold">📍</span>
+                                <span><strong>{formatLimit(plan.qntPlaces)}</strong> Google Places</span>
+                              </div>
+                            )}
+                            {(plan.qntInstagram && plan.qntInstagram > 0) && (
+                              <div className="flex items-center gap-2">
+                                <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span className="w-3 h-3 text-pink-500 text-[10px] font-bold">📸</span>
+                                <span><strong>{formatLimit(plan.qntInstagram)}</strong> Instagram</span>
+                              </div>
+                            )}
+                            {(plan.qntLinkedin && plan.qntLinkedin > 0) && (
+                              <div className="flex items-center gap-2">
+                                <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span className="w-3 h-3 text-blue-500 text-[10px] font-bold">💼</span>
+                                <span><strong>{formatLimit(plan.qntLinkedin)}</strong> LinkedIn</span>
+                              </div>
+                            )}
                           </div>
                           
                           {(plan.preco || 0) >= 5 ? (
