@@ -9,6 +9,13 @@ interface User {
   statusDisparador: boolean;
   statusExtrator: boolean;
   avatar_url: string | null;
+  // Plan info
+  dataValidade: string | null;
+  dataValidadeExtrator: string | null;
+  planoId: number | null;
+  planoExtratorId: number | null;
+  planoNome: string | null;
+  planoExtratorNome: string | null;
 }
 
 interface AuthContextType {

@@ -14,7 +14,7 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaCh
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
+import { PlanExpirationAlert } from '@/components/PlanExpirationAlert';
 type PeriodFilter = '7' | '14' | '30' | 'custom';
 type ChartType = 'area' | 'bar';
 
@@ -167,6 +167,8 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
+        {/* Plan Expiration Alert */}
+        <PlanExpirationAlert />
         {/* Header with filters */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
           <div className="space-y-0.5">
