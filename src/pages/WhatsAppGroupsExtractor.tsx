@@ -380,11 +380,10 @@ const WhatsAppGroupsExtractor = () => {
         return;
       }
 
-      // Download Excel com contatos - formato: Nome, Telefone (só números), ID (formato original @lid)
-      const worksheet = XLSX.utils.json_to_sheet(contacts.map((c: WhatsAppContact) => ({
+      // Download Excel com contatos - formato: Nome, Telefone (número real)
+      const worksheet = XLSX.utils.json_to_sheet(contacts.map((c: any) => ({
         'Nome': c.pushName || '',
-        'Telefone': (c.id || '').replace(/@.*$/, ''), // Remove qualquer sufixo (@s.whatsapp.net, @c.us, @lid, etc)
-        'ID': c.id || '',
+        'Telefone': c.phoneNumber || '', // Número real extraído
       })));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Contatos');
