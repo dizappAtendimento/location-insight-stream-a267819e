@@ -861,7 +861,7 @@ serve(async (req) => {
       }
 
       case 'add-admin': {
-        const { email } = body;
+        const { nome, email, senha } = body;
         
         if (!email) {
           return new Response(
@@ -870,32 +870,51 @@ serve(async (req) => {
           );
         }
 
-        // Find user by email
-        const { data: userToAdd, error: userError } = await supabase
-          .from('SAAS_Usuarios')
-          .select('id, Email, nome')
-          .eq('Email', email)
-          .single();
-
-        if (userError || !userToAdd) {
-          console.error('[Admin API] User not found:', email);
+        if (!nome) {
           return new Response(
-            JSON.stringify({ error: 'Usuário não encontrado com este email' }),
+            JSON.stringify({ error: 'Nome é obrigatório' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        // Check if already admin
-        const { data: existingRole } = await supabase
-          .from('user_roles')
+        if (!senha || senha.length < 6) {
+          return new Response(
+            JSON.stringify({ error: 'Senha deve ter pelo menos 6 caracteres' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if email already exists
+        const { data: existingUser } = await supabase
+          .from('SAAS_Usuarios')
           .select('id')
-          .eq('user_id', userToAdd.id)
-          .eq('role', 'admin')
+          .eq('Email', email)
           .single();
 
-        if (existingRole) {
+        if (existingUser) {
           return new Response(
-            JSON.stringify({ error: 'Este usuário já é um administrador' }),
+            JSON.stringify({ error: 'Já existe um usuário com este email' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Create new user
+        const { data: newUser, error: createError } = await supabase
+          .from('SAAS_Usuarios')
+          .insert({
+            nome: nome,
+            Email: email,
+            senha: senha,
+            status: true,
+            'Status Ex': false
+          })
+          .select('id')
+          .single();
+
+        if (createError || !newUser) {
+          console.error('[Admin API] Error creating user:', createError);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao criar usuário' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -904,19 +923,21 @@ serve(async (req) => {
         const { error: insertError } = await supabase
           .from('user_roles')
           .insert({
-            user_id: userToAdd.id,
+            user_id: newUser.id,
             role: 'admin'
           });
 
         if (insertError) {
           console.error('[Admin API] Error adding admin role:', insertError);
+          // Rollback: delete the created user
+          await supabase.from('SAAS_Usuarios').delete().eq('id', newUser.id);
           return new Response(
-            JSON.stringify({ error: 'Erro ao adicionar administrador' }),
+            JSON.stringify({ error: 'Erro ao adicionar permissão de administrador' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        console.log(`[Admin API] Added admin role for user ${userToAdd.Email}`);
+        console.log(`[Admin API] Created new admin user: ${email}`);
 
         return new Response(
           JSON.stringify({ success: true }),
