@@ -107,8 +107,7 @@ const WhatsAppGroupsExtractor = () => {
   const [labels, setLabels] = useState<WhatsAppLabel[]>([]);
   const [selectedLabel, setSelectedLabel] = useState<string>('all');
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
-  const [isSyncingLabels, setIsSyncingLabels] = useState(false);
-  const [savedLabels, setSavedLabels] = useState<{labelId: string; labelName: string; remoteJid: string; chatName: string}[]>([]);
+  const [extractionMode, setExtractionMode] = useState<'all' | 'by-label'>('all');
   
   // Public groups search states
   const [activeTab, setActiveTab] = useState('my-groups');
@@ -425,121 +424,18 @@ const WhatsAppGroupsExtractor = () => {
     }
   };
 
-  // Sincroniza etiquetas com os chats e salva no banco de dados
-  const syncLabelsToDatabase = async () => {
-    if (!selectedInstance || !user?.id) return;
-    
-    const currentConnection = instances.find(i => i.instanceName === selectedInstance);
-    if (!currentConnection) {
-      toast({ title: "Erro", description: "Conexão não encontrada", variant: "destructive" });
-      return;
-    }
-
-    setIsSyncingLabels(true);
-    try {
-      // 1. Buscar todas as etiquetas
-      const { data: labelsData, error: labelsError } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'fetch-labels', instanceName: selectedInstance }
-      });
-      if (labelsError) throw new Error(labelsError.message);
-      
-      const allLabels = labelsData.labels || [];
-      setLabels(allLabels);
-      console.log('[syncLabels] Labels:', allLabels);
-
-      // 2. Buscar todos os chats
-      const { data: chatsData, error: chatsError } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'fetch-chats', instanceName: selectedInstance }
-      });
-      if (chatsError) throw new Error(chatsError.message);
-      
-      const allChats = chatsData.chats || [];
-      console.log('[syncLabels] Chats:', allChats.length);
-
-      // 3. Limpar etiquetas antigas desta conexão
-      await supabase
-        .from('SAAS_Chat_Labels')
-        .delete()
-        .eq('idConexao', currentConnection.id);
-
-      // 4. Para cada chat com etiquetas, salvar no banco
-      let savedCount = 0;
-      for (const chat of allChats) {
-        const chatLabels = chat.labels || [];
-        if (chatLabels.length === 0) continue;
-
-        for (const labelId of chatLabels) {
-          const labelInfo = allLabels.find((l: WhatsAppLabel) => l.id === labelId);
-          
-          const { error: insertError } = await supabase
-            .from('SAAS_Chat_Labels')
-            .insert({
-              idUsuario: user.id,
-              idConexao: currentConnection.id,
-              instanceName: selectedInstance,
-              remoteJid: chat.remoteJid || chat.id,
-              labelId: labelId,
-              labelName: labelInfo?.name || '',
-              labelColor: String(labelInfo?.color || 0),
-              chatName: chat.pushName || chat.name || ''
-            });
-          
-          if (!insertError) savedCount++;
-        }
-      }
-
-      // 5. Recarregar etiquetas salvas
-      await loadSavedLabels();
-      
-      toast({ 
-        title: "Sincronização concluída", 
-        description: `${savedCount} associações de etiquetas salvas` 
-      });
-    } catch (error) {
-      console.error('[syncLabels] Error:', error);
-      toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao sincronizar", variant: "destructive" });
-    } finally {
-      setIsSyncingLabels(false);
-    }
-  };
-
-  // Carrega etiquetas salvas no banco para a conexão atual
-  const loadSavedLabels = async () => {
-    if (!selectedInstance || !user?.id) return;
-    
-    const currentConnection = instances.find(i => i.instanceName === selectedInstance);
-    if (!currentConnection) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('SAAS_Chat_Labels')
-        .select('labelId, labelName, remoteJid, chatName')
-        .eq('idConexao', currentConnection.id);
-      
-      if (error) throw error;
-      
-      setSavedLabels(data || []);
-      console.log('[loadSavedLabels] Loaded:', data?.length || 0);
-    } catch (error) {
-      console.error('[loadSavedLabels] Error:', error);
-    }
-  };
-
   // Carrega etiquetas quando seleciona instância
   useEffect(() => {
     if (selectedInstance && activeTab === 'chats') {
-      loadSavedLabels();
       fetchLabels();
     }
   }, [selectedInstance, activeTab]);
 
-  const fetchChats = async (labelId?: string) => {
+  const fetchChats = async () => {
     if (!selectedInstance) {
       toast({ title: "Erro", description: "Selecione uma instância conectada", variant: "destructive" });
       return;
     }
-    
-    const currentConnection = instances.find(i => i.instanceName === selectedInstance);
     
     setIsLoadingChats(true);
     try {
@@ -555,24 +451,29 @@ const WhatsAppGroupsExtractor = () => {
       // Filtrar apenas conversas individuais (não grupos)
       chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
       
-      // Se tem etiqueta selecionada e temos etiquetas salvas, filtrar por elas
-      if (labelId && labelId !== 'all' && savedLabels.length > 0) {
-        const chatsWithLabel = savedLabels
-          .filter(sl => sl.labelId === labelId)
-          .map(sl => sl.remoteJid);
-        
-        chats = chats.filter((c: any) => chatsWithLabel.includes(c.remoteJid));
-        console.log('[fetchChats] Filtered by label:', labelId, 'Found:', chats.length);
+      // Se tem etiqueta selecionada, filtrar pelos chats que têm essa label
+      if (extractionMode === 'by-label' && selectedLabel && selectedLabel !== 'all') {
+        chats = chats.filter((c: any) => {
+          const chatLabels = c.labels || [];
+          return chatLabels.includes(selectedLabel);
+        });
+        console.log('[fetchChats] Filtered by label:', selectedLabel, 'Found:', chats.length);
       }
       
       if (chats.length === 0) {
-        toast({ title: "Aviso", description: "Nenhuma conversa encontrada" + (labelId && labelId !== 'all' ? " com esta etiqueta" : ""), variant: "destructive" });
+        toast({ 
+          title: "Aviso", 
+          description: extractionMode === 'by-label' && selectedLabel !== 'all' 
+            ? "Nenhuma conversa encontrada com esta etiqueta. A API pode não retornar as etiquetas dos chats." 
+            : "Nenhuma conversa encontrada", 
+          variant: "destructive" 
+        });
         return;
       }
 
       // Encontra o nome da etiqueta para o nome do arquivo
-      const labelName = labelId && labelId !== 'all' 
-        ? labels.find(l => l.id === labelId)?.name || 'etiqueta'
+      const labelName = extractionMode === 'by-label' && selectedLabel !== 'all'
+        ? labels.find(l => l.id === selectedLabel)?.name || 'etiqueta'
         : 'todas';
 
       // Download Excel com contatos do bate-papo
@@ -587,7 +488,7 @@ const WhatsAppGroupsExtractor = () => {
       
       addRecord({
         type: 'whatsapp-groups',
-        segment: `Conversas de ${selectedInstance}${labelId && labelId !== 'all' ? ` (${labelName})` : ''}`,
+        segment: `Conversas de ${selectedInstance}${extractionMode === 'by-label' && selectedLabel !== 'all' ? ` (${labelName})` : ''}`,
         totalResults: chats.length,
         emailsFound: 0,
         phonesFound: chats.length,
@@ -1351,75 +1252,90 @@ const WhatsAppGroupsExtractor = () => {
                       </Select>
                     </div>
                     
-                    {/* Sincronização de Etiquetas */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Filtrar por Etiqueta</Label>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={syncLabelsToDatabase}
-                          disabled={isSyncingLabels || !selectedInstance}
-                          className="h-7 text-xs"
+                    {/* Modo de extração */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Modo de Extração</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={extractionMode === 'all' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setExtractionMode('all')}
+                          className={extractionMode === 'all' ? 'bg-[#25D366] hover:bg-[#20BD5A]' : ''}
                         >
-                          {isSyncingLabels ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                          Sincronizar Etiquetas
+                          Todas as conversas
+                        </Button>
+                        <Button
+                          variant={extractionMode === 'by-label' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => {
+                            setExtractionMode('by-label');
+                            if (labels.length === 0) fetchLabels();
+                          }}
+                          className={extractionMode === 'by-label' ? 'bg-[#25D366] hover:bg-[#20BD5A]' : ''}
+                        >
+                          Por Etiqueta
                         </Button>
                       </div>
-                      
-                      {savedLabels.length === 0 ? (
-                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                          <p className="text-xs text-amber-600 dark:text-amber-400">
-                            <strong>Dica:</strong> Clique em "Sincronizar Etiquetas" para carregar as etiquetas do WhatsApp e poder filtrar conversas.
-                          </p>
+                    </div>
+                    
+                    {extractionMode === 'by-label' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Selecione a Etiqueta</Label>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={fetchLabels}
+                            disabled={isLoadingLabels}
+                            className="h-7 text-xs"
+                          >
+                            {isLoadingLabels ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            <span className="ml-1">Atualizar</span>
+                          </Button>
                         </div>
-                      ) : (
-                        <Select 
-                          value={selectedLabel} 
-                          onValueChange={setSelectedLabel}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione uma etiqueta" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">
-                              <span className="flex items-center gap-2">
-                                <span className="w-3 h-3 rounded-full bg-muted-foreground/30" />
-                                Todas as conversas
-                              </span>
-                            </SelectItem>
-                            {labels.map((label) => {
-                              const count = savedLabels.filter(sl => sl.labelId === label.id).length;
-                              return (
+                        
+                        {labels.length === 0 ? (
+                          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                            <p className="text-xs text-amber-600 dark:text-amber-400">
+                              {isLoadingLabels ? 'Carregando etiquetas...' : 'Clique em "Atualizar" para carregar as etiquetas.'}
+                            </p>
+                          </div>
+                        ) : (
+                          <Select value={selectedLabel} onValueChange={setSelectedLabel}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma etiqueta" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {labels.map((label) => (
                                 <SelectItem key={label.id} value={label.id}>
                                   <span className="flex items-center gap-2">
                                     <span 
                                       className="w-3 h-3 rounded-full" 
                                       style={{ backgroundColor: getLabelColor(label.color) }} 
                                     />
-                                    {label.name} ({count})
+                                    {label.name}
                                   </span>
                                 </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
-                      )}
-                      
-                      {savedLabels.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {new Set(savedLabels.map(sl => sl.labelId)).size} etiquetas com {savedLabels.length} conversas mapeadas
-                        </p>
-                      )}
-                    </div>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        
+                        <div className="p-2 rounded-lg bg-muted/50 border border-border/50">
+                          <p className="text-xs text-muted-foreground">
+                            <strong>Nota:</strong> A filtragem por etiqueta depende da Evolution API retornar os dados corretamente.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     
                     <Button 
-                      onClick={() => fetchChats(selectedLabel)} 
+                      onClick={fetchChats} 
                       className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
-                      disabled={isLoadingChats || !selectedInstance}
+                      disabled={isLoadingChats || !selectedInstance || (extractionMode === 'by-label' && !selectedLabel)}
                     >
                       {isLoadingChats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MessageSquare className="w-4 h-4 mr-2" />}
-                      {isLoadingChats ? 'Extraindo conversas...' : 'Extrair Bate-Papo'}
+                      {isLoadingChats ? 'Extraindo conversas...' : extractionMode === 'all' ? 'Extrair Todas as Conversas' : 'Extrair por Etiqueta'}
                     </Button>
                   </>
                 )}
