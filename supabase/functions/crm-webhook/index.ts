@@ -68,33 +68,55 @@ Deno.serve(async (req) => {
     let userId: string | null = null;
 
     if (instanceName) {
+      // Buscar por match exato ou parcial do instanceName
       const { data: conexao } = await supabase
         .from('SAAS_Conexões')
-        .select('idUsuario')
-        .eq('instanceName', instanceName)
+        .select('idUsuario, instanceName, crmAtivo')
+        .ilike('instanceName', `${instanceName}%`)
+        .eq('crmAtivo', true)
         .maybeSingle();
 
       if (conexao?.idUsuario) {
         userId = conexao.idUsuario;
-        console.log(`Usuário identificado pela instância: ${userId}`);
+        console.log(`Usuário identificado pela instância ${instanceName}: ${userId}`);
       }
     }
 
-    // Se não encontrou por instância, buscar pelo telefone na conexão
-    if (!userId && telefone) {
+    // Se não encontrou por instância, buscar por conexão com CRM ativo que tenha o mesmo telefone do sender
+    if (!userId) {
+      // Extrair sender do webhook
+      const sender = body.sender?.replace('@s.whatsapp.net', '');
+      console.log(`Tentando buscar por sender: ${sender}`);
+      
+      if (sender) {
+        const { data: conexao } = await supabase
+          .from('SAAS_Conexões')
+          .select('idUsuario, Telefone')
+          .eq('Telefone', sender)
+          .eq('crmAtivo', true)
+          .maybeSingle();
+
+        if (conexao?.idUsuario) {
+          userId = conexao.idUsuario;
+          console.log(`Usuário identificado pelo telefone do sender ${sender}: ${userId}`);
+        }
+      }
+    }
+
+    // Última tentativa: buscar qualquer conexão com CRM ativo
+    if (!userId) {
       const { data: conexoes } = await supabase
         .from('SAAS_Conexões')
-        .select('idUsuario, Telefone')
+        .select('idUsuario, Telefone, instanceName')
+        .eq('crmAtivo', true)
         .not('idUsuario', 'is', null)
-        .limit(100);
+        .limit(10);
 
-      // Verificar se alguma conexão tem o telefone
-      for (const conn of conexoes || []) {
-        if (conn.Telefone && conn.idUsuario) {
-          userId = conn.idUsuario;
-          console.log(`Usuário identificado pela conexão: ${userId}`);
-          break;
-        }
+      console.log(`Conexões com CRM ativo: ${JSON.stringify(conexoes)}`);
+      
+      if (conexoes && conexoes.length > 0) {
+        userId = conexoes[0].idUsuario;
+        console.log(`Usuário identificado pela primeira conexão com CRM ativo: ${userId}`);
       }
     }
 
