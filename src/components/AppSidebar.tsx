@@ -99,7 +99,7 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="flex-1 flex flex-col justify-center py-4 px-2">
+      <SidebarContent className="py-4 px-2">
         {/* Menu Principal */}
         <SidebarGroup className="mb-4">
           <SidebarGroupLabel className={cn(
