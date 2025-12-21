@@ -58,6 +58,40 @@ interface WhatsAppContact {
   owner?: string;
 }
 
+interface WhatsAppLabel {
+  id: string;
+  name: string;
+  color: number;
+  predefinedId?: string;
+}
+
+// Helper function to convert WhatsApp label color codes to hex colors
+const getLabelColor = (colorCode: number): string => {
+  const colors: Record<number, string> = {
+    0: '#00A884', // Verde (padrão WhatsApp)
+    1: '#54C3E8', // Azul claro
+    2: '#F7D366', // Amarelo
+    3: '#F78C6C', // Laranja
+    4: '#FF8A9A', // Rosa
+    5: '#8B5CF6', // Roxo
+    6: '#64748B', // Cinza
+    7: '#53BDEB', // Azul
+    8: '#25D366', // Verde WhatsApp
+    9: '#EC4899', // Pink
+    10: '#F59E0B', // Amber
+    11: '#10B981', // Emerald
+    12: '#6366F1', // Indigo
+    13: '#EF4444', // Red
+    14: '#84CC16', // Lime
+    15: '#06B6D4', // Cyan
+    16: '#A855F7', // Purple
+    17: '#F97316', // Orange
+    18: '#3B82F6', // Blue
+    19: '#22C55E', // Green
+  };
+  return colors[colorCode] || '#64748B';
+};
+
 const WhatsAppGroupsExtractor = () => {
   const { toast } = useToast();
   const { addRecord } = useExtractionHistory();
@@ -68,6 +102,11 @@ const WhatsAppGroupsExtractor = () => {
   const [isExtractingParticipants, setIsExtractingParticipants] = useState(false);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
+  
+  // Labels/Etiquetas state
+  const [labels, setLabels] = useState<WhatsAppLabel[]>([]);
+  const [selectedLabel, setSelectedLabel] = useState<string>('all');
+  const [isLoadingLabels, setIsLoadingLabels] = useState(false);
   
   // Public groups search states
   const [activeTab, setActiveTab] = useState('my-groups');
@@ -364,16 +403,41 @@ const WhatsAppGroupsExtractor = () => {
     }
   };
 
-  const fetchChats = async () => {
+  const fetchLabels = async () => {
+    if (!selectedInstance) return;
+    setIsLoadingLabels(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'fetch-labels', instanceName: selectedInstance }
+      });
+      if (error) throw new Error(error.message);
+      
+      const fetchedLabels = data.labels || [];
+      setLabels(fetchedLabels);
+      console.log('Labels fetched:', fetchedLabels);
+    } catch (error) {
+      console.error('Error fetching labels:', error);
+      setLabels([]);
+    } finally {
+      setIsLoadingLabels(false);
+    }
+  };
+
+  const fetchChats = async (labelId?: string) => {
     if (!selectedInstance) {
       toast({ title: "Erro", description: "Selecione uma instância conectada", variant: "destructive" });
       return;
     }
     setIsLoadingChats(true);
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'fetch-chats', instanceName: selectedInstance }
-      });
+      const requestBody: any = { action: 'fetch-chats', instanceName: selectedInstance };
+      
+      // Se selecionou uma etiqueta específica (não "all"), passa o labelId
+      if (labelId && labelId !== 'all') {
+        requestBody.data = { labelId };
+      }
+      
+      const { data, error } = await supabase.functions.invoke('evolution-api', requestBody);
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);
       
@@ -387,8 +451,12 @@ const WhatsAppGroupsExtractor = () => {
         return;
       }
 
+      // Encontra o nome da etiqueta para o nome do arquivo
+      const labelName = labelId && labelId !== 'all' 
+        ? labels.find(l => l.id === labelId)?.name || 'etiqueta'
+        : 'todas';
+
       // Download Excel com contatos do bate-papo
-      // NOTA: A Evolution API não expõe labels por chat - issue #2315
       const worksheet = XLSX.utils.json_to_sheet(individualChats.map((c: any) => ({
         'Nome': c.pushName || c.name || '',
         'Telefone': (c.remoteJid || '').replace(/@.*$/, ''),
@@ -396,11 +464,11 @@ const WhatsAppGroupsExtractor = () => {
       })));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Conversas');
-      XLSX.writeFile(workbook, `conversas_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(workbook, `conversas_${selectedInstance}_${labelName}_${new Date().toISOString().split('T')[0]}.xlsx`);
       
       addRecord({
         type: 'whatsapp-groups',
-        segment: `Conversas de ${selectedInstance}`,
+        segment: `Conversas de ${selectedInstance}${labelId && labelId !== 'all' ? ` (${labelName})` : ''}`,
         totalResults: individualChats.length,
         emailsFound: 0,
         phonesFound: individualChats.length,
@@ -1152,7 +1220,14 @@ const WhatsAppGroupsExtractor = () => {
                   <>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Selecione a Instância</Label>
-                      <Select value={selectedInstance} onValueChange={setSelectedInstance}>
+                      <Select 
+                        value={selectedInstance} 
+                        onValueChange={(value) => {
+                          setSelectedInstance(value);
+                          setLabels([]);
+                          setSelectedLabel('all');
+                        }}
+                      >
                         <SelectTrigger><SelectValue placeholder="Selecione uma instância conectada" /></SelectTrigger>
                         <SelectContent>
                           {connectedInstances.map((instance) => (
@@ -1163,8 +1238,61 @@ const WhatsAppGroupsExtractor = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    {/* Filtro por Etiqueta */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Filtrar por Etiqueta</Label>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={fetchLabels}
+                          disabled={isLoadingLabels || !selectedInstance}
+                          className="h-7 text-xs"
+                        >
+                          {isLoadingLabels ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                          <span className="ml-1">Carregar</span>
+                        </Button>
+                      </div>
+                      <Select 
+                        value={selectedLabel} 
+                        onValueChange={setSelectedLabel}
+                        disabled={labels.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={labels.length === 0 ? "Clique em 'Carregar' para ver etiquetas" : "Selecione uma etiqueta"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">
+                            <span className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full bg-muted-foreground/30" />
+                              Tudo (Todas as conversas)
+                            </span>
+                          </SelectItem>
+                          {labels.map((label) => (
+                            <SelectItem key={label.id} value={label.id}>
+                              <span className="flex items-center gap-2">
+                                <span 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ 
+                                    backgroundColor: getLabelColor(label.color) 
+                                  }} 
+                                />
+                                {label.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {labels.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {labels.length} etiqueta{labels.length !== 1 ? 's' : ''} encontrada{labels.length !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+                    
                     <Button 
-                      onClick={fetchChats} 
+                      onClick={() => fetchChats(selectedLabel)} 
                       className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
                       disabled={isLoadingChats || !selectedInstance}
                     >

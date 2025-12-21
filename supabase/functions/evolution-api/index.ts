@@ -251,19 +251,39 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "fetch-labels":
+        // Busca todas as labels/etiquetas
+        response = await fetch(`${baseUrl}/label/findLabels/${instanceName}`, {
+          method: "GET",
+          headers,
+        });
+        result = await response.json();
+        console.log(`[Evolution API] Fetched labels for ${instanceName}: ${Array.isArray(result) ? result.length : 0}`);
+        return new Response(
+          JSON.stringify({ labels: result || [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       case "fetch-chats":
-        // Busca conversas/chats
-        response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
+        // Busca conversas/chats com filtro opcional por labelId
+        const { labelId } = data || {};
+        
+        let chatsUrl = `${baseUrl}/chat/findChats/${instanceName}`;
+        let chatsBody: any = { where: {} };
+        
+        // Se tem labelId, adiciona filtro
+        if (labelId) {
+          chatsBody.where = { labelId };
+          console.log(`[Evolution API] Fetching chats with labelId: ${labelId}`);
+        }
+        
+        response = await fetch(chatsUrl, {
           method: "POST",
           headers,
-          body: JSON.stringify({ where: {} }),
+          body: JSON.stringify(chatsBody),
         });
         result = await response.json();
         console.log(`[Evolution API] Fetched chats for ${instanceName}: ${Array.isArray(result) ? result.length : 0}`);
-        
-        // NOTA: A Evolution API não expõe a associação label<->chat nos endpoints atuais
-        // Issue: https://github.com/EvolutionAPI/evolution-api/issues/2315
-        // As labels só são acessíveis via webhook quando são alteradas
         
         return new Response(
           JSON.stringify({ chats: result || [] }),
