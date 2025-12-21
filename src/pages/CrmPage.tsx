@@ -416,13 +416,23 @@ const CrmPage = () => {
 
   const openWhatsApp = (telefone: string | null, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!telefone) {
       toast({ title: "Telefone não disponível", variant: "destructive" });
       return;
     }
     // Remove caracteres não numéricos
     const cleanPhone = telefone.replace(/\D/g, '');
-    window.open(`https://wa.me/${cleanPhone}`, '_blank', 'noopener,noreferrer');
+    const url = `https://wa.me/${cleanPhone}`;
+    
+    // Usar elemento <a> para evitar bloqueio do navegador
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const openLeadDetails = (lead: CrmLead) => {
