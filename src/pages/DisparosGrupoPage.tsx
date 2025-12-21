@@ -405,7 +405,7 @@ export default function DisparosGrupoPage() {
           <div className="lg:col-span-2 space-y-6">
             
             {/* Conexões */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '50ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Selecione uma conexão *</CardTitle>
@@ -430,15 +430,16 @@ export default function DisparosGrupoPage() {
                   </div>
                 ) : (
                   <div className="grid gap-3 max-h-[200px] overflow-y-auto pr-2">
-                    {connections.map((conn) => (
+                    {connections.map((conn, index) => (
                       <div
                         key={conn.id}
                         onClick={() => handleSelectConnection(conn)}
-                        className={`relative p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                        className={`relative p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between ${
                           selectedConnection?.id === conn.id
-                            ? 'border-primary bg-primary/10'
+                            ? 'border-primary bg-primary/10 shadow-sm'
                             : 'border-border/50 bg-muted/20 hover:border-primary/40'
                         }`}
+                        style={{ animationDelay: `${index * 30}ms` }}
                       >
                         <div className="flex items-center gap-3">
                           {conn.photo ? (
@@ -482,7 +483,7 @@ export default function DisparosGrupoPage() {
             </Card>
 
             {/* Listas de Grupos */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-primary" />
@@ -497,15 +498,16 @@ export default function DisparosGrupoPage() {
                   </div>
                 ) : (
                   <div className="grid gap-3 max-h-[200px] overflow-y-auto pr-2">
-                    {lists.map((list) => (
+                    {lists.map((list, index) => (
                       <div
                         key={list.id}
                         onClick={() => toggleList(list.id)}
-                        className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                        className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between ${
                           selectedLists.includes(list.id)
-                            ? 'border-primary bg-primary/10'
+                            ? 'border-primary bg-primary/10 shadow-sm'
                             : 'border-border/50 bg-muted/20 hover:border-primary/40'
                         }`}
+                        style={{ animationDelay: `${index * 30}ms` }}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
@@ -534,7 +536,7 @@ export default function DisparosGrupoPage() {
             </Card>
 
             {/* Mensagens */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '150ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Mensagens *</CardTitle>
               </CardHeader>
@@ -630,7 +632,7 @@ export default function DisparosGrupoPage() {
             </Card>
 
             {/* IA */}
-            <Card className="border-emerald-500/30 bg-emerald-500/5 backdrop-blur-sm">
+            <Card className="border-emerald-500/30 bg-emerald-500/5 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -684,7 +686,7 @@ export default function DisparosGrupoPage() {
             </Card>
 
             {/* Configurações Finais */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '250ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
@@ -730,7 +732,8 @@ export default function DisparosGrupoPage() {
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full h-14 text-lg font-semibold bg-violet-600 hover:bg-violet-700"
+              className="w-full h-14 text-lg font-semibold bg-violet-600 hover:bg-violet-700 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] opacity-0 animate-fade-in"
+              style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}
               size="lg"
             >
               {loading ? (
