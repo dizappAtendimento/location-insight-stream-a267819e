@@ -270,24 +270,33 @@ serve(async (req) => {
           });
           if (labelsResponse.ok) {
             const labelsData = await labelsResponse.json();
-            console.log(`[Evolution API] Fetched labels for ${instanceName}:`, labelsData?.length || 0);
+            console.log(`[Evolution API] Labels raw response:`, JSON.stringify(labelsData).substring(0, 500));
             
             // Mapeia chatId -> array de labels
             if (Array.isArray(labelsData)) {
               for (const label of labelsData) {
-                if (label.labelAssociations && Array.isArray(label.labelAssociations)) {
-                  for (const assoc of label.labelAssociations) {
-                    const chatId = assoc.chatId || assoc.remoteJid;
-                    if (chatId) {
+                const labelName = label.name || label.displayName || label.id;
+                
+                // Verifica diferentes estruturas possíveis de associações
+                const associations = label.labelAssociations || label.associations || label.chats || [];
+                
+                if (Array.isArray(associations)) {
+                  for (const assoc of associations) {
+                    // Diferentes formatos possíveis de chatId
+                    const chatId = assoc.chatId || assoc.remoteJid || assoc.id || assoc;
+                    if (chatId && typeof chatId === 'string') {
                       if (!labelsMap[chatId]) {
                         labelsMap[chatId] = [];
                       }
-                      labelsMap[chatId].push(label.name || label.displayName || label.id);
+                      if (!labelsMap[chatId].includes(labelName)) {
+                        labelsMap[chatId].push(labelName);
+                      }
                     }
                   }
                 }
               }
             }
+            console.log(`[Evolution API] Labels map created with ${Object.keys(labelsMap).length} chats mapped`);
           }
         } catch (labelError) {
           console.error(`[Evolution API] Error fetching labels:`, labelError);
@@ -296,9 +305,13 @@ serve(async (req) => {
         // Enriquece os chats com labels
         const enrichedChats = (result || []).map((chat: any) => {
           const chatId = chat.remoteJid || chat.id;
+          const labels = labelsMap[chatId] || [];
+          if (labels.length > 0) {
+            console.log(`[Evolution API] Chat ${chatId} has labels:`, labels);
+          }
           return {
             ...chat,
-            labels: labelsMap[chatId] || []
+            labels
           };
         });
         
