@@ -355,19 +355,19 @@ export default function ContratarPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border/40 bg-zinc-900 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={logoImage} alt="Logo" className="h-8 w-auto" />
-            <span className="font-bold text-xl">DizApp</span>
+            <span className="font-bold text-xl text-white">DizApp</span>
           </div>
           <div className="flex items-center gap-4">
             {user && (
               <>
-                <span className="text-sm text-muted-foreground hidden sm:block">
+                <span className="text-sm text-zinc-300 hidden sm:block">
                   {user.nome || user.Email}
                 </span>
-                <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
+                <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-zinc-600 text-white hover:bg-zinc-800">
                   <LogOut className="w-4 h-4" />
                   Sair
                 </Button>
