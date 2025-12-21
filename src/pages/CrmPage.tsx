@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search, Smartphone, List } from 'lucide-react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search, Smartphone, List, Filter } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -158,11 +158,21 @@ const CrmPage = () => {
   const [isAddingLead, setIsAddingLead] = useState(false);
   const [newLead, setNewLead] = useState({ nome: '', telefone: '', valor: 0, mensagem: '' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedListaFilter, setSelectedListaFilter] = useState<number | null>(null);
+  const [blinkingLeadIds, setBlinkingLeadIds] = useState<Set<number>>(new Set());
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem('crm-sound-enabled');
     return saved !== null ? saved === 'true' : true;
   });
   const initialLoadDone = useRef(false);
+
+  // Listas únicas disponíveis nos leads
+  const availableListas = leads.reduce((acc, lead) => {
+    if (lead.idLista && lead.nomeLista && !acc.some(l => l.id === lead.idLista)) {
+      acc.push({ id: lead.idLista, nome: lead.nomeLista });
+    }
+    return acc;
+  }, [] as { id: number; nome: string }[]);
 
   // Salvar preferência de som no localStorage
   useEffect(() => {
@@ -230,7 +240,19 @@ const CrmPage = () => {
     fetchData();
   }, [fetchData]);
 
-  // Real-time subscription para novos leads
+  // Função para fazer o lead piscar
+  const triggerBlink = (leadId: number) => {
+    setBlinkingLeadIds(prev => new Set([...prev, leadId]));
+    setTimeout(() => {
+      setBlinkingLeadIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(leadId);
+        return newSet;
+      });
+    }, 3000); // Pisca por 3 segundos
+  };
+
+  // Real-time subscription para novos leads e atualizações
   useEffect(() => {
     if (!user?.id) return;
 
@@ -248,6 +270,13 @@ const CrmPage = () => {
           console.log('Novo lead recebido:', payload);
           
           const newLeadData = payload.new as any;
+          
+          // Só adicionar se tiver idLista (veio de uma lista)
+          if (!newLeadData.idLista) {
+            console.log('Lead sem lista, ignorando no CRM');
+            return;
+          }
+          
           const lead: CrmLead = {
             id: newLeadData.id,
             idColuna: newLeadData.idColuna,
@@ -267,12 +296,56 @@ const CrmPage = () => {
             return [lead, ...prev];
           });
           
+          // Fazer o lead piscar
+          triggerBlink(lead.id);
+          
           // Só toca som se já carregou inicialmente (não toca no primeiro load)
           if (initialLoadDone.current && soundEnabled) {
             playNewLeadSound();
             toast({ 
               title: "🔔 Novo Lead!", 
               description: `${lead.nome || 'Novo contato'} - ${lead.telefone}` 
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'SAAS_CRM_Leads',
+          filter: `idUsuario=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Lead atualizado:', payload);
+          
+          const updatedLeadData = payload.new as any;
+          
+          // Atualizar o lead na lista
+          setLeads(prev => prev.map(lead => 
+            lead.id === updatedLeadData.id ? {
+              ...lead,
+              nome: updatedLeadData.nome,
+              telefone: updatedLeadData.telefone,
+              mensagem: updatedLeadData.mensagem,
+              valor: Number(updatedLeadData.valor) || 0,
+              idColuna: updatedLeadData.idColuna,
+              instanceName: updatedLeadData.instanceName || null,
+              idLista: updatedLeadData.idLista || null,
+              nomeLista: updatedLeadData.nomeLista || null,
+            } : lead
+          ));
+          
+          // Fazer o lead piscar
+          triggerBlink(updatedLeadData.id);
+          
+          // Só toca som se já carregou inicialmente
+          if (initialLoadDone.current && soundEnabled) {
+            playNewLeadSound();
+            toast({ 
+              title: "💬 Nova mensagem!", 
+              description: `${updatedLeadData.nome || 'Contato'} enviou mensagem` 
             });
           }
         }
@@ -409,8 +482,12 @@ const CrmPage = () => {
     setColumnTitle(currentTitle);
   };
 
-  // Filtrar leads pela busca
+  // Filtrar leads pela busca e lista
   const filteredLeads = leads.filter(lead => {
+    // Filtro por lista
+    if (selectedListaFilter && lead.idLista !== selectedListaFilter) return false;
+    
+    // Filtro por busca
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
@@ -590,6 +667,40 @@ const CrmPage = () => {
                 className="pl-9 w-[220px]"
               />
             </div>
+            {/* Filtro por lista */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant={selectedListaFilter ? "default" : "outline"} size="sm" className="gap-2">
+                  <Filter className="w-4 h-4" />
+                  {selectedListaFilter 
+                    ? availableListas.find(l => l.id === selectedListaFilter)?.nome || 'Lista' 
+                    : 'Todas Listas'
+                  }
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSelectedListaFilter(null)}>
+                  <List className="w-4 h-4 mr-2" />
+                  Todas as Listas
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {availableListas.map(lista => (
+                  <DropdownMenuItem 
+                    key={lista.id} 
+                    onClick={() => setSelectedListaFilter(lista.id)}
+                    className={cn(selectedListaFilter === lista.id && "bg-primary/10")}
+                  >
+                    <List className="w-4 h-4 mr-2" />
+                    {lista.nome}
+                  </DropdownMenuItem>
+                ))}
+                {availableListas.length === 0 && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                    Nenhuma lista disponível
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Badge variant="outline" className="px-3 py-1">
               {filteredLeads.length} leads
             </Badge>
@@ -620,17 +731,18 @@ const CrmPage = () => {
 
         {/* Kanban Board */}
         <div className={cn(
-          "grid gap-4 min-h-[600px]",
+          "grid gap-4 flex-1",
           columns.length <= 4 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : 
           columns.length <= 6 ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-6" :
           "grid-cols-1 md:grid-cols-4 lg:grid-cols-8"
-        )}>
+        )} style={{ minHeight: 'calc(100vh - 220px)' }}>
           {columns.map((column) => (
             <div
               key={column.id}
-              className="flex flex-col bg-muted/20 rounded-xl border border-border/50"
+              className="flex flex-col bg-muted/20 rounded-xl border border-border/50 h-full"
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(column.id)}
+              style={{ minHeight: 'calc(100vh - 240px)' }}
             >
               {/* Column Header */}
               <div className="p-4 border-b border-border/30">
@@ -712,15 +824,15 @@ const CrmPage = () => {
               </div>
 
               {/* Cards */}
-              <div className="flex-1 p-3 space-y-3 overflow-y-auto max-h-[500px]">
+              <div className="flex-1 p-3 space-y-3 overflow-y-auto">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
                   </div>
                 ) : getLeadsByColumnFiltered(column.id).length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground h-full">
                     <Plus className="w-8 h-8 mb-2 opacity-30" />
-                    <span className="text-xs">{searchTerm ? 'Nenhum lead encontrado' : 'Arraste leads aqui'}</span>
+                    <span className="text-xs">{searchTerm || selectedListaFilter ? 'Nenhum lead encontrado' : 'Arraste leads aqui'}</span>
                   </div>
                 ) : (
                   getLeadsByColumnFiltered(column.id).map((lead) => (
@@ -729,7 +841,10 @@ const CrmPage = () => {
                       draggable
                       onDragStart={() => handleDragStart(lead)}
                       onClick={() => openLeadDetails(lead)}
-                      className="cursor-pointer active:cursor-grabbing bg-card hover:bg-muted/30 transition-all border-border/50 hover:border-primary/30 hover:shadow-lg"
+                      className={cn(
+                        "cursor-pointer active:cursor-grabbing bg-card hover:bg-muted/30 transition-all border-border/50 hover:border-primary/30 hover:shadow-lg",
+                        blinkingLeadIds.has(lead.id) && "animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background"
+                      )}
                     >
                       <CardContent className="p-3 space-y-2">
                         {/* Lead Header */}
