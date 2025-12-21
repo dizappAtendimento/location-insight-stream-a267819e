@@ -25,6 +25,7 @@ import ListaDetalhesPage from "./pages/ListaDetalhesPage";
 import ApiDocsPage from "./pages/ApiDocsPage";
 import CrmPage from "./pages/CrmPage";
 import MaturadorPage from "./pages/MaturadorPage";
+import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/instagram" element={<ProtectedRoute><InstagramExtractor /></ProtectedRoute>} />
               <Route path="/linkedin" element={<ProtectedRoute><LinkedInExtractor /></ProtectedRoute>} />
               <Route path="/grupos" element={<ProtectedRoute><WhatsAppGroupsExtractor /></ProtectedRoute>} />
+              <Route path="/whatsapp-config" element={<ProtectedRoute><WhatsAppConfigPage /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/api-docs" element={<ProtectedRoute><ApiDocsPage /></ProtectedRoute>} />
               <Route path="/crm" element={<ProtectedRoute><CrmPage /></ProtectedRoute>} />
