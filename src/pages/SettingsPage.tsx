@@ -971,10 +971,10 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                       <div className="pt-4 border-t border-border/30 space-y-3">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Consultas/Extrações por Canal</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                          <UsageBar label="📍 Google Places" used={disparadorPlan.usadoPlaces || 0} limit={disparadorPlan.limitePlaces} color="blue" />
-                          <UsageBar label="📸 Instagram" used={disparadorPlan.usadoInstagram || 0} limit={disparadorPlan.limiteInstagram} color="blue" />
-                          <UsageBar label="💼 LinkedIn" used={disparadorPlan.usadoLinkedin || 0} limit={disparadorPlan.limiteLinkedin} color="blue" />
-                          <UsageBar label="💬 WhatsApp Groups" used={disparadorPlan.usadoExtracoes || 0} limit={disparadorPlan.limiteExtracoes} color="blue" />
+                          <UsageBar label="Google Places" used={disparadorPlan.usadoPlaces || 0} limit={disparadorPlan.limitePlaces} color="blue" />
+                          <UsageBar label="Instagram" used={disparadorPlan.usadoInstagram || 0} limit={disparadorPlan.limiteInstagram} color="blue" />
+                          <UsageBar label="LinkedIn" used={disparadorPlan.usadoLinkedin || 0} limit={disparadorPlan.limiteLinkedin} color="blue" />
+                          <UsageBar label="WhatsApp Groups" used={disparadorPlan.usadoExtracoes || 0} limit={disparadorPlan.limiteExtracoes} color="blue" />
                         </div>
                       </div>
                     </div>
