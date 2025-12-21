@@ -56,6 +56,19 @@ serve(async (req) => {
           });
         }
         
+        // Formatar telefone - remover caracteres especiais e garantir formato válido
+        let formattedPhone = phone?.replace(/\D/g, '') || '';
+        // Se tiver 11 dígitos (DDD + 9 dígitos), está no formato correto
+        // Se tiver 10 dígitos (DDD + 8 dígitos - telefone fixo), está no formato correto
+        // Se tiver mais de 11 dígitos, pode ter código do país, remover
+        if (formattedPhone.length > 11 && formattedPhone.startsWith('55')) {
+          formattedPhone = formattedPhone.substring(2);
+        }
+        // Se ainda tiver mais de 11 dígitos, truncar
+        if (formattedPhone.length > 11) {
+          formattedPhone = formattedPhone.substring(0, 11);
+        }
+        
         // Criar novo cliente
         const customerResponse = await fetch(`${ASAAS_API_URL}/customers`, {
           method: 'POST',
@@ -67,7 +80,8 @@ serve(async (req) => {
             name,
             email,
             cpfCnpj: cpfCnpj?.replace(/\D/g, ''),
-            phone: phone?.replace(/\D/g, ''),
+            phone: formattedPhone || undefined,
+            mobilePhone: formattedPhone || undefined,
             externalReference: userId
           })
         });
