@@ -1773,17 +1773,17 @@ const ListasPage = () => {
                         <TableCell>
                           <span
                             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                              lista.tipo === "contatos"
+                              lista.tipo === "contatos" || lista.tipo === "contacts"
                                 ? "bg-primary/10 text-primary border border-primary/30"
                                 : "bg-yellow-500/10 text-yellow-500 border border-yellow-500/30"
                             }`}
                           >
-                            {lista.tipo === "contatos" ? (
+                            {lista.tipo === "contatos" || lista.tipo === "contacts" ? (
                               <Users className="w-3.5 h-3.5" />
                             ) : (
                               <MessageSquare className="w-3.5 h-3.5" />
                             )}
-                            {lista.tipo === "contatos" ? "Contatos" : "Grupos"}
+                            {lista.tipo === "contatos" || lista.tipo === "contacts" ? "Contatos" : "Grupos"}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
