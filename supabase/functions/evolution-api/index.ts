@@ -266,15 +266,15 @@ serve(async (req) => {
 
       case "fetch-chats":
         // Busca conversas/chats com filtro opcional por labelId
-        const { labelId } = data || {};
+        const chatLabelId = data?.labelId;
         
         let chatsUrl = `${baseUrl}/chat/findChats/${instanceName}`;
         let chatsBody: any = { where: {} };
         
         // Se tem labelId, adiciona filtro
-        if (labelId) {
-          chatsBody.where = { labelId };
-          console.log(`[Evolution API] Fetching chats with labelId: ${labelId}`);
+        if (chatLabelId && chatLabelId !== 'all') {
+          chatsBody.where = { labelId: chatLabelId };
+          console.log(`[Evolution API] Fetching chats with labelId: ${chatLabelId}`);
         }
         
         response = await fetch(chatsUrl, {
@@ -282,11 +282,22 @@ serve(async (req) => {
           headers,
           body: JSON.stringify(chatsBody),
         });
-        result = await response.json();
-        console.log(`[Evolution API] Fetched chats for ${instanceName}: ${Array.isArray(result) ? result.length : 0}`);
+        
+        // Verifica se a resposta tem conteúdo antes de fazer parse
+        const chatsText = await response.text();
+        let chatsResult = [];
+        if (chatsText && chatsText.trim()) {
+          try {
+            chatsResult = JSON.parse(chatsText);
+          } catch (parseError) {
+            console.error(`[Evolution API] Error parsing chats response:`, parseError, chatsText);
+          }
+        }
+        
+        console.log(`[Evolution API] Fetched chats for ${instanceName}: ${Array.isArray(chatsResult) ? chatsResult.length : 0}`);
         
         return new Response(
-          JSON.stringify({ chats: result || [] }),
+          JSON.stringify({ chats: chatsResult || [] }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
