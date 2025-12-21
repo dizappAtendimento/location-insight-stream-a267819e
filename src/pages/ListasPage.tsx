@@ -1421,17 +1421,19 @@ const ListasPage = () => {
                         })
                         .map((job) => {
                           const resultsCount = job.total_found || (Array.isArray(job.results) ? job.results.length : 0);
+                          const actualResultsCount = Array.isArray(job.results) ? job.results.length : 0;
                           const phonesCount = job.phonesFound ?? (Array.isArray(job.results) 
-                            ? job.results.filter((r: any) => r.phone).length 
+                            ? job.results.filter((r: any) => r.phone || r.telefone).length 
                             : 0);
                           const sourceLabel = job.source === 'local' 
                             ? (job.type === 'whatsapp-groups' ? 'WhatsApp' : job.type === 'places' ? 'Google Places' : job.type === 'instagram' ? 'Instagram' : job.type === 'linkedin' ? 'LinkedIn' : job.type || 'Local')
                             : 'Google Places';
+                          const hasData = actualResultsCount > 0 || job.source !== 'local';
                           
                           return (
                             <div 
                               key={job.id} 
-                              className="flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-muted/30"
+                              className={`flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-muted/30 ${!hasData ? 'opacity-50' : ''}`}
                             >
                               <Checkbox
                                 checked={selectedJobIds.includes(job.id)}
@@ -1442,6 +1444,7 @@ const ListasPage = () => {
                                     setSelectedJobIds(selectedJobIds.filter(id => id !== job.id));
                                   }
                                 }}
+                                disabled={!hasData}
                               />
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">
@@ -1449,6 +1452,11 @@ const ListasPage = () => {
                                   <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                                     {sourceLabel}
                                   </span>
+                                  {!hasData && (
+                                    <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-destructive/20 text-destructive">
+                                      Sem dados
+                                    </span>
+                                  )}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {job.location || 'Sem localização'} • {resultsCount} resultados • {phonesCount} com telefone
