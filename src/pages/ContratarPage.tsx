@@ -15,7 +15,8 @@ import {
   List, 
   Contact,
   LogOut,
-  MessageCircle
+  MessageCircle,
+  Star
 } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 
@@ -27,6 +28,7 @@ interface Plan {
   qntContatos: number | null;
   qntDisparos: number | null;
   qntListas: number | null;
+  destaque: boolean | null;
   tipo: string | null;
 }
 
@@ -90,12 +92,12 @@ export default function ContratarPage() {
 
   const renderPlanCard = (plan: Plan, index: number) => {
     const colors = getPlanColors(index);
-    const isPopular = index === 1;
+    const isPopular = plan.destaque === true;
     
     return (
       <Card 
         key={plan.id} 
-        className={`relative overflow-hidden border-2 ${colors.border} bg-card hover:shadow-2xl transition-all duration-500 group ${isPopular ? 'scale-105 z-10' : ''}`}
+        className={`relative overflow-hidden border-2 ${isPopular ? 'border-amber-500/50 ring-2 ring-amber-500/20' : colors.border} bg-card hover:shadow-2xl transition-all duration-500 group ${isPopular ? 'scale-105 z-10' : ''}`}
       >
         {/* Background gradient */}
         <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} opacity-50`} />
@@ -104,8 +106,8 @@ export default function ContratarPage() {
         {isPopular && (
           <div className="absolute -top-1 -right-1">
             <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg px-3 py-1">
-              <Crown className="w-3 h-3 mr-1" />
-              Popular
+              <Star className="w-3 h-3 mr-1" />
+              Mais Contratado
             </Badge>
           </div>
         )}

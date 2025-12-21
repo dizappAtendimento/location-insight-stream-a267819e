@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown, Instagram, Linkedin, MapPin, MessageCircle, Calendar } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown, Instagram, Linkedin, MapPin, MessageCircle, Calendar, Star } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -47,6 +47,7 @@ interface Plan {
   qntLinkedin: number | null;
   qntPlaces: number | null;
   diasValidade: number | null;
+  destaque: boolean | null;
   tipo: string | null;
   total_usuarios: number | null;
 }
@@ -55,6 +56,7 @@ const defaultPlanForm = {
   nome: '',
   preco: '',
   diasValidade: '30',
+  destaque: false,
   qntConexoes: '',
   qntContatos: '',
   qntDisparos: '',
@@ -102,6 +104,7 @@ export function AdminPlans() {
       nome: plan.nome || '',
       preco: plan.preco?.toString() || '',
       diasValidade: plan.diasValidade?.toString() || '30',
+      destaque: plan.destaque || false,
       qntConexoes: plan.qntConexoes?.toString() || '',
       qntContatos: plan.qntContatos?.toString() || '',
       qntDisparos: plan.qntDisparos?.toString() || '',
@@ -126,6 +129,7 @@ export function AdminPlans() {
       nome: planForm.nome,
       preco: parseFloat(planForm.preco) || 0,
       diasValidade: parseInt(planForm.diasValidade) || 30,
+      destaque: planForm.destaque,
       qntConexoes: parseInt(planForm.qntConexoes) || 0,
       qntContatos: parseInt(planForm.qntContatos) || 0,
       qntDisparos: parseInt(planForm.qntDisparos) || 0,
@@ -241,8 +245,18 @@ export function AdminPlans() {
         {/* Decorative glow */}
         <div className={`absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-br ${colors.gradient} opacity-10 blur-3xl group-hover:opacity-20 transition-opacity duration-500`} />
         
+        {/* Destaque badge */}
+        {plan.destaque && (
+          <div className="absolute top-3 left-3">
+            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg px-2.5 py-1 gap-1">
+              <Star className="w-3 h-3" />
+              Mais Contratado
+            </Badge>
+          </div>
+        )}
+        
         {/* Premium indicator */}
-        {isPremium && (
+        {isPremium && !plan.destaque && (
           <div className="absolute top-3 right-3">
             <div className={`p-1.5 rounded-lg bg-gradient-to-br ${colors.gradient}`}>
               <Crown className="w-3.5 h-3.5 text-white" />
@@ -458,6 +472,19 @@ export function AdminPlans() {
                       placeholder="30"
                     />
                   </div>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-amber-500" />
+                    <Label htmlFor="destaque" className="text-sm font-medium cursor-pointer">
+                      Destacar como "Mais Contratado"
+                    </Label>
+                  </div>
+                  <Switch
+                    id="destaque"
+                    checked={planForm.destaque}
+                    onCheckedChange={(checked) => setPlanForm({ ...planForm, destaque: checked })}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
