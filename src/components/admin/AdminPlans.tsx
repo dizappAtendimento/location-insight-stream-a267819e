@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Instagram, Linkedin, MapPin, Sparkles, Crown } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Instagram, Linkedin, MapPin, Sparkles, Crown, Search } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -57,6 +57,7 @@ const defaultPlanForm = {
   qntContatos: '',
   qntDisparos: '',
   qntListas: '',
+  qntExtracoes: '',
   qntInstagram: '',
   qntLinkedin: '',
   qntPlaces: '',
@@ -102,6 +103,7 @@ export function AdminPlans() {
       qntContatos: plan.qntContatos?.toString() || '',
       qntDisparos: plan.qntDisparos?.toString() || '',
       qntListas: plan.qntListas?.toString() || '',
+      qntExtracoes: plan.qntExtracoes?.toString() || '',
       qntInstagram: plan.qntInstagram?.toString() || '',
       qntLinkedin: plan.qntLinkedin?.toString() || '',
       qntPlaces: plan.qntPlaces?.toString() || '',
@@ -124,6 +126,7 @@ export function AdminPlans() {
       qntContatos: parseInt(planForm.qntContatos) || 0,
       qntDisparos: parseInt(planForm.qntDisparos) || 0,
       qntListas: parseInt(planForm.qntListas) || 0,
+      qntExtracoes: parseInt(planForm.qntExtracoes) || 0,
       qntInstagram: parseInt(planForm.qntInstagram) || 0,
       qntLinkedin: parseInt(planForm.qntLinkedin) || 0,
       qntPlaces: parseInt(planForm.qntPlaces) || 0,
@@ -336,33 +339,42 @@ export function AdminPlans() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                <Link2 className="w-4 h-4 text-cyan-500" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Conexões</p>
-                  <p className="text-sm font-semibold">{plan.qntConexoes || 0}</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                  <Link2 className="w-4 h-4 text-cyan-500" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Conexões</p>
+                    <p className="text-sm font-semibold">{plan.qntConexoes || 0}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                  <List className="w-4 h-4 text-violet-500" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Listas</p>
+                    <p className="text-sm font-semibold">{plan.qntListas || 0}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                  <Contact className="w-4 h-4 text-amber-500" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Contatos</p>
+                    <p className="text-sm font-semibold">{plan.qntContatos?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                  <Send className="w-4 h-4 text-orange-500" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Disparos</p>
+                    <p className="text-sm font-semibold">{plan.qntDisparos?.toLocaleString('pt-BR') || 0}</p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                <List className="w-4 h-4 text-violet-500" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Listas</p>
-                  <p className="text-sm font-semibold">{plan.qntListas || 0}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                <Contact className="w-4 h-4 text-amber-500" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Contatos</p>
-                  <p className="text-sm font-semibold">{plan.qntContatos?.toLocaleString('pt-BR') || 0}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                <Send className="w-4 h-4 text-orange-500" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Disparos</p>
-                  <p className="text-sm font-semibold">{plan.qntDisparos?.toLocaleString('pt-BR') || 0}</p>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                <Search className="w-4 h-4 text-emerald-500" />
+                <div className="flex-1">
+                  <p className="text-[10px] text-muted-foreground">Consultas/Extrações</p>
+                  <p className="text-sm font-semibold">{plan.qntExtracoes?.toLocaleString('pt-BR') || 0}/mês</p>
                 </div>
               </div>
             </div>
@@ -551,6 +563,18 @@ export function AdminPlans() {
                           placeholder="0"
                         />
                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-emerald-500" />
+                        Consultas/Extrações por Mês
+                      </Label>
+                      <Input
+                        type="number"
+                        value={planForm.qntExtracoes}
+                        onChange={(e) => setPlanForm({ ...planForm, qntExtracoes: e.target.value })}
+                        placeholder="0"
+                      />
                     </div>
                   </>
                 )}
