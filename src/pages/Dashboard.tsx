@@ -166,12 +166,12 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 space-y-8">
+      <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         {/* Header with filters */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-          <div className="space-y-1">
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground text-sm lg:text-base">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
+          <div className="space-y-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
               Acompanhe suas métricas e performance em tempo real
             </p>
           </div>
@@ -180,18 +180,18 @@ const Dashboard = () => {
             size="sm" 
             onClick={handleRefresh} 
             disabled={loadingExtraction || loadingDisparo}
-            className="w-fit"
+            className="w-fit self-start sm:self-auto"
           >
-            <RefreshCw className={cn("w-4 h-4", (loadingExtraction || loadingDisparo) && "animate-spin")} />
+            <RefreshCw className={cn("w-3.5 h-3.5", (loadingExtraction || loadingDisparo) && "animate-spin")} />
             Atualizar
           </Button>
         </div>
 
         {/* Period Filters */}
-        <div className="flex flex-wrap items-center gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
+        <div className="flex flex-wrap items-center gap-3 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Período</span>
-            <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border/30">
+            <span className="text-xs font-medium text-muted-foreground hidden sm:inline">Período</span>
+            <div className="flex items-center gap-0.5 p-0.5 bg-muted/30 rounded-lg border border-border/20">
               {(['7', '14', '30'] as const).map((period) => (
                 <Button
                   key={period}
@@ -199,7 +199,7 @@ const Dashboard = () => {
                   size="sm"
                   onClick={() => handlePeriodChange(period)}
                   className={cn(
-                    "min-w-[72px] h-8 text-xs font-medium",
+                    "min-w-[52px] h-6 text-[10px] font-medium px-2",
                     periodFilter !== period && "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -209,15 +209,15 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="h-6 w-px bg-border/50 hidden sm:block" />
+          <div className="h-4 w-px bg-border/40 hidden sm:block" />
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Data Inicial</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground hidden sm:inline">Data Inicial</span>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="min-w-[140px] justify-start h-9 font-normal">
-                    <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+                  <Button variant="outline" size="sm" className="min-w-[110px] justify-start h-7 text-[11px] font-normal px-2">
+                    <Calendar className="w-3 h-3 mr-1.5 text-muted-foreground" />
                     {format(startDate, "dd/MM/yyyy")}
                   </Button>
                 </PopoverTrigger>
@@ -232,12 +232,12 @@ const Dashboard = () => {
               </Popover>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Data Final</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground hidden sm:inline">Data Final</span>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="min-w-[140px] justify-start h-9 font-normal">
-                    <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+                  <Button variant="outline" size="sm" className="min-w-[110px] justify-start h-7 text-[11px] font-normal px-2">
+                    <Calendar className="w-3 h-3 mr-1.5 text-muted-foreground" />
                     {format(endDate, "dd/MM/yyyy")}
                   </Button>
                 </PopoverTrigger>
@@ -256,20 +256,20 @@ const Dashboard = () => {
 
         {/* Tabs for Extrator and Disparo */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'extrator' | 'disparo')} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="extrator" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
+          <TabsList className="w-full max-w-[280px] grid grid-cols-2">
+            <TabsTrigger value="extrator" className="flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5" />
               Extrator
             </TabsTrigger>
-            <TabsTrigger value="disparo" className="flex items-center gap-2">
-              <Send className="w-4 h-4" />
+            <TabsTrigger value="disparo" className="flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5" />
               Disparo
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="extrator" className="space-y-8 mt-8">
+          <TabsContent value="extrator" className="space-y-5 mt-5">
             {/* Stats Grid */}
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Total de Extrações"
                 value={extractionStats.totalExtractions}
@@ -307,28 +307,28 @@ const Dashboard = () => {
             {/* Chart */}
             <Card className="opacity-0 animate-fade-in-up overflow-hidden" style={{ animationDelay: '300ms' }}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="space-y-1">
-                  <CardTitle className="flex items-center gap-2.5 text-base font-semibold">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50">
-                      <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                <div className="space-y-0.5">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/40">
+                      <BarChart3 className="w-3.5 h-3.5 text-muted-foreground" />
                     </div>
                     Extrações por Dia
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[10px] pl-8">
                     Evolução das extrações e leads no período
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border/30">
+                <div className="flex items-center gap-0.5 bg-muted/30 p-0.5 rounded-lg border border-border/20">
                   <Button
                     variant={chartType === 'area' ? 'secondary' : 'ghost'}
                     size="sm"
                     onClick={() => setChartType('area')}
                     className={cn(
-                      "h-8 px-3 text-xs rounded-lg",
-                      chartType === 'area' && "bg-card shadow-sm border border-border/50"
+                      "h-6 px-2 text-[10px] rounded-md",
+                      chartType === 'area' && "bg-card shadow-sm border border-border/30"
                     )}
                   >
-                    <AreaChartIcon className="w-3.5 h-3.5 mr-1.5" />
+                    <AreaChartIcon className="w-3 h-3 mr-1" />
                     Área
                   </Button>
                   <Button
@@ -336,17 +336,17 @@ const Dashboard = () => {
                     size="sm"
                     onClick={() => setChartType('bar')}
                     className={cn(
-                      "h-8 px-3 text-xs rounded-lg",
-                      chartType === 'bar' && "bg-card shadow-sm border border-border/50"
+                      "h-6 px-2 text-[10px] rounded-md",
+                      chartType === 'bar' && "bg-card shadow-sm border border-border/30"
                     )}
                   >
-                    <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+                    <BarChart3 className="w-3 h-3 mr-1" />
                     Barras
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="pt-4">
-                <div className="h-[320px] w-full">
+              <CardContent className="pt-2">
+                <div className="h-[240px] sm:h-[280px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     {chartType === 'area' ? (
                       <AreaChart data={extractionChartData} margin={{ top: 20, right: 20, left: -10, bottom: 10 }}>
@@ -459,53 +459,53 @@ const Dashboard = () => {
 
             {/* Recent Extractions */}
             <Card className="opacity-0 animate-fade-in-up overflow-hidden" style={{ animationDelay: '350ms' }}>
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2.5 text-base font-semibold">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50">
-                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/40">
+                    <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
                   </div>
                   Extrações Recentes
                 </CardTitle>
-                <CardDescription className="text-xs">
+                <CardDescription className="text-[10px] pl-8">
                   Últimas extrações no período selecionado
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {displayedExtractions.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {displayedExtractions.map((record, index) => (
                       <div
                         key={record.id}
-                        className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 hover:border-border/60 hover:bg-muted/40 transition-all duration-300 opacity-0 animate-fade-in"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/20 hover:border-border/40 hover:bg-muted/30 transition-all duration-200 opacity-0 animate-fade-in gap-2 sm:gap-4"
                         style={{ animationDelay: `${400 + index * 50}ms` }}
                       >
-                        <div className="flex items-center gap-4">
-                          <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-card border border-border/50 ${typeColors[record.type]}`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-0.5 text-[9px] font-semibold rounded-md bg-card border border-border/30 ${typeColors[record.type]}`}>
                             {typeLabels[record.type]}
                           </span>
-                          <div>
-                            <p className="font-medium text-foreground text-sm">{record.segment}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground text-xs truncate">{record.segment}</p>
                             {record.location && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{record.location}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{record.location}</p>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-6 text-sm">
-                          <div className="text-center min-w-[50px]">
-                            <p className="font-bold text-emerald-500 text-base">{record.totalResults}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">leads</p>
+                        <div className="flex items-center gap-4 sm:gap-5 text-xs pl-8 sm:pl-0">
+                          <div className="text-center">
+                            <p className="font-bold text-emerald-500 text-sm">{record.totalResults}</p>
+                            <p className="text-[8px] text-muted-foreground uppercase tracking-wider">leads</p>
                           </div>
-                          <div className="text-center min-w-[50px]">
-                            <p className="font-semibold text-foreground">{record.emailsFound}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">emails</p>
+                          <div className="text-center">
+                            <p className="font-semibold text-foreground text-xs">{record.emailsFound}</p>
+                            <p className="text-[8px] text-muted-foreground uppercase tracking-wider">emails</p>
                           </div>
-                          <div className="text-center min-w-[50px]">
-                            <p className="font-semibold text-foreground">{record.phonesFound}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">tel</p>
+                          <div className="text-center">
+                            <p className="font-semibold text-foreground text-xs">{record.phonesFound}</p>
+                            <p className="text-[8px] text-muted-foreground uppercase tracking-wider">tel</p>
                           </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground min-w-[90px]">
-                            <Calendar className="w-3 h-3" />
-                            <span className="text-xs">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Calendar className="w-2.5 h-2.5" />
+                            <span className="text-[10px]">
                               {format(new Date(record.createdAt), "dd/MM HH:mm", { locale: ptBR })}
                             </span>
                           </div>
@@ -514,12 +514,12 @@ const Dashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-16 text-muted-foreground">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
-                      <FileText className="w-8 h-8 opacity-40" />
+                  <div className="text-center py-10 text-muted-foreground">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted/40 flex items-center justify-center">
+                      <FileText className="w-5 h-5 opacity-40" />
                     </div>
-                    <p className="font-medium">Nenhuma extração no período selecionado</p>
-                    <p className="text-sm mt-1">Comece usando um dos extratores</p>
+                    <p className="font-medium text-xs">Nenhuma extração no período selecionado</p>
+                    <p className="text-[10px] mt-0.5">Comece usando um dos extratores</p>
                   </div>
                 )}
               </CardContent>
@@ -527,9 +527,9 @@ const Dashboard = () => {
           </TabsContent>
 
           {/* Disparo Tab */}
-          <TabsContent value="disparo" className="space-y-8 mt-8">
+          <TabsContent value="disparo" className="space-y-5 mt-5">
             {/* Stats Grid */}
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Total de Disparos"
                 value={disparoStats.totalDisparos}

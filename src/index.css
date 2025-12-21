@@ -174,27 +174,14 @@
 
   /* Stat card styles - refined */
   .stat-card {
-    @apply relative overflow-hidden rounded-2xl border border-border/30 bg-card;
-    @apply transition-all duration-500 ease-out;
-    @apply hover:border-border/50 hover:shadow-xl hover:shadow-primary/[0.08];
-    box-shadow: 0 1px 3px hsl(var(--foreground) / 0.04),
-                0 4px 20px hsl(var(--foreground) / 0.02);
+    @apply relative overflow-hidden rounded-xl border border-border/20 bg-card;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:border-border/40;
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.02);
   }
 
-  .stat-card::before {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-transparent opacity-0;
-    @apply transition-opacity duration-500;
-  }
-
-  .stat-card:hover::before {
-    @apply opacity-100;
-  }
-
-  .stat-card::after {
-    content: '';
-    @apply absolute inset-0 pointer-events-none;
-    @apply bg-gradient-to-t from-transparent via-transparent to-background/5;
+  .stat-card:hover {
+    box-shadow: 0 2px 8px hsl(var(--foreground) / 0.04);
   }
 
   /* Platform accent styles */
