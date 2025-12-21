@@ -589,52 +589,52 @@ export function AdminUsers() {
                   </TableCell>
                   
                   {/* Disparador Plan */}
-                  <TableCell className="py-3 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="flex items-center gap-2">
-                        {user.plano_nome ? (
-                          <Badge className={`text-[10px] font-semibold px-2.5 py-0.5 ${getPlanBadgeStyle(user.plano_nome, !!user.status)}`}>
-                            {user.plano_nome}
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                  <TableCell className="py-3">
+                    <div className="flex flex-col items-center gap-1.5 min-w-[120px]">
+                      <div className="flex items-center justify-center gap-2 w-full">
+                        <div className="w-[70px] flex justify-end">
+                          {user.plano_nome ? (
+                            <Badge className={`text-[10px] font-semibold px-2.5 py-0.5 ${getPlanBadgeStyle(user.plano_nome, !!user.status)}`}>
+                              {user.plano_nome}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
                         <Switch
                           checked={!!user.status}
                           onCheckedChange={() => handleToggleStatus(user.id, 'disparador')}
                           className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-muted-foreground/30 scale-[0.8]"
                         />
                       </div>
-                      {user.dataValidade && (
-                        <p className="text-[10px] text-muted-foreground font-medium">
-                          {format(new Date(user.dataValidade), 'dd/MM/yyyy')}
-                        </p>
-                      )}
+                      <p className="text-[10px] text-muted-foreground font-medium h-4">
+                        {user.dataValidade ? format(new Date(user.dataValidade), 'dd/MM/yyyy') : ''}
+                      </p>
                     </div>
                   </TableCell>
                   
                   {/* Extrator Plan */}
-                  <TableCell className="py-3 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="flex items-center gap-2">
-                        {user.plano_extrator_nome ? (
-                          <Badge className={`text-[10px] font-semibold px-2.5 py-0.5 ${getPlanBadgeStyle(user.plano_extrator_nome, !!user.status_ex)}`}>
-                            {user.plano_extrator_nome}
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                  <TableCell className="py-3">
+                    <div className="flex flex-col items-center gap-1.5 min-w-[120px]">
+                      <div className="flex items-center justify-center gap-2 w-full">
+                        <div className="w-[70px] flex justify-end">
+                          {user.plano_extrator_nome ? (
+                            <Badge className={`text-[10px] font-semibold px-2.5 py-0.5 ${getPlanBadgeStyle(user.plano_extrator_nome, !!user.status_ex)}`}>
+                              {user.plano_extrator_nome}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
                         <Switch
                           checked={!!user.status_ex}
                           onCheckedChange={() => handleToggleStatus(user.id, 'extrator')}
                           className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-muted-foreground/30 scale-[0.8]"
                         />
                       </div>
-                      {user.dataValidade_extrator && (
-                        <p className="text-[10px] text-muted-foreground font-medium">
-                          {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy')}
-                        </p>
-                      )}
+                      <p className="text-[10px] text-muted-foreground font-medium h-4">
+                        {user.dataValidade_extrator ? format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy') : ''}
+                      </p>
                     </div>
                   </TableCell>
                   
