@@ -513,11 +513,11 @@ const ListasPage = () => {
     setLoadingConnections(true);
     try {
       const { data, error } = await supabase.functions.invoke("disparos-api", {
-        body: { action: "get-conexoes", userId: user.id },
+        body: { action: "get-connections", userId: user.id },
       });
 
       if (error) throw error;
-      setConnections(data?.conexoes || []);
+      setConnections(data?.connections || []);
     } catch (error) {
       console.error('Error fetching connections:', error);
     } finally {
