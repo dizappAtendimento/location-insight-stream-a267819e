@@ -411,39 +411,38 @@ const ConexoesPage = () => {
     return `${key.substring(0, 5)}...${key.substring(key.length - 4)}`;
   };
 
-  const setupCrmWebhookForAll = async () => {
-    if (!user?.id) return;
-    
-    const connectedInstances = connections.filter(c => c.status === 'open' && c.instanceName);
-    
-    if (connectedInstances.length === 0) {
-      toast({
-        title: "Aviso",
-        description: "Não há conexões ativas para configurar",
-      });
-      return;
-    }
+  const [activatingCrm, setActivatingCrm] = useState<Record<number, boolean>>({});
 
-    let successCount = 0;
-    for (const conn of connectedInstances) {
-      try {
-        await supabase.functions.invoke('evolution-api', {
-          body: { 
-            action: 'setup-crm-webhook', 
-            instanceName: conn.instanceName,
-            userId: user.id
-          }
-        });
-        successCount++;
-      } catch (error) {
-        console.error('Error setting up webhook for:', conn.instanceName, error);
-      }
-    }
+  const setupCrmWebhookForConnection = async (connection: Connection) => {
+    if (!user?.id || !connection.instanceName) return;
     
-    toast({
-      title: "Sucesso",
-      description: `Webhook CRM configurado em ${successCount} conexões! Agora as respostas virão automaticamente para o CRM.`,
-    });
+    setActivatingCrm(prev => ({ ...prev, [connection.id]: true }));
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { 
+          action: 'setup-crm-webhook', 
+          instanceName: connection.instanceName,
+          userId: user.id
+        }
+      });
+
+      if (error) throw error;
+      
+      toast({
+        title: "CRM Ativado!",
+        description: `Respostas de ${connection.NomeConexao || connection.instanceName} virão para o CRM automaticamente.`,
+      });
+    } catch (error) {
+      console.error('Error setting up webhook:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível ativar o CRM para esta conexão",
+        variant: "destructive"
+      });
+    } finally {
+      setActivatingCrm(prev => ({ ...prev, [connection.id]: false }));
+    }
   };
 
   const deleteDisconnectedConnections = async () => {
@@ -540,15 +539,6 @@ const ConexoesPage = () => {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
-              onClick={setupCrmWebhookForAll}
-              className="bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20"
-            >
-              <Wifi className="w-4 h-4 mr-2" />
-              Ativar CRM
-            </Button>
-            
-            <Button
-              variant="outline"
               onClick={deleteDisconnectedConnections}
               className="bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
             >
@@ -641,45 +631,65 @@ const ConexoesPage = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => checkConnectionStatus(connection)}
-                      disabled={checkingStatus[connection.id]}
-                      className="flex-1 h-9 text-[13px] bg-muted/30 border-border hover:bg-muted/50"
-                    >
-                      {checkingStatus[connection.id] ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                      ) : (
-                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                      )}
-                      Verificar
-                    </Button>
-                    
-                    {connection.status === 'close' && (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => showQrCode(connection)}
-                        className="flex-1 h-9 text-[13px] border-primary/30 text-primary hover:bg-primary/10"
+                        onClick={() => checkConnectionStatus(connection)}
+                        disabled={checkingStatus[connection.id]}
+                        className="flex-1 h-9 text-[13px] bg-muted/30 border-border hover:bg-muted/50"
                       >
-                        <QrCode className="w-3.5 h-3.5 mr-1.5" />
-                        QR Code
+                        {checkingStatus[connection.id] ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        Verificar
+                      </Button>
+                      
+                      {connection.status === 'close' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => showQrCode(connection)}
+                          className="flex-1 h-9 text-[13px] border-primary/30 text-primary hover:bg-primary/10"
+                        >
+                          <QrCode className="w-3.5 h-3.5 mr-1.5" />
+                          QR Code
+                        </Button>
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedConnection(connection);
+                          setShowDeleteModal(true);
+                        }}
+                        className="h-9 w-9 shrink-0 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    
+                    {/* CRM Button - only show when connected */}
+                    {connection.status === 'open' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setupCrmWebhookForConnection(connection)}
+                        disabled={activatingCrm[connection.id]}
+                        className="w-full h-9 text-[13px] border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/50"
+                      >
+                        {activatingCrm[connection.id] ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <Wifi className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        Ativar CRM
                       </Button>
                     )}
-                    
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        setSelectedConnection(connection);
-                        setShowDeleteModal(true);
-                      }}
-                      className="h-9 w-9 shrink-0 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
                   </div>
                 </div>
               </div>
