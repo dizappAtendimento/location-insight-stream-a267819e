@@ -253,56 +253,99 @@ serve(async (req) => {
         );
 
       case "fetch-contacts":
-        // Busca conversas para extrair contatos com números reais
-        // O endpoint findContacts retorna IDs internos (LID), então usamos findChats
-        // que contém o número real em lastMessage.key.remoteJidAlt
-        response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
+        // Busca contatos da lista telefônica E conversas para combinar dados
+        // findContacts tem os nomes salvos, findChats tem os números reais
+        
+        // 1. Busca lista telefônica (tem os nomes salvos)
+        const contactsResponse = await fetch(`${baseUrl}/chat/findContacts/${instanceName}`, {
           method: "POST",
           headers,
           body: JSON.stringify({ where: {} }),
         });
         
-        const contactsChatsText = await response.text();
-        let contactsChats: any[] = [];
-        if (contactsChatsText && contactsChatsText.trim()) {
+        const contactsText = await contactsResponse.text();
+        let savedContacts: any[] = [];
+        if (contactsText && contactsText.trim()) {
           try {
-            contactsChats = JSON.parse(contactsChatsText);
+            savedContacts = JSON.parse(contactsText);
           } catch (parseError) {
-            console.error(`[Evolution API] Error parsing chats for contacts:`, parseError);
+            console.error(`[Evolution API] Error parsing contacts:`, parseError);
           }
         }
         
-        // Processa os chats para extrair o número real
-        const processedContacts = (contactsChats || [])
-          .filter((chat: any) => !chat.isGroup && chat.remoteJid && !chat.remoteJid.includes('@g.us'))
-          .map((chat: any) => {
-            // Tenta obter o número real de várias fontes
+        console.log(`[Evolution API] Found ${savedContacts.length} saved contacts`);
+        if (savedContacts.length > 0) {
+          console.log(`[Evolution API] Sample saved contact:`, JSON.stringify(savedContacts[0]));
+        }
+        
+        // Cria mapa de contatos: remoteJid -> dados do contato
+        const contactsMap = new Map<string, any>();
+        for (const contact of savedContacts) {
+          if (contact.remoteJid) {
+            contactsMap.set(contact.remoteJid, contact);
+          }
+        }
+        
+        // 2. Busca conversas para obter números reais
+        const chatsForContactsResponse = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ where: {} }),
+        });
+        
+        const chatsForContactsText = await chatsForContactsResponse.text();
+        let chatsForContacts: any[] = [];
+        if (chatsForContactsText && chatsForContactsText.trim()) {
+          try {
+            chatsForContacts = JSON.parse(chatsForContactsText);
+          } catch (parseError) {
+            console.error(`[Evolution API] Error parsing chats:`, parseError);
+          }
+        }
+        
+        // Cria mapa de números reais: remoteJid -> phoneNumber
+        const phoneMap = new Map<string, string>();
+        for (const chatItem of chatsForContacts) {
+          if (chatItem.remoteJid && !chatItem.isGroup && !chatItem.remoteJid.includes('@g.us')) {
             let phoneNumber = '';
-            
-            // 1. Verifica remoteJidAlt na lastMessage (formato: 5561999999999@s.whatsapp.net)
-            const remoteJidAlt = chat.lastMessage?.key?.remoteJidAlt;
+            const remoteJidAlt = chatItem.lastMessage?.key?.remoteJidAlt;
             if (remoteJidAlt && remoteJidAlt.includes('@s.whatsapp.net')) {
               phoneNumber = remoteJidAlt.replace(/@.*$/, '');
+            } else if (chatItem.remoteJid.includes('@s.whatsapp.net')) {
+              phoneNumber = chatItem.remoteJid.replace(/@.*$/, '');
             }
-            // 2. Se remoteJid já é um número real (não @lid)
-            else if (chat.remoteJid && chat.remoteJid.includes('@s.whatsapp.net')) {
-              phoneNumber = chat.remoteJid.replace(/@.*$/, '');
+            if (phoneNumber) {
+              phoneMap.set(chatItem.remoteJid, phoneNumber);
             }
-            // 3. Fallback: usa o ID interno
-            else {
-              phoneNumber = (chat.remoteJid || chat.id || '').replace(/@.*$/, '');
+          }
+        }
+        
+        // 3. Combina dados: contatos salvos com números reais
+        const processedContacts = savedContacts
+          .filter((contact: any) => contact.remoteJid && !contact.remoteJid.includes('@g.us'))
+          .map((contact: any) => {
+            // Pega o número real do mapa, ou extrai do próprio contato
+            let phoneNumber = phoneMap.get(contact.remoteJid) || '';
+            
+            // Se não encontrou no mapa, tenta extrair do próprio contato
+            if (!phoneNumber) {
+              if (contact.phoneNumber) {
+                phoneNumber = contact.phoneNumber.replace(/\D/g, '');
+              } else if (contact.remoteJid.includes('@s.whatsapp.net')) {
+                phoneNumber = contact.remoteJid.replace(/@.*$/, '');
+              }
             }
             
             return {
-              id: chat.id || chat.remoteJid,
-              remoteJid: chat.remoteJid,
-              pushName: chat.pushName || chat.name || '',
+              id: contact.id || contact.remoteJid,
+              remoteJid: contact.remoteJid,
+              pushName: contact.pushName || contact.name || '',
               phoneNumber: phoneNumber,
-              profilePicUrl: chat.profilePicUrl,
+              profilePicUrl: contact.profilePicUrl,
             };
           });
         
-        console.log(`[Evolution API] Processed ${processedContacts.length} contacts with real phone numbers`);
+        console.log(`[Evolution API] Processed ${processedContacts.length} contacts with names and real phone numbers`);
         
         // Log sample para debug
         if (processedContacts.length > 0) {
