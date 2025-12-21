@@ -359,7 +359,6 @@ export default function ContratarPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={logoImage} alt="Logo" className="h-8 w-auto" />
-            <span className="font-bold text-xl text-white">DizApp</span>
           </div>
           <div className="flex items-center gap-4">
             {user && (
