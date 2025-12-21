@@ -176,13 +176,34 @@ Deno.serve(async (req) => {
       colunaId = colunas[0].id;
     }
 
-    // Verificar se já existe lead com este telefone
-    const { data: existingLead } = await supabase
+    // Verificar se já existe lead com este telefone (exato ou parcial)
+    let existingLead = null;
+    
+    // Primeiro tentar match exato
+    const { data: exactMatch } = await supabase
       .from('SAAS_CRM_Leads')
-      .select('id, mensagem')
+      .select('id, mensagem, nome')
       .eq('idUsuario', userId)
       .eq('telefone', telefone)
       .maybeSingle();
+    
+    if (exactMatch) {
+      existingLead = exactMatch;
+    } else if (telefone.length >= 8) {
+      // Tentar match pelos últimos 8-9 dígitos (telefone sem DDI/DDD)
+      const telefoneSuffix = telefone.slice(-9);
+      const { data: partialMatch } = await supabase
+        .from('SAAS_CRM_Leads')
+        .select('id, mensagem, nome, telefone')
+        .eq('idUsuario', userId)
+        .ilike('telefone', `%${telefoneSuffix}`)
+        .maybeSingle();
+      
+      if (partialMatch) {
+        existingLead = partialMatch;
+        console.log(`Lead encontrado por match parcial: ${partialMatch.telefone} ~ ${telefone}`);
+      }
+    }
 
     if (existingLead) {
       // Atualizar mensagem do lead existente
@@ -195,7 +216,7 @@ Deno.serve(async (req) => {
         .from('SAAS_CRM_Leads')
         .update({ 
           mensagem: novaMensagem?.slice(-1000), // Limitar tamanho
-          nome: nome || existingLead.id // Atualizar nome se veio novo
+          nome: nome || existingLead.nome // Atualizar nome se veio novo
         })
         .eq('id', existingLead.id);
 
@@ -206,7 +227,7 @@ Deno.serve(async (req) => {
           leadId: existingLead.id 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      )
     }
 
     // Tentar buscar lista associada ao disparo se não veio no payload
