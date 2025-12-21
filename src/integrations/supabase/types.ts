@@ -577,6 +577,7 @@ export type Database = {
       SAAS_Planos: {
         Row: {
           created_at: string
+          destaque: boolean | null
           diasValidade: number | null
           id: number
           nome: string | null
@@ -593,6 +594,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          destaque?: boolean | null
           diasValidade?: number | null
           id?: number
           nome?: string | null
@@ -609,6 +611,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          destaque?: boolean | null
           diasValidade?: number | null
           id?: number
           nome?: string | null
