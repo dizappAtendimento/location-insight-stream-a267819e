@@ -902,8 +902,11 @@ const CrmPage = () => {
                         <div className="flex items-center justify-between text-[10px] text-muted-foreground/70 pt-1">
                           <span>{formatDate(lead.created_at)}</span>
                           <div className="flex items-center gap-2">
+                            {lead.instanceName && (
+                              <span className="text-primary/70 truncate max-w-[50px]">{lead.instanceName.split('-')[0]}</span>
+                            )}
                             {lead.nomeLista && (
-                              <span className="truncate max-w-[60px]">{lead.nomeLista}</span>
+                              <span className="truncate max-w-[50px]">{lead.nomeLista}</span>
                             )}
                             <Button
                               variant="ghost"
