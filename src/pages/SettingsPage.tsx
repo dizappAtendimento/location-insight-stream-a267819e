@@ -901,41 +901,7 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Webhook de Entrada - Cliente Respondeu */}
-              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                    <ArrowDownToLine className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Webhook de Entrada</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Receba mensagens de clientes no CRM</p>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20">
-                  <p className="text-xs text-muted-foreground mb-2">URL do Webhook (Cole no Evolution API)</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded break-all">{webhookUrl}</code>
-                    <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => { navigator.clipboard.writeText(webhookUrl); toast({ title: "Copiado!", description: "URL do webhook copiada" }); }}>
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Eventos capturados:</p>
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border/20">
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    <span className="text-xs text-foreground">Lead criado automaticamente</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border/20">
-                    <MessageSquare className="w-4 h-4 text-blue-500" />
-                    <span className="text-xs text-foreground">Mensagens acumuladas no lead</span>
-                  </div>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 gap-6">
 
               {/* Webhooks de Saída */}
               <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-4">
