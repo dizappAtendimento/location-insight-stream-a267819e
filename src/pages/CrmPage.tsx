@@ -41,6 +41,7 @@ interface CrmLead {
   mensagem: string | null;
   valor: number;
   created_at: string;
+  instanceName: string | null;
 }
 
 const colorOptions = [
@@ -208,6 +209,7 @@ const CrmPage = () => {
         mensagem: l.mensagem,
         valor: Number(l.valor) || 0,
         created_at: l.created_at,
+        instanceName: (l as any).instanceName || null,
       })) || []);
       
       initialLoadDone.current = true;
@@ -249,6 +251,7 @@ const CrmPage = () => {
             mensagem: newLeadData.mensagem,
             valor: Number(newLeadData.valor) || 0,
             created_at: newLeadData.created_at,
+            instanceName: newLeadData.instanceName || null,
           };
           
           // Verifica se o lead já existe (evita duplicatas)
@@ -548,6 +551,7 @@ const CrmPage = () => {
         mensagem: data.mensagem,
         valor: Number(data.valor) || 0,
         created_at: data.created_at,
+        instanceName: null,
       }, ...prev]);
       setNewLead({ nome: '', telefone: '', valor: 0, mensagem: '' });
       setIsAddingLead(false);
@@ -792,10 +796,17 @@ const CrmPage = () => {
 
                         {/* Footer */}
                         <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatDate(lead.created_at)}
-                          </span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatDate(lead.created_at)}
+                            </span>
+                            {lead.instanceName && (
+                              <span className="text-[10px] text-primary/70 font-medium truncate max-w-[100px]">
+                                📱 {lead.instanceName}
+                              </span>
+                            )}
+                          </div>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -860,6 +871,14 @@ const CrmPage = () => {
                     rows={3}
                   />
                 </div>
+                {selectedLead.instanceName && (
+                  <div className="space-y-2">
+                    <Label>Instância</Label>
+                    <div className="px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground">
+                      📱 {selectedLead.instanceName}
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <div className="flex gap-2 flex-wrap">
