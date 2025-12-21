@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +9,7 @@ import { AdminStats } from '@/components/admin/AdminStats';
 import { AdminUsers } from '@/components/admin/AdminUsers';
 import { AdminPlans } from '@/components/admin/AdminPlans';
 import { AdminSuperAdmins } from '@/components/admin/AdminSuperAdmins';
-import AdminConfiguracoes from '@/components/admin/AdminConfiguracoes';
-import { Shield, Users, CreditCard, BarChart3, Crown, Settings } from 'lucide-react';
+import { Shield, Users, CreditCard, BarChart3, Crown } from 'lucide-react';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -102,10 +100,6 @@ export default function AdminPage() {
               <Crown className="w-4 h-4" />
               Super Admins
             </TabsTrigger>
-            <TabsTrigger value="config" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Settings className="w-4 h-4" />
-              Configurações
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="stats" className="space-y-6">
@@ -122,10 +116,6 @@ export default function AdminPage() {
 
           <TabsContent value="admins" className="space-y-6">
             <AdminSuperAdmins />
-          </TabsContent>
-
-          <TabsContent value="config" className="space-y-6">
-            <AdminConfiguracoes />
           </TabsContent>
         </Tabs>
       </div>
