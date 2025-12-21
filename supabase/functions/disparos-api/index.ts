@@ -741,6 +741,77 @@ Não use hashtags ou emojis em excesso.`
         );
       }
 
+      case 'import-contatos': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { idLista, contatos } = disparoData || {};
+        
+        if (!idLista || !contatos || !Array.isArray(contatos) || contatos.length === 0) {
+          return new Response(
+            JSON.stringify({ error: 'idLista and contatos array are required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Disparos API] Importing ${contatos.length} contacts to list ${idLista}`);
+
+        // Verify list belongs to user
+        const { data: lista, error: listaError } = await supabase
+          .from('SAAS_Listas')
+          .select('id, tipo')
+          .eq('id', idLista)
+          .eq('idUsuario', userId)
+          .maybeSingle();
+
+        if (listaError || !lista) {
+          console.error('[Disparos API] List not found or access denied:', listaError);
+          return new Response(
+            JSON.stringify({ error: 'Lista não encontrada ou acesso negado' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Prepare contacts for insertion
+        const contactsToInsert = contatos.map((c: { nome: string; telefone: string }) => ({
+          nome: c.nome || null,
+          telefone: c.telefone,
+          idLista: idLista,
+          idUsuario: userId,
+          atributos: {}
+        }));
+
+        // Insert in batches of 100
+        const batchSize = 100;
+        let imported = 0;
+        
+        for (let i = 0; i < contactsToInsert.length; i += batchSize) {
+          const batch = contactsToInsert.slice(i, i + batchSize);
+          const { error: insertError, data: inserted } = await supabase
+            .from('SAAS_Contatos')
+            .insert(batch)
+            .select('id');
+          
+          if (insertError) {
+            console.error('[Disparos API] Error inserting batch:', insertError);
+            throw insertError;
+          }
+          
+          imported += inserted?.length || batch.length;
+        }
+
+        console.log(`[Disparos API] Successfully imported ${imported} contacts`);
+        
+        return new Response(
+          JSON.stringify({ success: true, imported }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
