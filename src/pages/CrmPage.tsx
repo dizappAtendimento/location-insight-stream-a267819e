@@ -59,89 +59,162 @@ const defaultColumns = [
 ];
 
 // Sons de notificação para diferentes eventos
-const createAudioContext = () => new (window.AudioContext || (window as any).webkitAudioContext)();
+let audioContextInstance: AudioContext | null = null;
+
+const getAudioContext = () => {
+  if (!audioContextInstance) {
+    audioContextInstance = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  // Resume if suspended (required for autoplay policies)
+  if (audioContextInstance.state === 'suspended') {
+    audioContextInstance.resume();
+  }
+  return audioContextInstance;
+};
+
+// Unlock audio context on first user interaction
+const unlockAudio = () => {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    ctx.resume();
+  }
+  document.removeEventListener('click', unlockAudio);
+  document.removeEventListener('touchstart', unlockAudio);
+};
+document.addEventListener('click', unlockAudio);
+document.addEventListener('touchstart', unlockAudio);
 
 const playNewLeadSound = () => {
-  const audioContext = createAudioContext();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-  
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-  oscillator.type = 'sine';
-  
-  // Som ascendente alegre (novo lead)
-  oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-  oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
-  oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
-  oscillator.frequency.setValueAtTime(1046.50, audioContext.currentTime + 0.3); // C6
-  
-  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-  
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.5);
+  try {
+    const audioContext = getAudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.type = 'sine';
+    
+    // Som de notificação mais alto e perceptível
+    const now = audioContext.currentTime;
+    oscillator.frequency.setValueAtTime(880, now); // A5
+    oscillator.frequency.setValueAtTime(1108.73, now + 0.08); // C#6
+    oscillator.frequency.setValueAtTime(1318.51, now + 0.16); // E6
+    oscillator.frequency.setValueAtTime(1760, now + 0.24); // A6
+    
+    gainNode.gain.setValueAtTime(0.5, now);
+    gainNode.gain.setValueAtTime(0.5, now + 0.24);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    
+    oscillator.start(now);
+    oscillator.stop(now + 0.5);
+    
+    console.log('🔔 Som de notificação tocado');
+  } catch (error) {
+    console.error('Erro ao tocar som:', error);
+  }
+};
+
+const playMessageSound = () => {
+  try {
+    const audioContext = getAudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.type = 'sine';
+    
+    // Som duplo de mensagem
+    const now = audioContext.currentTime;
+    oscillator.frequency.setValueAtTime(1000, now);
+    oscillator.frequency.setValueAtTime(1200, now + 0.1);
+    oscillator.frequency.setValueAtTime(1000, now + 0.2);
+    oscillator.frequency.setValueAtTime(1200, now + 0.3);
+    
+    gainNode.gain.setValueAtTime(0.4, now);
+    gainNode.gain.setValueAtTime(0.4, now + 0.3);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    
+    oscillator.start(now);
+    oscillator.stop(now + 0.4);
+    
+    console.log('💬 Som de mensagem tocado');
+  } catch (error) {
+    console.error('Erro ao tocar som de mensagem:', error);
+  }
 };
 
 const playMoveLeadSound = () => {
-  const audioContext = createAudioContext();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-  
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-  oscillator.type = 'sine';
-  
-  // Som curto de "pop" (moveu lead)
-  oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-  oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.05);
-  
-  gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-  
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.15);
+  try {
+    const audioContext = getAudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.type = 'sine';
+    
+    const now = audioContext.currentTime;
+    oscillator.frequency.setValueAtTime(600, now);
+    oscillator.frequency.setValueAtTime(800, now + 0.05);
+    
+    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    
+    oscillator.start(now);
+    oscillator.stop(now + 0.15);
+  } catch (error) {
+    console.error('Erro ao tocar som:', error);
+  }
 };
 
 const playDeleteLeadSound = () => {
-  const audioContext = createAudioContext();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-  
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-  oscillator.type = 'sine';
-  
-  // Som descendente suave (deletou lead)
-  oscillator.frequency.setValueAtTime(500, audioContext.currentTime);
-  oscillator.frequency.setValueAtTime(350, audioContext.currentTime + 0.1);
-  oscillator.frequency.setValueAtTime(250, audioContext.currentTime + 0.2);
-  
-  gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-  
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.3);
+  try {
+    const audioContext = getAudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.type = 'sine';
+    
+    const now = audioContext.currentTime;
+    oscillator.frequency.setValueAtTime(500, now);
+    oscillator.frequency.setValueAtTime(350, now + 0.1);
+    oscillator.frequency.setValueAtTime(250, now + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    
+    oscillator.start(now);
+    oscillator.stop(now + 0.3);
+  } catch (error) {
+    console.error('Erro ao tocar som:', error);
+  }
 };
 
 const playSuccessSound = () => {
-  const audioContext = createAudioContext();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-  
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-  oscillator.type = 'sine';
-  
-  // Som de sucesso (salvou)
-  oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
-  oscillator.frequency.setValueAtTime(554.37, audioContext.currentTime + 0.1); // C#5
-  
-  gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-  
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.2);
+  try {
+    const audioContext = getAudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.type = 'sine';
+    
+    const now = audioContext.currentTime;
+    oscillator.frequency.setValueAtTime(440, now);
+    oscillator.frequency.setValueAtTime(554.37, now + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    
+    oscillator.start(now);
+    oscillator.stop(now + 0.2);
+  } catch (error) {
+    console.error('Erro ao tocar som:', error);
+  }
 };
 
 const CrmPage = () => {
@@ -400,7 +473,7 @@ const CrmPage = () => {
           
           // Só toca som se já carregou inicialmente
           if (initialLoadDone.current && soundEnabled) {
-            playNewLeadSound();
+            playMessageSound();
             toast({ 
               title: "💬 Nova mensagem!", 
               description: `${updatedLeadData.nome || 'Contato'} enviou mensagem` 
