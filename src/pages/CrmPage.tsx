@@ -742,6 +742,11 @@ const CrmPage = () => {
                                 <Phone className="w-3 h-3" />
                                 {lead.telefone?.slice(-8) || '-'}
                               </p>
+                              {lead.instanceName && (
+                                <p className="text-[10px] text-primary font-medium truncate max-w-[120px]">
+                                  📱 {lead.instanceName}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <DropdownMenu>
