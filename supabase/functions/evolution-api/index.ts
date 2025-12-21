@@ -316,50 +316,100 @@ serve(async (req) => {
         
         console.log(`[Evolution API] Fetching chats by label ${labelIdToFilter} for ${instanceName}`);
         
-        // Tenta primeiro o endpoint fetchLabelChats
-        let labelChatsResult: any[] = [];
+        // Primeiro, busca as associações da label (quais remoteJids têm essa label)
+        let labelAssociations: any[] = [];
         
         try {
-          // Endpoint para buscar chats com a label específica
-          response = await fetch(`${baseUrl}/label/fetchLabelChats/${instanceName}?labelId=${labelIdToFilter}`, {
-            method: "GET",
+          // Endpoint para buscar associações de labels - retorna os chats que têm a label
+          response = await fetch(`${baseUrl}/label/findLabels/${instanceName}`, {
+            method: "POST",
             headers,
+            body: JSON.stringify({}),
           });
           
           if (response.ok) {
-            const labelChatsText = await response.text();
-            if (labelChatsText && labelChatsText.trim()) {
-              const parsed = JSON.parse(labelChatsText);
-              // A resposta pode ser um array ou um objeto com propriedade chats
-              labelChatsResult = Array.isArray(parsed) ? parsed : (parsed.chats || []);
+            const labelsText = await response.text();
+            if (labelsText && labelsText.trim()) {
+              const allLabelsData = JSON.parse(labelsText);
+              console.log(`[Evolution API] findLabels response type:`, typeof allLabelsData);
+              
+              // Procura pela label específica e pega os chats associados
+              if (Array.isArray(allLabelsData)) {
+                const targetLabel = allLabelsData.find((l: any) => l.id === labelIdToFilter);
+                if (targetLabel && targetLabel.chats) {
+                  labelAssociations = targetLabel.chats;
+                  console.log(`[Evolution API] Found ${labelAssociations.length} chat associations for label ${labelIdToFilter}`);
+                }
+              }
             }
           }
         } catch (e) {
-          console.error(`[Evolution API] fetchLabelChats failed:`, e);
+          console.error(`[Evolution API] findLabels failed:`, e);
         }
         
-        // Se não retornou nada, tenta o endpoint alternativo
-        if (labelChatsResult.length === 0) {
-          try {
-            response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
-              method: "POST",
-              headers,
-              body: JSON.stringify({ where: { labelId: labelIdToFilter } }),
-            });
+        // Se não encontrou associações, tenta usar o endpoint de busca no banco de dados
+        if (labelAssociations.length === 0) {
+          // Busca no banco SAAS_Chat_Labels os remoteJids associados a essa label
+          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+          const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+          const supabaseClient = createClient(supabaseUrl, supabaseKey);
+          
+          const { data: savedLabels, error: dbError } = await supabaseClient
+            .from('SAAS_Chat_Labels')
+            .select('remoteJid, chatName')
+            .eq('instanceName', instanceName)
+            .eq('labelId', labelIdToFilter);
+          
+          if (!dbError && savedLabels && savedLabels.length > 0) {
+            console.log(`[Evolution API] Found ${savedLabels.length} chats from database for label ${labelIdToFilter}`);
             
-            if (response.ok) {
-              const altText = await response.text();
-              if (altText && altText.trim()) {
-                const parsed = JSON.parse(altText);
-                labelChatsResult = Array.isArray(parsed) ? parsed : (parsed.chats || []);
-              }
-            }
-          } catch (e) {
-            console.error(`[Evolution API] findChats with labelId failed:`, e);
+            // Retorna os dados do banco diretamente formatados como chats
+            const chatsFromDb = savedLabels.map((item: any) => ({
+              remoteJid: item.remoteJid,
+              name: item.chatName || item.remoteJid?.split('@')[0],
+              pushName: item.chatName,
+              isGroup: item.remoteJid?.includes('@g.us') || false,
+            }));
+            
+            return new Response(
+              JSON.stringify({ chats: chatsFromDb, source: 'database' }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
         }
         
-        console.log(`[Evolution API] Fetched ${labelChatsResult.length} chats with label ${labelIdToFilter}`);
+        // Se encontrou associações da API, busca os detalhes completos dos chats
+        let labelChatsResult: any[] = [];
+        
+        if (labelAssociations.length > 0) {
+          // Extrai os remoteJids das associações
+          const remoteJids = labelAssociations.map((c: any) => c.remoteJid || c).filter(Boolean);
+          
+          // Busca todos os chats
+          response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({}),
+          });
+          
+          if (response.ok) {
+            const allChatsText = await response.text();
+            if (allChatsText && allChatsText.trim()) {
+              const allChats = JSON.parse(allChatsText);
+              const chatsArray = Array.isArray(allChats) ? allChats : [];
+              
+              // Filtra apenas os chats que estão na lista de remoteJids da label
+              labelChatsResult = chatsArray.filter((chat: any) => 
+                remoteJids.includes(chat.remoteJid)
+              );
+              
+              console.log(`[Evolution API] Filtered to ${labelChatsResult.length} chats with label ${labelIdToFilter}`);
+            }
+          }
+        }
+        
+        console.log(`[Evolution API] Final result: ${labelChatsResult.length} chats with label ${labelIdToFilter}`);
         
         return new Response(
           JSON.stringify({ chats: labelChatsResult }),
