@@ -98,7 +98,9 @@ const ListasPage = () => {
   const [uploadTargetList, setUploadTargetList] = useState<Lista | null>(null);
   const [extractionModalOpen, setExtractionModalOpen] = useState(false);
   const [searchJobs, setSearchJobs] = useState<any[]>([]);
+  const [existingListas, setExistingListas] = useState<any[]>([]);
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
+  const [selectedListaIds, setSelectedListaIds] = useState<number[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [importingExtraction, setImportingExtraction] = useState(false);
   const [newExtractionListName, setNewExtractionListName] = useState("");
@@ -112,6 +114,7 @@ const ListasPage = () => {
   const [excelImportModalOpen, setExcelImportModalOpen] = useState(false);
   const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null);
   const [excelListName, setExcelListName] = useState("");
+  const [importSource, setImportSource] = useState<'extractions' | 'lists'>('extractions');
 
   const fetchListas = async () => {
     if (!user?.id) return;
@@ -522,33 +525,52 @@ const ListasPage = () => {
     }
   };
 
-  // Fetch search jobs for extraction import
-  const fetchSearchJobs = async () => {
+  // Fetch search jobs and existing lists for extraction import
+  const fetchAllSources = async () => {
     if (!user?.id) return;
     
     setLoadingJobs(true);
     try {
-      const { data, error } = await supabase
+      // Fetch search jobs (extractions from Google Places, etc.)
+      const { data: jobsData, error: jobsError } = await supabase
         .from('search_jobs')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'completed')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      setSearchJobs(data || []);
+      if (jobsError) throw jobsError;
+      setSearchJobs(jobsData || []);
+      
+      // Fetch existing lists with contact counts
+      const { data: listasResult, error: listasError } = await supabase.functions.invoke("disparos-api", {
+        body: { action: "get-listas", userId: user.id },
+      });
+      
+      if (listasError) throw listasError;
+      // Filter only contact lists with items
+      const contactLists = (listasResult?.listas || []).filter(
+        (l: any) => (l.tipo === 'contacts' || l.tipo === 'contatos') && (l._count || 0) > 0
+      );
+      setExistingListas(contactLists);
+      
     } catch (error) {
-      console.error('Error fetching search jobs:', error);
-      toast.error('Erro ao carregar extrações');
+      console.error('Error fetching sources:', error);
+      toast.error('Erro ao carregar fontes');
     } finally {
       setLoadingJobs(false);
     }
   };
 
-  // Import from extraction
-  const handleImportFromExtraction = async () => {
-    if (!user?.id || selectedJobIds.length === 0) {
-      toast.error('Selecione pelo menos uma extração');
+  // Import from extraction or existing list
+  const handleImportFromSource = async () => {
+    if (!user?.id) return;
+    
+    const hasExtractions = selectedJobIds.length > 0;
+    const hasLists = selectedListaIds.length > 0;
+    
+    if (!hasExtractions && !hasLists) {
+      toast.error('Selecione pelo menos uma fonte');
       return;
     }
 
@@ -564,9 +586,9 @@ const ListasPage = () => {
 
     setImportingExtraction(true);
     try {
-      // Collect all contacts from selected jobs
       const allContacts: { nome: string; telefone: string }[] = [];
       
+      // Collect contacts from selected search jobs (extractions)
       for (const jobId of selectedJobIds) {
         const job = searchJobs.find(j => j.id === jobId);
         if (job?.results && Array.isArray(job.results)) {
@@ -586,14 +608,40 @@ const ListasPage = () => {
           });
         }
       }
+      
+      // Collect contacts from selected existing lists
+      for (const listaId of selectedListaIds) {
+        const { data: contatos, error: contatosError } = await supabase
+          .from('SAAS_Contatos')
+          .select('nome, telefone')
+          .eq('idLista', listaId);
+        
+        if (contatosError) throw contatosError;
+        
+        (contatos || []).forEach((c: any) => {
+          if (c.telefone) {
+            let telefone = c.telefone.replace(/\D/g, '');
+            if (telefone.length === 10 || telefone.length === 11) {
+              telefone = '55' + telefone;
+            }
+            if (telefone) {
+              allContacts.push({
+                nome: c.nome || '',
+                telefone
+              });
+            }
+          }
+        });
+      }
 
       if (allContacts.length === 0) {
-        toast.error('Nenhum contato com telefone encontrado nas extrações selecionadas');
+        toast.error('Nenhum contato encontrado nas fontes selecionadas');
         setImportingExtraction(false);
         return;
       }
 
       // Create list
+      const sourcesCount = selectedJobIds.length + selectedListaIds.length;
       const { data: listResult, error: listError } = await supabase.functions.invoke("disparos-api", {
         body: {
           action: "create-lista",
@@ -601,7 +649,7 @@ const ListasPage = () => {
           disparoData: {
             nome: newExtractionListName.trim(),
             tipo: 'contacts',
-            descricao: `Importado de ${selectedJobIds.length} extração(ões)`,
+            descricao: `Importado de ${sourcesCount} fonte(s)`,
           },
         },
       });
@@ -638,14 +686,16 @@ const ListasPage = () => {
       toast.success(message);
       setExtractionModalOpen(false);
       setSelectedJobIds([]);
+      setSelectedListaIds([]);
       setNewExtractionListName('');
       setValidateWhatsAppExtraction(false);
       setSelectedConnectionId("");
+      setImportSource('extractions');
       fetchListas();
       
     } catch (error: any) {
-      console.error('Error importing from extraction:', error);
-      toast.error(error.message || 'Erro ao importar extração');
+      console.error('Error importing:', error);
+      toast.error(error.message || 'Erro ao importar');
     } finally {
       setImportingExtraction(false);
     }
@@ -883,8 +933,8 @@ const ListasPage = () => {
                 <DropdownMenuItem 
                   onClick={() => {
                     setExtractionModalOpen(true);
-                    fetchSearchJobs();
-                  }} 
+                    fetchAllSources();
+                  }}
                   className="gap-2 cursor-pointer"
                 >
                   <Database className="w-4 h-4" />
@@ -1085,24 +1135,26 @@ const ListasPage = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Import from Extraction Modal */}
+        {/* Import from Extraction/Lists Modal */}
         <Dialog open={extractionModalOpen} onOpenChange={(open) => {
           setExtractionModalOpen(open);
           if (!open) {
             setSelectedJobIds([]);
+            setSelectedListaIds([]);
             setNewExtractionListName('');
             setValidateWhatsAppExtraction(false);
             setSelectedConnectionId("");
+            setImportSource('extractions');
           }
         }}>
-          <DialogContent className="bg-card border-border max-w-2xl">
+          <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-primary flex items-center gap-2">
                 <Database className="w-5 h-5" />
-                Importar de Extração
+                Importar Contatos
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Selecione as extrações para criar uma nova lista de contatos
+                Selecione extrações ou listas existentes para criar uma nova lista
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-4">
@@ -1116,54 +1168,123 @@ const ListasPage = () => {
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label>Selecione as Extrações</Label>
-                {loadingJobs ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  </div>
-                ) : searchJobs.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Nenhuma extração encontrada
-                  </div>
-                ) : (
-                  <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
-                    {searchJobs.map((job) => {
-                      const resultsCount = Array.isArray(job.results) ? job.results.length : 0;
-                      const phonesCount = Array.isArray(job.results) 
-                        ? job.results.filter((r: any) => r.phone).length 
-                        : 0;
-                      
-                      return (
+              {/* Tabs for source selection */}
+              <div className="flex gap-2 border-b border-border">
+                <button
+                  onClick={() => setImportSource('extractions')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    importSource === 'extractions' 
+                      ? 'border-primary text-primary' 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Extrações ({searchJobs.length})
+                </button>
+                <button
+                  onClick={() => setImportSource('lists')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    importSource === 'lists' 
+                      ? 'border-primary text-primary' 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Listas Existentes ({existingListas.length})
+                </button>
+              </div>
+              
+              {loadingJobs ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : importSource === 'extractions' ? (
+                <div className="space-y-2">
+                  {searchJobs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhuma extração encontrada
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
+                      {searchJobs.map((job) => {
+                        const resultsCount = Array.isArray(job.results) ? job.results.length : 0;
+                        const phonesCount = Array.isArray(job.results) 
+                          ? job.results.filter((r: any) => r.phone).length 
+                          : 0;
+                        
+                        return (
+                          <div 
+                            key={job.id} 
+                            className="flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-muted/30"
+                          >
+                            <Checkbox
+                              checked={selectedJobIds.includes(job.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedJobIds([...selectedJobIds, job.id]);
+                                } else {
+                                  setSelectedJobIds(selectedJobIds.filter(id => id !== job.id));
+                                }
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{job.query}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {job.location || 'Sem localização'} • {resultsCount} resultados • {phonesCount} com telefone
+                              </p>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(job.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {existingListas.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhuma lista com contatos encontrada
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
+                      {existingListas.map((lista) => (
                         <div 
-                          key={job.id} 
+                          key={lista.id} 
                           className="flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-muted/30"
                         >
                           <Checkbox
-                            checked={selectedJobIds.includes(job.id)}
+                            checked={selectedListaIds.includes(lista.id)}
                             onCheckedChange={(checked) => {
                               if (checked) {
-                                setSelectedJobIds([...selectedJobIds, job.id]);
+                                setSelectedListaIds([...selectedListaIds, lista.id]);
                               } else {
-                                setSelectedJobIds(selectedJobIds.filter(id => id !== job.id));
+                                setSelectedListaIds(selectedListaIds.filter(id => id !== lista.id));
                               }
                             }}
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{job.query}</p>
+                            <p className="font-medium truncate">{lista.nome}</p>
                             <p className="text-xs text-muted-foreground">
-                              {job.location || 'Sem localização'} • {resultsCount} resultados • {phonesCount} com telefone
+                              {lista._count || 0} contatos
                             </p>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(job.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                            {format(new Date(lista.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Selection summary */}
+              {(selectedJobIds.length > 0 || selectedListaIds.length > 0) && (
+                <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
+                  Selecionado: {selectedJobIds.length} extração(ões), {selectedListaIds.length} lista(s)
+                </div>
+              )}
               
               <div className="flex items-center space-x-2 py-2">
                 <Checkbox
@@ -1221,17 +1342,19 @@ const ListasPage = () => {
                   onClick={() => {
                     setExtractionModalOpen(false);
                     setSelectedJobIds([]);
+                    setSelectedListaIds([]);
                     setNewExtractionListName('');
                     setValidateWhatsAppExtraction(false);
                     setSelectedConnectionId("");
+                    setImportSource('extractions');
                   }}
                 >
                   Cancelar
                 </Button>
                 <Button
                   className="flex-1 bg-primary hover:bg-primary/90"
-                  onClick={handleImportFromExtraction}
-                  disabled={importingExtraction || selectedJobIds.length === 0 || !newExtractionListName.trim() || (validateWhatsAppExtraction && !selectedConnectionId)}
+                  onClick={handleImportFromSource}
+                  disabled={importingExtraction || (selectedJobIds.length === 0 && selectedListaIds.length === 0) || !newExtractionListName.trim() || (validateWhatsAppExtraction && !selectedConnectionId)}
                 >
                   {importingExtraction ? (
                     <>
@@ -1239,7 +1362,7 @@ const ListasPage = () => {
                       Importando...
                     </>
                   ) : (
-                    `Importar ${selectedJobIds.length > 0 ? `(${selectedJobIds.length})` : ''}`
+                    `Importar (${selectedJobIds.length + selectedListaIds.length})`
                   )}
                 </Button>
               </div>
