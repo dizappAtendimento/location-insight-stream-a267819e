@@ -47,7 +47,9 @@ export default function ContratarPage() {
         });
 
         if (!error && data?.plans) {
-          setPlans(data.plans.filter((p: Plan) => (p.preco || 0) > 0));
+          // Filtrar apenas planos de disparador
+          const disparadorPlans = data.plans.filter((p: Plan) => p.tipo === 'disparador' || !p.tipo);
+          setPlans(disparadorPlans);
         }
       } catch (err) {
         console.error('Error fetching plans:', err);
@@ -78,7 +80,7 @@ export default function ContratarPage() {
     window.open(`https://wa.me/5511999999999?text=${message}`, '_blank');
   };
 
-  const disparadorPlans = plans.filter(p => p.tipo === 'disparador' || !p.tipo);
+  // Os planos já são filtrados no useEffect, não precisa filtrar novamente
 
   const getPlanColors = (index: number) => {
     const colors = [
@@ -218,14 +220,14 @@ export default function ContratarPage() {
             <div className="flex items-center justify-center py-16">
               <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
             </div>
-          ) : disparadorPlans.length === 0 ? (
+          ) : plans.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>Nenhum plano disponível no momento</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
-              {disparadorPlans.map((plan, index) => renderPlanCard(plan, index))}
+              {plans.map((plan, index) => renderPlanCard(plan, index))}
             </div>
           )}
         </div>
