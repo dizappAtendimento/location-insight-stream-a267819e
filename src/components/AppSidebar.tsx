@@ -190,8 +190,8 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Sistema - fixo no rodapé */}
-      <SidebarFooter className="p-2 mt-auto">
-        <SidebarMenu className="space-y-0.5">
+      <SidebarFooter className="px-2 pb-6">
+        <SidebarMenu>
           {systemItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
@@ -203,18 +203,18 @@ export function AppSidebar() {
                 <Link 
                   to={item.url} 
                   className={cn(
-                    "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
+                    "group/link flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 ease-out w-full",
                     collapsed && "justify-center px-0",
                     isActive(item.url) 
-                      ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                      ? "bg-primary/20 text-primary shadow-lg shadow-primary/20 border border-primary/30" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/60"
                   )}
                 >
                   <item.icon 
-                    className="w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
-                    strokeWidth={1.5} 
+                    className="w-5 h-5 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
+                    strokeWidth={2} 
                   />
-                  {!collapsed && <span className="text-sm">{item.title}</span>}
+                  {!collapsed && <span className="text-sm font-semibold">{item.title}</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
