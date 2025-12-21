@@ -6,7 +6,8 @@ interface User {
   nome: string | null;
   Email: string | null;
   telefone: string | null;
-  status: boolean | null;
+  statusDisparador: boolean;
+  statusExtrator: boolean;
   avatar_url: string | null;
 }
 

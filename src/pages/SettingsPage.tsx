@@ -447,8 +447,8 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                           <div>
                             <p className="font-medium text-foreground">{user?.nome || 'Usuário'}</p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <span className={cn("w-1.5 h-1.5 rounded-full", user?.status ? "bg-emerald-500" : "bg-red-500")}></span>
-                              {user?.status ? 'Ativo' : 'Inativo'}
+                              <span className={cn("w-1.5 h-1.5 rounded-full", (user?.statusDisparador || user?.statusExtrator) ? "bg-emerald-500" : "bg-red-500")}></span>
+                              {(user?.statusDisparador || user?.statusExtrator) ? 'Ativo' : 'Inativo'}
                             </p>
                           </div>
                           <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
