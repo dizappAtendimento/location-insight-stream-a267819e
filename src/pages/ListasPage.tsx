@@ -1366,15 +1366,16 @@ const ListasPage = () => {
                     <div className="space-y-2">
                       <Label className="text-xs text-muted-foreground">Filtrar por Localidade</Label>
                       <Select 
-                        value={locationFilter} 
+                        value={locationFilter || "all"} 
                         onValueChange={(value) => {
-                          setLocationFilter(value);
+                          const filterValue = value === "all" ? "" : value;
+                          setLocationFilter(filterValue);
                           // When filter changes, update selection to only include filtered items
-                          if (value === "") {
+                          if (filterValue === "") {
                             setSelectedJobIds(searchJobs.map(j => j.id));
                           } else {
                             const filteredIds = searchJobs
-                              .filter(j => (j.location || '').toLowerCase().includes(value.toLowerCase()))
+                              .filter(j => (j.location || '').toLowerCase().includes(filterValue.toLowerCase()))
                               .map(j => j.id);
                             setSelectedJobIds(filteredIds);
                           }
@@ -1384,7 +1385,7 @@ const ListasPage = () => {
                           <SelectValue placeholder="Todas as localidades" />
                         </SelectTrigger>
                         <SelectContent className="bg-card border-border">
-                          <SelectItem value="">Todas as localidades</SelectItem>
+                          <SelectItem value="all">Todas as localidades</SelectItem>
                           {/* Get unique locations from searchJobs */}
                           {[...new Set(searchJobs.map(j => j.location).filter(Boolean))].map((location) => (
                             <SelectItem key={location} value={location}>
