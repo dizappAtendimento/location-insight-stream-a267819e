@@ -338,12 +338,11 @@ const WhatsAppGroupsExtractor = () => {
         return;
       }
 
-      // Download Excel com contatos - formato: Nome, Telefone (só números), ID (formato original @lid), Etiqueta
+      // Download Excel com contatos - formato: Nome, Telefone (só números), ID (formato original @lid)
       const worksheet = XLSX.utils.json_to_sheet(contacts.map((c: WhatsAppContact) => ({
         'Nome': c.pushName || '',
         'Telefone': (c.id || '').replace(/@.*$/, ''), // Remove qualquer sufixo (@s.whatsapp.net, @c.us, @lid, etc)
         'ID': c.id || '',
-        'Etiqueta': Array.isArray((c as any).labels) ? (c as any).labels.join(', ') : ((c as any).labels || (c as any).label || ''),
       })));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Contatos');
@@ -389,11 +388,11 @@ const WhatsAppGroupsExtractor = () => {
       }
 
       // Download Excel com contatos do bate-papo
+      // NOTA: A Evolution API não expõe labels por chat - issue #2315
       const worksheet = XLSX.utils.json_to_sheet(individualChats.map((c: any) => ({
         'Nome': c.pushName || c.name || '',
         'Telefone': (c.remoteJid || '').replace(/@.*$/, ''),
         'ID': c.remoteJid || c.id || '',
-        'Etiqueta': Array.isArray(c.labels) ? c.labels.join(', ') : (c.labels || c.label || ''),
       })));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Conversas');
