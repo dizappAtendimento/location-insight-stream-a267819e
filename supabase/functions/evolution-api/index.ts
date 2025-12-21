@@ -260,8 +260,50 @@ serve(async (req) => {
         });
         result = await response.json();
         console.log(`[Evolution API] Fetched chats for ${instanceName}: ${Array.isArray(result) ? result.length : 0}`);
+        
+        // Busca labels para enriquecer os chats
+        let labelsMap: Record<string, string[]> = {};
+        try {
+          const labelsResponse = await fetch(`${baseUrl}/label/findLabels/${instanceName}`, {
+            method: "GET",
+            headers,
+          });
+          if (labelsResponse.ok) {
+            const labelsData = await labelsResponse.json();
+            console.log(`[Evolution API] Fetched labels for ${instanceName}:`, labelsData?.length || 0);
+            
+            // Mapeia chatId -> array de labels
+            if (Array.isArray(labelsData)) {
+              for (const label of labelsData) {
+                if (label.labelAssociations && Array.isArray(label.labelAssociations)) {
+                  for (const assoc of label.labelAssociations) {
+                    const chatId = assoc.chatId || assoc.remoteJid;
+                    if (chatId) {
+                      if (!labelsMap[chatId]) {
+                        labelsMap[chatId] = [];
+                      }
+                      labelsMap[chatId].push(label.name || label.displayName || label.id);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (labelError) {
+          console.error(`[Evolution API] Error fetching labels:`, labelError);
+        }
+        
+        // Enriquece os chats com labels
+        const enrichedChats = (result || []).map((chat: any) => {
+          const chatId = chat.remoteJid || chat.id;
+          return {
+            ...chat,
+            labels: labelsMap[chatId] || []
+          };
+        });
+        
         return new Response(
-          JSON.stringify({ chats: result || [] }),
+          JSON.stringify({ chats: enrichedChats }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
