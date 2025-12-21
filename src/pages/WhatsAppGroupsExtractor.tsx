@@ -456,7 +456,8 @@ const WhatsAppGroupsExtractor = () => {
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
         
-        chats = data.chats || [];
+        const rawChats = data.chats;
+        chats = Array.isArray(rawChats) ? rawChats : [];
         labelName = labels.find(l => l.id === selectedLabel)?.name || 'etiqueta';
         
         // Filtrar apenas conversas individuais (não grupos)
@@ -471,7 +472,8 @@ const WhatsAppGroupsExtractor = () => {
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
         
-        chats = data.chats || [];
+        const rawChats = data.chats;
+        chats = Array.isArray(rawChats) ? rawChats : [];
         
         // Filtrar apenas conversas individuais (não grupos)
         chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));

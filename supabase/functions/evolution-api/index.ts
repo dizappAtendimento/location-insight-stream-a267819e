@@ -305,7 +305,7 @@ serve(async (req) => {
         );
 
       case "fetch-chats-by-label":
-        // Busca chats associados a uma etiqueta específica usando o endpoint correto
+        // Busca chats associados a uma etiqueta específica
         const labelIdToFilter = data?.labelId;
         if (!labelIdToFilter) {
           return new Response(
@@ -316,26 +316,53 @@ serve(async (req) => {
         
         console.log(`[Evolution API] Fetching chats by label ${labelIdToFilter} for ${instanceName}`);
         
-        // Usa o endpoint de label/fetchChatsByLabel que retorna os chats com a label específica
-        response = await fetch(`${baseUrl}/label/fetchLabelChats/${instanceName}?labelId=${labelIdToFilter}`, {
-          method: "GET",
-          headers,
-        });
+        // Tenta primeiro o endpoint fetchLabelChats
+        let labelChatsResult: any[] = [];
         
-        const labelChatsText = await response.text();
-        let labelChatsResult = [];
-        if (labelChatsText && labelChatsText.trim()) {
+        try {
+          // Endpoint para buscar chats com a label específica
+          response = await fetch(`${baseUrl}/label/fetchLabelChats/${instanceName}?labelId=${labelIdToFilter}`, {
+            method: "GET",
+            headers,
+          });
+          
+          if (response.ok) {
+            const labelChatsText = await response.text();
+            if (labelChatsText && labelChatsText.trim()) {
+              const parsed = JSON.parse(labelChatsText);
+              // A resposta pode ser um array ou um objeto com propriedade chats
+              labelChatsResult = Array.isArray(parsed) ? parsed : (parsed.chats || []);
+            }
+          }
+        } catch (e) {
+          console.error(`[Evolution API] fetchLabelChats failed:`, e);
+        }
+        
+        // Se não retornou nada, tenta o endpoint alternativo
+        if (labelChatsResult.length === 0) {
           try {
-            labelChatsResult = JSON.parse(labelChatsText);
-          } catch (parseError) {
-            console.error(`[Evolution API] Error parsing label chats response:`, parseError, labelChatsText);
+            response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ where: { labelId: labelIdToFilter } }),
+            });
+            
+            if (response.ok) {
+              const altText = await response.text();
+              if (altText && altText.trim()) {
+                const parsed = JSON.parse(altText);
+                labelChatsResult = Array.isArray(parsed) ? parsed : (parsed.chats || []);
+              }
+            }
+          } catch (e) {
+            console.error(`[Evolution API] findChats with labelId failed:`, e);
           }
         }
         
-        console.log(`[Evolution API] Fetched ${Array.isArray(labelChatsResult) ? labelChatsResult.length : 0} chats with label ${labelIdToFilter}`);
+        console.log(`[Evolution API] Fetched ${labelChatsResult.length} chats with label ${labelIdToFilter}`);
         
         return new Response(
-          JSON.stringify({ chats: labelChatsResult || [] }),
+          JSON.stringify({ chats: labelChatsResult }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
