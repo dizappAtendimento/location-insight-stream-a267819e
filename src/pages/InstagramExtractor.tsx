@@ -33,44 +33,66 @@ const InstagramExtractor = () => {
   const [leads, setLeads] = useState<InstagramLead[]>([]);
   const [searchedSegment, setSearchedSegment] = useState('');
   const [planLimit, setPlanLimit] = useState<number | null>(null);
+  const [usedCount, setUsedCount] = useState<number>(0);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
-  // Fetch plan limits
+  // Fetch plan limits and usage - check both regular plan and extrator plan
   useEffect(() => {
-    const fetchPlanLimit = async () => {
-      const planIdToCheck = user?.planoId || user?.planoExtratorId;
-      
-      if (!planIdToCheck) {
+    const fetchPlanData = async () => {
+      if (!user?.id) {
         setPlanLimit(0);
+        setUsedCount(0);
         setIsLoadingPlan(false);
         return;
       }
 
       try {
-        const { data, error } = await supabase
-          .from('SAAS_Planos')
-          .select('qntInstagram')
-          .eq('id', planIdToCheck)
-          .maybeSingle();
+        let limit = 0;
 
-        if (error) {
-          console.error('Error fetching plan:', error);
-          setPlanLimit(0);
-        } else {
-          setPlanLimit(data?.qntInstagram ?? 0);
+        // Check regular plan first
+        if (user?.planoId) {
+          const { data } = await supabase
+            .from('SAAS_Planos')
+            .select('qntInstagram')
+            .eq('id', user.planoId)
+            .maybeSingle();
+          
+          if (data?.qntInstagram && data.qntInstagram > 0) {
+            limit = data.qntInstagram;
+          }
         }
+
+        // If no limit from regular plan, check extrator plan
+        if (limit === 0 && user?.planoExtratorId) {
+          const { data } = await supabase
+            .from('SAAS_Planos')
+            .select('qntInstagram')
+            .eq('id', user.planoExtratorId)
+            .maybeSingle();
+          
+          if (data?.qntInstagram && data.qntInstagram > 0) {
+            limit = data.qntInstagram;
+          }
+        }
+
+        // TODO: Get usage count when Instagram extraction tracking table exists
+        // For now, set to 0 (no tracking yet)
+        setPlanLimit(limit);
+        setUsedCount(0);
       } catch (err) {
         console.error('Error:', err);
         setPlanLimit(0);
+        setUsedCount(0);
       } finally {
         setIsLoadingPlan(false);
       }
     };
 
-    fetchPlanLimit();
-  }, [user?.planoId, user?.planoExtratorId]);
+    fetchPlanData();
+  }, [user?.id, user?.planoId, user?.planoExtratorId]);
 
-  const hasInstagramQuota = planLimit !== null && planLimit > 0;
+  // Allow extraction if limit > 0 AND used < limit
+  const hasInstagramQuota = planLimit !== null && planLimit > 0 && usedCount < planLimit;
 
   const extractLeads = async () => {
     if (!segment.trim()) {
