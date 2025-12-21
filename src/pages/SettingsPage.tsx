@@ -417,10 +417,7 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                   {/* Avatar */}
                   <div className="relative group shrink-0">
                     <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
-                    <div 
-                      className="w-16 h-16 rounded-full overflow-hidden bg-muted cursor-pointer transition-all hover:ring-2 hover:ring-primary/30" 
-                      onClick={() => fileInputRef.current?.click()}
-                    >
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-muted cursor-pointer transition-all hover:ring-2 hover:ring-primary/30">
                       {avatarUrl ? (
                         <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
@@ -429,8 +426,47 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                         </div>
                       )}
                     </div>
-                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                      {isUploadingAvatar ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
+                    {/* Overlay com ícones */}
+                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isUploadingAvatar ? (
+                        <Loader2 className="w-5 h-5 text-white animate-spin" />
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => fileInputRef.current?.click()} 
+                            className="w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                            title="Alterar foto"
+                          >
+                            <Camera className="w-3 h-3 text-white" />
+                          </button>
+                          <button 
+                            onClick={() => setIsEditingProfile(true)} 
+                            className="w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                            title="Editar perfil"
+                          >
+                            <Settings className="w-3 h-3 text-white" />
+                          </button>
+                          {avatarUrl && (
+                            <button 
+                              onClick={async () => {
+                                if (!user?.id) return;
+                                setIsUploadingAvatar(true);
+                                try {
+                                  await supabase.from('SAAS_Usuarios').update({ avatar_url: null }).eq('id', user.id);
+                                  setAvatarUrl(null);
+                                  toast({ title: "Foto removida" });
+                                } finally {
+                                  setIsUploadingAvatar(false);
+                                }
+                              }} 
+                              className="w-6 h-6 rounded-full bg-white/20 hover:bg-red-500/50 flex items-center justify-center transition-colors"
+                              title="Remover foto"
+                            >
+                              <RefreshCw className="w-3 h-3 text-white" />
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
 
