@@ -1027,7 +1027,7 @@ serve(async (req) => {
 
       case 'get-configuracoes': {
         const { data: configuracoes, error } = await supabase
-          .from('SAAS_Configuracoes')
+          .from('saas_configuracoes')
           .select('*')
           .order('categoria', { ascending: true });
 
@@ -1058,7 +1058,7 @@ serve(async (req) => {
         }
 
         const { error } = await supabase
-          .from('SAAS_Configuracoes')
+          .from('saas_configuracoes')
           .update({ valor, updated_at: new Date().toISOString() })
           .eq('chave', chave);
 
@@ -1082,7 +1082,7 @@ serve(async (req) => {
         const { chave } = body;
 
         const { data, error } = await supabase
-          .from('SAAS_Configuracoes')
+          .from('saas_configuracoes')
           .select('valor')
           .eq('chave', chave)
           .maybeSingle();
