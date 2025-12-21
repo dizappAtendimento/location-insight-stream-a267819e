@@ -230,22 +230,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 border-t border-slate-800/50">
-        {/* User Card */}
-        {!collapsed && (
-          <div className="px-2 py-2 rounded-md bg-slate-900 mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center">
-                <span className="text-slate-300 text-xs font-medium">
-                  {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-white truncate">{user?.nome || 'Usuário'}</p>
-                <p className="text-[10px] text-slate-500 truncate">{user?.Email || ''}</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Toggle Button */}
         <button 
