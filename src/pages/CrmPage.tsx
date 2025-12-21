@@ -422,7 +422,7 @@ const CrmPage = () => {
     }
     // Remove caracteres não numéricos
     const cleanPhone = telefone.replace(/\D/g, '');
-    window.open(`https://wa.me/${cleanPhone}`, '_blank');
+    window.open(`https://wa.me/${cleanPhone}`, '_blank', 'noopener,noreferrer');
   };
 
   const openLeadDetails = (lead: CrmLead) => {
