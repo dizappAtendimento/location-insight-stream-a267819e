@@ -39,10 +39,12 @@ interface PlanUsage {
   limiteConexoes: number | null;
   limiteContatos: number | null;
   limiteListas: number | null;
+  limiteExtracoes: number | null;
   usadoDisparos: number;
   usadoConexoes: number;
   usadoContatos: number;
   usadoListas: number;
+  usadoExtracoes: number;
   dataValidade: string | null;
 }
 
@@ -669,55 +671,58 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
 
           {/* PLANOS TAB */}
           <TabsContent value="planos" className="space-y-5 animate-fade-in">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {/* Plano Disparador */}
-              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5 transition-all hover:border-emerald-500/30">
+              <div className="p-6 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-6 transition-all hover:border-emerald-500/30">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 animate-pulse"></div>
-                    <h3 className="text-sm font-semibold text-foreground">Disparador</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 animate-pulse"></div>
+                    <h3 className="text-lg font-semibold text-foreground">Disparador</h3>
                   </div>
-                  {disparadorPlan && <span className="text-xs text-muted-foreground">Ativo</span>}
+                  {disparadorPlan && <span className="text-sm text-muted-foreground px-3 py-1 rounded-full bg-emerald-500/10">Ativo</span>}
                 </div>
                 
                 {loadingPlans ? (
-                  <div className="space-y-3">
-                    <div className="h-16 bg-muted/50 animate-pulse rounded-lg"></div>
-                    <div className="h-4 bg-muted/50 animate-pulse rounded w-2/3"></div>
+                  <div className="space-y-4">
+                    <div className="h-24 bg-muted/50 animate-pulse rounded-lg"></div>
+                    <div className="h-6 bg-muted/50 animate-pulse rounded w-2/3"></div>
                   </div>
                 ) : disparadorPlan ? (
                   <>
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-green-500/5 border border-emerald-500/20">
-                      <div className="flex items-center justify-between">
-                        <p className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+                    <div className="p-5 rounded-xl bg-gradient-to-br from-emerald-500/10 to-green-500/5 border border-emerald-500/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
                           {disparadorPlan.planoNome || 'Sem plano'}
                         </p>
                         {disparadorPlan.dataValidade && (
-                          <div className={cn("flex items-center gap-1 text-xs px-2 py-1 rounded-full", isPast(new Date(disparadorPlan.dataValidade)) ? "bg-red-500/20 text-red-400" : differenceInDays(new Date(disparadorPlan.dataValidade), new Date()) <= 7 ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400")}>
-                            <Calendar className="w-3 h-3" />
+                          <div className={cn("flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full", isPast(new Date(disparadorPlan.dataValidade)) ? "bg-red-500/20 text-red-400" : differenceInDays(new Date(disparadorPlan.dataValidade), new Date()) <= 7 ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400")}>
+                            <Calendar className="w-4 h-4" />
                             {isPast(new Date(disparadorPlan.dataValidade)) ? 'Expirado' : format(new Date(disparadorPlan.dataValidade), "dd/MM/yyyy", { locale: ptBR })}
                           </div>
                         )}
                       </div>
-                      <div className="mt-2 text-xs text-muted-foreground space-y-1">
-                        <p className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> {isUnlimitedValue(disparadorPlan.limiteDisparos) ? 'Disparos ilimitados' : `${formatLimit(disparadorPlan.limiteDisparos)} disparos/mês`}</p>
-                        <p className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> {isUnlimitedValue(disparadorPlan.limiteConexoes) ? 'Conexões ilimitadas' : `${formatLimit(disparadorPlan.limiteConexoes)} conexões`}</p>
-                        <p className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> {isUnlimitedValue(disparadorPlan.limiteContatos) ? 'Contatos ilimitados' : `${formatLimit(disparadorPlan.limiteContatos)} contatos`}</p>
-                        <p className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> {isUnlimitedValue(disparadorPlan.limiteListas) ? 'Listas ilimitadas' : `${formatLimit(disparadorPlan.limiteListas)} listas`}</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-muted-foreground">
+                        <p className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> {isUnlimitedValue(disparadorPlan.limiteDisparos) ? 'Disparos ilimitados' : `${formatLimit(disparadorPlan.limiteDisparos)} disparos/mês`}</p>
+                        <p className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> {isUnlimitedValue(disparadorPlan.limiteConexoes) ? 'Conexões ilimitadas' : `${formatLimit(disparadorPlan.limiteConexoes)} conexões`}</p>
+                        <p className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> {isUnlimitedValue(disparadorPlan.limiteContatos) ? 'Contatos ilimitados' : `${formatLimit(disparadorPlan.limiteContatos)} contatos`}</p>
+                        <p className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> {isUnlimitedValue(disparadorPlan.limiteListas) ? 'Listas ilimitadas' : `${formatLimit(disparadorPlan.limiteListas)} listas`}</p>
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Uso do Plano</p>
-                      <UsageBar label="Disparos" used={disparadorPlan.usadoDisparos} limit={disparadorPlan.limiteDisparos} />
-                      <UsageBar label="Conexões" used={disparadorPlan.usadoConexoes} limit={disparadorPlan.limiteConexoes} />
-                      <UsageBar label="Contatos" used={disparadorPlan.usadoContatos} limit={disparadorPlan.limiteContatos} />
-                      <UsageBar label="Listas" used={disparadorPlan.usadoListas} limit={disparadorPlan.limiteListas} />
+                    <div className="space-y-5">
+                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Uso do Plano</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                        <UsageBar label="Disparos" used={disparadorPlan.usadoDisparos} limit={disparadorPlan.limiteDisparos} />
+                        <UsageBar label="Conexões" used={disparadorPlan.usadoConexoes} limit={disparadorPlan.limiteConexoes} />
+                        <UsageBar label="Contatos" used={disparadorPlan.usadoContatos} limit={disparadorPlan.limiteContatos} />
+                        <UsageBar label="Listas" used={disparadorPlan.usadoListas} limit={disparadorPlan.limiteListas} />
+                        <UsageBar label="Consultas/Extrações" used={disparadorPlan.usadoExtracoes} limit={disparadorPlan.limiteExtracoes} />
+                      </div>
                     </div>
                   </>
                 ) : (
-                  <div className="py-8 text-center">
-                    <p className="text-sm text-muted-foreground">Nenhum plano ativo</p>
-                    <p className="text-xs text-muted-foreground mt-1">Entre em contato para ativar</p>
+                  <div className="py-12 text-center">
+                    <p className="text-base text-muted-foreground">Nenhum plano ativo</p>
+                    <p className="text-sm text-muted-foreground mt-2">Entre em contato para ativar</p>
                   </div>
                 )}
               </div>
