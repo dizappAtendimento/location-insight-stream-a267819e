@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWebhookConfigs } from '@/hooks/useWebhookConfigs';
 import {
   Send,
   Plus,
@@ -56,6 +57,7 @@ interface MessageItem {
 
 export default function DisparosGrupoPage() {
   const { user } = useAuth();
+  const { configs } = useWebhookConfigs();
   
   // Estados principais
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -120,7 +122,7 @@ export default function DisparosGrupoPage() {
 
   const loadConnections = async () => {
     try {
-      const res = await fetch('https://app.dizapp.com.br/listarconexoes', {
+      const res = await fetch(configs.webhook_listar_conexoes, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id })
@@ -149,7 +151,7 @@ export default function DisparosGrupoPage() {
 
   const loadLists = async () => {
     try {
-      const res = await fetch('https://app.dizapp.com.br/puxar-lista', {
+      const res = await fetch(configs.webhook_puxar_lista, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id })
@@ -210,7 +212,7 @@ export default function DisparosGrupoPage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('https://app.dizapp.com.br/uploadmedia', {
+      const res = await fetch(configs.webhook_upload_media, {
         method: 'POST',
         body: formData
       });
@@ -249,7 +251,7 @@ export default function DisparosGrupoPage() {
 
     setIsGeneratingAI(true);
     try {
-      const res = await fetch('https://app.dizapp.com.br/gerarmensagem-ia', {
+      const res = await fetch(configs.webhook_gerar_mensagem_ia, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -322,7 +324,7 @@ export default function DisparosGrupoPage() {
     };
 
     try {
-      const res = await fetch('https://app.dizapp.com.br/db56b0fb-cc58-4d51-8755-d7e04ccaa120123', {
+      const res = await fetch(configs.webhook_disparo_grupo, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
