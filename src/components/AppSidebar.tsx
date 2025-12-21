@@ -55,6 +55,7 @@ const extractorItems = [
   { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, colorClass: 'text-linkedin' },
   { title: 'Google Places', url: '/places', icon: MapPin, colorClass: 'text-places' },
   { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, colorClass: 'text-whatsapp' },
+  { title: 'Configuração', url: '/whatsapp-config', icon: Settings, colorClass: 'text-whatsapp' },
 ];
 
 const systemItems = [
