@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search } from 'lucide-react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search, Smartphone, List } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -738,8 +738,9 @@ const CrmPage = () => {
                                 {lead.telefone?.slice(-8) || '-'}
                               </p>
                               {lead.instanceName && (
-                                <p className="text-[10px] text-primary font-medium truncate max-w-[120px]">
-                                  📱 {lead.instanceName}
+                                <p className="text-[10px] text-primary font-medium truncate max-w-[120px] flex items-center gap-1">
+                                  <Smartphone className="w-3 h-3" />
+                                  {lead.instanceName.split('-')[0]}
                                 </p>
                               )}
                             </div>
@@ -802,8 +803,9 @@ const CrmPage = () => {
                               {formatDate(lead.created_at)}
                             </span>
                             {lead.instanceName && (
-                              <span className="text-[10px] text-primary/70 font-medium truncate max-w-[100px]">
-                                📱 {lead.instanceName}
+                              <span className="text-[10px] text-primary/70 font-medium truncate max-w-[100px] flex items-center gap-1">
+                                <Smartphone className="w-2.5 h-2.5" />
+                                {lead.instanceName.split('-')[0]}
                               </span>
                             )}
                           </div>
@@ -873,9 +875,10 @@ const CrmPage = () => {
                 </div>
                 {selectedLead.instanceName && (
                   <div className="space-y-2">
-                    <Label>Instância</Label>
-                    <div className="px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground">
-                      📱 {selectedLead.instanceName}
+                    <Label>Canal WhatsApp</Label>
+                    <div className="px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-primary" />
+                      {selectedLead.instanceName.split('-')[0]}
                     </div>
                   </div>
                 )}
