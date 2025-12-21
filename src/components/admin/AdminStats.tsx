@@ -538,8 +538,6 @@ export function AdminStats() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Usuário</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Disparador</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Validade Disp.</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Extrator</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Validade Ext.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -567,29 +565,6 @@ export function AdminStats() {
                       {user.dataValidade ? (
                         <span className="text-xs font-medium text-muted-foreground">
                           {format(new Date(user.dataValidade), 'dd/MM/yyyy')}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center py-3">
-                      <div className="flex flex-col items-center gap-1.5">
-                        {user.plano_extrator_nome ? (
-                          <Badge 
-                            variant={user.status_ex ? 'default' : 'secondary'}
-                            className={`text-[10px] font-semibold ${user.status_ex ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : ''}`}
-                          >
-                            {user.plano_extrator_nome}
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center py-3">
-                      {user.dataValidade_extrator ? (
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy')}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
