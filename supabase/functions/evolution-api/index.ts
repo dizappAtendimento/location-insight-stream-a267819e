@@ -836,13 +836,11 @@ serve(async (req) => {
           method: "POST",
           headers,
           body: JSON.stringify({
-            webhook: {
-              url: crmWebhookEndpoint,
-              byEvents: false,
-              base64: false,
-              headers: {},
-              events: ["MESSAGES_UPSERT"]
-            }
+            url: crmWebhookEndpoint,
+            enabled: true,
+            webhookByEvents: false,
+            webhookBase64: false,
+            events: ["MESSAGES_UPSERT"]
           }),
         });
         
@@ -862,13 +860,11 @@ serve(async (req) => {
           method: "POST",
           headers,
           body: JSON.stringify({
-            webhook: {
-              url: "",
-              byEvents: false,
-              base64: false,
-              headers: {},
-              events: []
-            }
+            url: "",
+            enabled: false,
+            webhookByEvents: false,
+            webhookBase64: false,
+            events: []
           }),
         });
         
