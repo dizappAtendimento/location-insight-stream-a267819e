@@ -830,7 +830,7 @@ export default function DisparosPage() {
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full h-12 text-lg bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90"
+              className="w-full h-12 text-lg bg-violet-600 hover:bg-violet-700"
               size="lg"
             >
               {loading ? (
