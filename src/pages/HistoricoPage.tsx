@@ -443,17 +443,17 @@ const HistoricoPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         {/* Header */}
         <div className="opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 shadow-lg shadow-primary/20">
-                <History className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-highlight/10 border border-highlight/20">
+                <History className="w-5 h-5 text-highlight" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Histórico</h1>
-                <p className="text-muted-foreground text-sm">Visualize suas extrações e disparos</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Histórico</h1>
+                <p className="text-muted-foreground text-xs sm:text-sm">Visualize suas extrações e disparos</p>
               </div>
             </div>
           </div>
