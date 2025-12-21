@@ -528,21 +528,21 @@ const ConexoesPage = () => {
     switch (status) {
       case 'open':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium status-connected">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
             Conectado
           </span>
         );
       case 'close':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-500/15 text-red-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium status-disconnected">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400" />
             Desconectado
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-400">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium status-pending">
             <Loader2 className="w-3 h-3 animate-spin" />
             Verificando
           </span>
@@ -556,7 +556,7 @@ const ConexoesPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Conexões</h1>
+            <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Conexões</h1>
             <p className="text-muted-foreground text-xs sm:text-sm">Gerencie suas conexões do WhatsApp</p>
           </div>
           
