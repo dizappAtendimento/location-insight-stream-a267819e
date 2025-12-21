@@ -278,8 +278,15 @@ const ListasPage = () => {
 
           if (error) throw error;
 
-          const imported = result?.imported || contacts.length;
-          toast.success(`${imported} contatos importados com sucesso!`);
+          const imported = result?.imported || 0;
+          const duplicates = result?.duplicates || 0;
+          const invalid = result?.invalid || 0;
+          
+          let message = `${imported} contatos importados`;
+          if (duplicates > 0) message += `, ${duplicates} duplicados ignorados`;
+          if (invalid > 0) message += `, ${invalid} inválidos`;
+          
+          toast.success(message);
           fetchListas(); // Refresh to update counts
           
         } catch (error: any) {
@@ -416,7 +423,7 @@ const ListasPage = () => {
           if (!newListId) throw new Error('Erro ao criar lista');
 
           // Import contacts
-          const { error: importError } = await supabase.functions.invoke('disparos-api', {
+          const { data: importResult, error: importError } = await supabase.functions.invoke('disparos-api', {
             body: {
               action: 'import-contatos',
               userId: user.id,
@@ -429,7 +436,13 @@ const ListasPage = () => {
 
           if (importError) throw importError;
 
-          toast.success(`Lista "${listName}" criada com ${contacts.length} contatos!`);
+          const imported = importResult?.imported || 0;
+          const duplicates = importResult?.duplicates || 0;
+          
+          let message = `Lista "${listName}" criada com ${imported} contatos`;
+          if (duplicates > 0) message += ` (${duplicates} duplicados ignorados)`;
+          
+          toast.success(message);
           fetchListas();
           
         } catch (error: any) {
@@ -542,7 +555,7 @@ const ListasPage = () => {
       if (!newListId) throw new Error('Erro ao criar lista');
 
       // Import contacts
-      const { error: importError } = await supabase.functions.invoke('disparos-api', {
+      const { data: importResult, error: importError } = await supabase.functions.invoke('disparos-api', {
         body: {
           action: 'import-contatos',
           userId: user.id,
@@ -555,7 +568,13 @@ const ListasPage = () => {
 
       if (importError) throw importError;
 
-      toast.success(`Lista "${newExtractionListName}" criada com ${allContacts.length} contatos!`);
+      const imported = importResult?.imported || 0;
+      const duplicates = importResult?.duplicates || 0;
+      
+      let message = `Lista "${newExtractionListName}" criada com ${imported} contatos`;
+      if (duplicates > 0) message += ` (${duplicates} duplicados ignorados)`;
+      
+      toast.success(message);
       setExtractionModalOpen(false);
       setSelectedJobIds([]);
       setNewExtractionListName('');

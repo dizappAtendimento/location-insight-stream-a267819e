@@ -749,7 +749,7 @@ Não use hashtags ou emojis em excesso.`
           );
         }
 
-        const { idLista, contatos } = disparoData || {};
+        const { idLista, contatos, validateWhatsApp, connectionId } = disparoData || {};
         
         if (!idLista || !contatos || !Array.isArray(contatos) || contatos.length === 0) {
           return new Response(
@@ -758,7 +758,7 @@ Não use hashtags ou emojis em excesso.`
           );
         }
 
-        console.log(`[Disparos API] Importing ${contatos.length} contacts to list ${idLista}`);
+        console.log(`[Disparos API] Importing ${contatos.length} contacts to list ${idLista}, validateWhatsApp: ${validateWhatsApp}`);
 
         // Verify list belongs to user
         const { data: lista, error: listaError } = await supabase
@@ -776,8 +776,117 @@ Não use hashtags ou emojis em excesso.`
           );
         }
 
+        // Get existing contacts in this list to avoid duplicates
+        const { data: existingContacts } = await supabase
+          .from('SAAS_Contatos')
+          .select('telefone')
+          .eq('idLista', idLista);
+
+        const existingPhones = new Set((existingContacts || []).map((c: any) => c.telefone));
+        console.log(`[Disparos API] Found ${existingPhones.size} existing contacts in list`);
+
+        // Remove duplicates from import and filter out existing ones
+        const seenPhones = new Set<string>();
+        const uniqueContacts = contatos.filter((c: { nome: string; telefone: string }) => {
+          if (!c.telefone || seenPhones.has(c.telefone) || existingPhones.has(c.telefone)) {
+            return false;
+          }
+          seenPhones.add(c.telefone);
+          return true;
+        });
+
+        console.log(`[Disparos API] ${contatos.length - uniqueContacts.length} duplicates removed, ${uniqueContacts.length} unique contacts`);
+
+        if (uniqueContacts.length === 0) {
+          return new Response(
+            JSON.stringify({ success: true, imported: 0, duplicates: contatos.length, invalid: 0 }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Validate WhatsApp numbers if requested and connection provided
+        let validContacts = uniqueContacts;
+        let invalidCount = 0;
+
+        if (validateWhatsApp && connectionId) {
+          const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
+          const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+
+          if (EVOLUTION_API_URL && EVOLUTION_API_KEY) {
+            // Get connection details
+            const { data: connection } = await supabase
+              .from('SAAS_Conexões')
+              .select('instanceName, Apikey')
+              .eq('id', connectionId)
+              .eq('idUsuario', userId)
+              .maybeSingle();
+
+            if (connection) {
+              const baseUrl = EVOLUTION_API_URL.replace(/\/$/, '');
+              const validatedContacts: typeof uniqueContacts = [];
+
+              // Check in batches of 10 to avoid rate limiting
+              const checkBatchSize = 10;
+              for (let i = 0; i < uniqueContacts.length; i += checkBatchSize) {
+                const batch = uniqueContacts.slice(i, i + checkBatchSize);
+                
+                const checkPromises = batch.map(async (c: { nome: string; telefone: string }) => {
+                  try {
+                    const checkResponse = await fetch(
+                      `${baseUrl}/chat/whatsappNumbers/${connection.instanceName}`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'apikey': EVOLUTION_API_KEY,
+                        },
+                        body: JSON.stringify({ numbers: [c.telefone] }),
+                      }
+                    );
+
+                    if (checkResponse.ok) {
+                      const result = await checkResponse.json();
+                      // Evolution API returns array with exists: true/false
+                      const isValid = Array.isArray(result) && result.length > 0 && result[0]?.exists === true;
+                      return { contact: c, isValid };
+                    }
+                    return { contact: c, isValid: false };
+                  } catch (error) {
+                    console.error(`[Disparos API] Error checking number ${c.telefone}:`, error);
+                    return { contact: c, isValid: false };
+                  }
+                });
+
+                const results = await Promise.all(checkPromises);
+                for (const { contact, isValid } of results) {
+                  if (isValid) {
+                    validatedContacts.push(contact);
+                  } else {
+                    invalidCount++;
+                  }
+                }
+              }
+
+              validContacts = validatedContacts;
+              console.log(`[Disparos API] WhatsApp validation: ${validContacts.length} valid, ${invalidCount} invalid`);
+            }
+          }
+        }
+
+        if (validContacts.length === 0) {
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              imported: 0, 
+              duplicates: contatos.length - uniqueContacts.length,
+              invalid: invalidCount 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         // Prepare contacts for insertion
-        const contactsToInsert = contatos.map((c: { nome: string; telefone: string }) => ({
+        const contactsToInsert = validContacts.map((c: { nome: string; telefone: string }) => ({
           nome: c.nome || null,
           telefone: c.telefone,
           idLista: idLista,
@@ -807,7 +916,12 @@ Não use hashtags ou emojis em excesso.`
         console.log(`[Disparos API] Successfully imported ${imported} contacts`);
         
         return new Response(
-          JSON.stringify({ success: true, imported }),
+          JSON.stringify({ 
+            success: true, 
+            imported,
+            duplicates: contatos.length - uniqueContacts.length,
+            invalid: invalidCount
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
