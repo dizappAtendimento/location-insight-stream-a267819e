@@ -71,6 +71,16 @@ const extractorItems = [
     glowColor: 'group-hover/link:shadow-[0_0_12px_rgba(59,130,246,0.4)]'
   },
   { 
+    title: 'Google Places', 
+    url: '/places', 
+    icon: MapPin, 
+    ringColor: 'ring-cyan-500',
+    iconColor: 'text-cyan-500',
+    hoverRing: 'group-hover/link:ring-cyan-400',
+    activeRing: 'ring-2',
+    glowColor: 'group-hover/link:shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+  },
+  { 
     title: 'WhatsApp', 
     url: '/grupos', 
     icon: WhatsAppIcon, 
