@@ -573,8 +573,8 @@ const ListasPage = () => {
       
       setSearchJobs(combinedJobs);
       
-      // Auto-select all extractions
-      setSelectedJobIds(combinedJobs.map((j: any) => j.id));
+      // Don't auto-select - let user choose manually
+      setSelectedJobIds([]);
       
       // Fetch existing lists with contact/group counts
       const { data: listasResult, error: listasError } = await supabase.functions.invoke("disparos-api", {
@@ -589,8 +589,8 @@ const ListasPage = () => {
       );
       setExistingListas(contactLists);
       
-      // Auto-select all contact lists
-      setSelectedListaIds(contactLists.map((l: any) => l.id));
+      // Don't auto-select - let user choose manually
+      setSelectedListaIds([]);
       
       // Filter group lists with items
       const groupLists = (listasResult?.listas || []).filter(
@@ -598,8 +598,8 @@ const ListasPage = () => {
       );
       setExistingGrupos(groupLists);
       
-      // Auto-select all group lists
-      setSelectedGrupoListaIds(groupLists.map((l: any) => l.id));
+      // Don't auto-select - let user choose manually
+      setSelectedGrupoListaIds([]);
       
       // Filter bate-papo lists with items
       const batePapoLists = (listasResult?.listas || []).filter(
@@ -607,8 +607,8 @@ const ListasPage = () => {
       );
       setExistingBatePapo(batePapoLists);
       
-      // Auto-select all bate-papo lists
-      setSelectedBatePapoIds(batePapoLists.map((l: any) => l.id));
+      // Don't auto-select - let user choose manually
+      setSelectedBatePapoIds([]);
       
     } catch (error) {
       console.error('Error fetching sources:', error);
@@ -1370,15 +1370,7 @@ const ListasPage = () => {
                         onValueChange={(value) => {
                           const filterValue = value === "all" ? "" : value;
                           setLocationFilter(filterValue);
-                          // When filter changes, update selection to only include filtered items
-                          if (filterValue === "") {
-                            setSelectedJobIds(searchJobs.map(j => j.id));
-                          } else {
-                            const filteredIds = searchJobs
-                              .filter(j => (j.location || '').toLowerCase().includes(filterValue.toLowerCase()))
-                              .map(j => j.id);
-                            setSelectedJobIds(filteredIds);
-                          }
+                          // Just filter the view, don't auto-select
                         }}
                       >
                         <SelectTrigger className="bg-background/50">
