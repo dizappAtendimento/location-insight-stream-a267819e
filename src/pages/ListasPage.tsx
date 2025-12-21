@@ -119,7 +119,7 @@ const ListasPage = () => {
     try {
       let data: any[] = [];
       
-      if (lista.tipo === 'contatos') {
+      if (lista.tipo === 'contatos' || lista.tipo === 'contacts') {
         const { data: contatos, error } = await supabase
           .from('SAAS_Contatos')
           .select('*')
