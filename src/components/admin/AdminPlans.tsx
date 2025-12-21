@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown, Instagram, Linkedin, MapPin, MessageCircle } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -338,11 +338,25 @@ export function AdminPlans() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-              <Search className="w-4 h-4 text-emerald-500" />
-              <div className="flex-1">
-                <p className="text-[10px] text-muted-foreground">Consultas/Extrações</p>
-                <p className="text-sm font-semibold">{plan.qntExtracoes?.toLocaleString('pt-BR') || 0}/mês</p>
+            <div className="pt-2 mt-2 border-t border-border/20">
+              <p className="text-[9px] text-muted-foreground font-medium mb-2">CONSULTAS/MÊS</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-1.5 p-1.5 rounded bg-muted/20">
+                  <Instagram className="w-3 h-3 text-pink-500" />
+                  <span className="text-[10px] font-medium">{plan.qntInstagram?.toLocaleString('pt-BR') || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-1.5 rounded bg-muted/20">
+                  <Linkedin className="w-3 h-3 text-blue-500" />
+                  <span className="text-[10px] font-medium">{plan.qntLinkedin?.toLocaleString('pt-BR') || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-1.5 rounded bg-muted/20">
+                  <MapPin className="w-3 h-3 text-emerald-500" />
+                  <span className="text-[10px] font-medium">{plan.qntPlaces?.toLocaleString('pt-BR') || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-1.5 rounded bg-muted/20">
+                  <MessageCircle className="w-3 h-3 text-green-500" />
+                  <span className="text-[10px] font-medium">{plan.qntExtracoes?.toLocaleString('pt-BR') || 0}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -459,17 +473,58 @@ export function AdminPlans() {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Search className="w-4 h-4 text-emerald-500" />
-                    Consultas/Extrações por Mês
-                  </Label>
-                  <Input
-                    type="number"
-                    value={planForm.qntExtracoes}
-                    onChange={(e) => setPlanForm({ ...planForm, qntExtracoes: e.target.value })}
-                    placeholder="0"
-                  />
+                <div className="pt-4 border-t border-border/30">
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Consultas/Extrações por Mês</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-xs">
+                        <Instagram className="w-3 h-3 text-pink-500" />
+                        Instagram
+                      </Label>
+                      <Input
+                        type="number"
+                        value={planForm.qntInstagram}
+                        onChange={(e) => setPlanForm({ ...planForm, qntInstagram: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-xs">
+                        <Linkedin className="w-3 h-3 text-blue-500" />
+                        LinkedIn
+                      </Label>
+                      <Input
+                        type="number"
+                        value={planForm.qntLinkedin}
+                        onChange={(e) => setPlanForm({ ...planForm, qntLinkedin: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-xs">
+                        <MapPin className="w-3 h-3 text-emerald-500" />
+                        Google Places
+                      </Label>
+                      <Input
+                        type="number"
+                        value={planForm.qntPlaces}
+                        onChange={(e) => setPlanForm({ ...planForm, qntPlaces: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-xs">
+                        <MessageCircle className="w-3 h-3 text-green-500" />
+                        WhatsApp Grupos
+                      </Label>
+                      <Input
+                        type="number"
+                        value={planForm.qntExtracoes}
+                        onChange={(e) => setPlanForm({ ...planForm, qntExtracoes: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <Button onClick={handleSavePlan} className="w-full mt-4 bg-gradient-to-r from-primary to-primary/80">
