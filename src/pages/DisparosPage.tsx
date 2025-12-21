@@ -45,6 +45,30 @@ interface MessageItem {
 }
 
 const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+const DIAS_SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+// Função para obter saudação baseada na hora
+const getSaudacao = () => {
+  const hora = new Date().getHours();
+  if (hora >= 5 && hora < 12) return 'Bom dia';
+  if (hora >= 12 && hora < 18) return 'Boa tarde';
+  return 'Boa noite';
+};
+
+// Função para substituir variáveis no preview
+const substituirVariaveis = (texto: string) => {
+  const now = new Date();
+  return texto
+    .replace(/<saudacao>/gi, getSaudacao())
+    .replace(/<saudação>/gi, getSaudacao())
+    .replace(/<nome>/gi, 'João')
+    .replace(/<data>/gi, now.toLocaleDateString('pt-BR'))
+    .replace(/<hora>/gi, now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+    .replace(/<diadasemana>/gi, DIAS_SEMANA[now.getDay()])
+    .replace(/<mes>/gi, MESES[now.getMonth()])
+    .replace(/<mês>/gi, MESES[now.getMonth()]);
+};
 
 export default function DisparosPage() {
   const { user } = useAuth();
@@ -720,7 +744,7 @@ export default function DisparosPage() {
                                   </div>
                                 )
                               )}
-                              {m.text && <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{m.text}</p>}
+                              {m.text && <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{substituirVariaveis(m.text)}</p>}
                               <div className="text-right text-[10px] text-black/40 mt-1">
                                 {new Date().toLocaleTimeString().slice(0, 5)} ✓✓
                               </div>
