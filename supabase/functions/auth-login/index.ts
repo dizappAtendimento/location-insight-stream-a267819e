@@ -67,11 +67,30 @@ serve(async (req) => {
       // Generate 6 digit code
       const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
 
+      console.log(`[Recovery] Fetching webhook URL from config for: ${email}`);
+
+      // Get webhook URL from configurations
+      const { data: configData } = await supabase
+        .from('SAAS_Configuracoes')
+        .select('valor')
+        .eq('chave', 'webhook_recuperar_senha')
+        .maybeSingle();
+
+      const webhookUrl = configData?.valor;
+
+      if (!webhookUrl) {
+        console.log(`[Recovery] No webhook URL configured`);
+        return new Response(
+          JSON.stringify({ error: 'Webhook de recuperação não configurado' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       console.log(`[Recovery] Sending code to webhook for: ${email}`);
 
       // Send to webhook
       try {
-        await fetch('https://n8n.apolinario.site/webhook-test/dizapp', {
+        await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
