@@ -30,7 +30,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit2, RefreshCw, UserPlus, Zap, Database, Eye, Copy, Users, Sparkles } from 'lucide-react';
+import { Search, Edit2, RefreshCw, UserPlus, Zap, Database, Eye, Copy, Users, Sparkles, Ban, UserCheck } from 'lucide-react';
 import { format, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -47,6 +47,7 @@ interface User {
   senha: string | null;
   status: boolean | null;
   status_ex: boolean | null;
+  banido: boolean | null;
   plano_nome: string | null;
   plano_id: number | null;
   plano_extrator_id: number | null;
@@ -174,6 +175,32 @@ export function AdminUsers() {
       fetchUsers();
     } catch (err) {
       console.error('Error toggling user status:', err);
+    }
+  };
+
+  const handleToggleBan = async (userId: string, currentBanStatus: boolean) => {
+    try {
+      const { error } = await supabase.functions.invoke('admin-api', {
+        body: { action: 'toggle-ban', userId, banido: !currentBanStatus }
+      });
+
+      if (error) {
+        toast({
+          title: 'Erro',
+          description: 'Erro ao alterar status de banimento',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Sucesso',
+        description: `Usuário ${!currentBanStatus ? 'banido' : 'desbanido'} com sucesso`,
+      });
+
+      fetchUsers();
+    } catch (err) {
+      console.error('Error toggling ban status:', err);
     }
   };
 
@@ -548,15 +575,20 @@ export function AdminUsers() {
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id} className="group border-border/20 hover:bg-muted/20 transition-colors">
+                <TableRow key={user.id} className={`group border-border/20 hover:bg-muted/20 transition-colors ${user.banido ? 'bg-destructive/5' : ''}`}>
                   {/* User Info */}
                   <TableCell className="py-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
-                        {(user.nome || user.Email || '?')[0].toUpperCase()}
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${user.banido ? 'bg-destructive/20 text-destructive' : 'bg-gradient-to-br from-primary/20 to-primary/5 text-primary'}`}>
+                        {user.banido ? <Ban className="w-4 h-4" /> : (user.nome || user.Email || '?')[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">{user.nome || 'Sem nome'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className={`font-semibold text-sm truncate ${user.banido ? 'text-destructive line-through' : ''}`}>{user.nome || 'Sem nome'}</p>
+                          {user.banido && (
+                            <Badge variant="destructive" className="text-[9px] px-1.5 py-0">BANIDO</Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">{user.Email}</p>
                         {user.senha && (
                           <Popover>
@@ -640,15 +672,26 @@ export function AdminUsers() {
                   
                   {/* Actions */}
                   <TableCell className="py-3 text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 hover:bg-primary/10 hover:text-primary" 
-                      onClick={() => handleEditUser(user)} 
-                      title="Editar"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`h-8 w-8 ${user.banido ? 'text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600' : 'text-destructive/70 hover:bg-destructive/10 hover:text-destructive'}`}
+                        onClick={() => handleToggleBan(user.id, !!user.banido)} 
+                        title={user.banido ? 'Desbanir usuário' : 'Banir usuário'}
+                      >
+                        {user.banido ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 hover:bg-primary/10 hover:text-primary" 
+                        onClick={() => handleEditUser(user)} 
+                        title="Editar"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

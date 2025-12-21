@@ -626,6 +626,7 @@ export type Database = {
         Row: {
           apikey_gpt: string | null
           avatar_url: string | null
+          banido: boolean | null
           created_at: string
           dataValidade: string | null
           dataValidade_extrator: string | null
@@ -642,6 +643,7 @@ export type Database = {
         Insert: {
           apikey_gpt?: string | null
           avatar_url?: string | null
+          banido?: boolean | null
           created_at?: string
           dataValidade?: string | null
           dataValidade_extrator?: string | null
@@ -658,6 +660,7 @@ export type Database = {
         Update: {
           apikey_gpt?: string | null
           avatar_url?: string | null
+          banido?: boolean | null
           created_at?: string
           dataValidade?: string | null
           dataValidade_extrator?: string | null
