@@ -102,6 +102,16 @@ const ListasPage = () => {
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [importingExtraction, setImportingExtraction] = useState(false);
   const [newExtractionListName, setNewExtractionListName] = useState("");
+  
+  // WhatsApp validation states
+  const [validateWhatsApp, setValidateWhatsApp] = useState(false);
+  const [validateWhatsAppExtraction, setValidateWhatsAppExtraction] = useState(false);
+  const [connections, setConnections] = useState<any[]>([]);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>("");
+  const [loadingConnections, setLoadingConnections] = useState(false);
+  const [excelImportModalOpen, setExcelImportModalOpen] = useState(false);
+  const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null);
+  const [excelListName, setExcelListName] = useState("");
 
   const fetchListas = async () => {
     if (!user?.id) return;
@@ -332,11 +342,30 @@ const ListasPage = () => {
     toast.success('Modelo baixado com sucesso!');
   };
 
-  // Handle new list Excel upload
+  // Handle new list Excel upload - open modal for options
   const handleNewListExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user?.id) {
       if (newListUploadRef.current) newListUploadRef.current.value = '';
+      return;
+    }
+    
+    // Store the file and open modal for options
+    setPendingExcelFile(file);
+    setExcelListName(file.name.replace(/\.(xlsx|xls|csv)$/i, '').replace(/_/g, ' '));
+    setValidateWhatsApp(false);
+    setSelectedConnectionId("");
+    fetchConnections();
+    setExcelImportModalOpen(true);
+    if (newListUploadRef.current) newListUploadRef.current.value = '';
+  };
+
+  // Process Excel import with options
+  const processExcelImport = async () => {
+    if (!pendingExcelFile || !user?.id) return;
+    
+    if (validateWhatsApp && !selectedConnectionId) {
+      toast.error('Selecione uma conexão para validar WhatsApp');
       return;
     }
 
@@ -359,7 +388,6 @@ const ListasPage = () => {
             return;
           }
 
-          // Get header row and find nome/telefone columns
           const headers = (jsonData[0] as string[]).map((h: string) => h?.toString()?.toLowerCase()?.trim());
           
           let nomeIdx = headers.findIndex((h: string) => h === 'nome' || h === 'name');
@@ -401,8 +429,7 @@ const ListasPage = () => {
             return;
           }
 
-          // Create list name from file name
-          const listName = file.name.replace(/\.(xlsx|xls|csv)$/i, '').replace(/_/g, ' ');
+          const listName = excelListName.trim() || pendingExcelFile.name.replace(/\.(xlsx|xls|csv)$/i, '').replace(/_/g, ' ');
 
           // Create list first
           const { data: listResult, error: listError } = await supabase.functions.invoke("disparos-api", {
@@ -412,7 +439,7 @@ const ListasPage = () => {
               disparoData: {
                 nome: listName,
                 tipo: 'contacts',
-                descricao: `Importado de ${file.name}`,
+                descricao: `Importado de ${pendingExcelFile.name}`,
               },
             },
           });
@@ -422,14 +449,16 @@ const ListasPage = () => {
           const newListId = listResult?.lista?.id;
           if (!newListId) throw new Error('Erro ao criar lista');
 
-          // Import contacts
+          // Import contacts with optional WhatsApp validation
           const { data: importResult, error: importError } = await supabase.functions.invoke('disparos-api', {
             body: {
               action: 'import-contatos',
               userId: user.id,
               disparoData: {
                 idLista: newListId,
-                contatos: contacts
+                contatos: contacts,
+                validateWhatsApp: validateWhatsApp,
+                connectionId: validateWhatsApp ? parseInt(selectedConnectionId) : undefined
               }
             }
           });
@@ -438,11 +467,18 @@ const ListasPage = () => {
 
           const imported = importResult?.imported || 0;
           const duplicates = importResult?.duplicates || 0;
+          const invalid = importResult?.invalid || 0;
           
           let message = `Lista "${listName}" criada com ${imported} contatos`;
-          if (duplicates > 0) message += ` (${duplicates} duplicados ignorados)`;
+          if (duplicates > 0) message += `, ${duplicates} duplicados`;
+          if (invalid > 0) message += `, ${invalid} inválidos`;
           
           toast.success(message);
+          setExcelImportModalOpen(false);
+          setPendingExcelFile(null);
+          setExcelListName("");
+          setValidateWhatsApp(false);
+          setSelectedConnectionId("");
           fetchListas();
           
         } catch (error: any) {
@@ -450,23 +486,39 @@ const ListasPage = () => {
           toast.error(error.message || 'Erro ao processar arquivo');
         } finally {
           setSaving(false);
-          if (newListUploadRef.current) newListUploadRef.current.value = '';
         }
       };
 
       reader.onerror = () => {
         toast.error('Erro ao ler arquivo');
         setSaving(false);
-        if (newListUploadRef.current) newListUploadRef.current.value = '';
       };
 
-      reader.readAsBinaryString(file);
+      reader.readAsBinaryString(pendingExcelFile);
       
     } catch (error: any) {
       console.error('Error uploading file:', error);
       toast.error('Erro ao fazer upload do arquivo');
       setSaving(false);
-      if (newListUploadRef.current) newListUploadRef.current.value = '';
+    }
+  };
+
+  // Fetch connections for WhatsApp validation
+  const fetchConnections = async () => {
+    if (!user?.id) return;
+    
+    setLoadingConnections(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("disparos-api", {
+        body: { action: "get-conexoes", userId: user.id },
+      });
+
+      if (error) throw error;
+      setConnections(data?.conexoes || []);
+    } catch (error) {
+      console.error('Error fetching connections:', error);
+    } finally {
+      setLoadingConnections(false);
     }
   };
 
@@ -502,6 +554,11 @@ const ListasPage = () => {
 
     if (!newExtractionListName.trim()) {
       toast.error('Digite um nome para a lista');
+      return;
+    }
+
+    if (validateWhatsAppExtraction && !selectedConnectionId) {
+      toast.error('Selecione uma conexão para validar WhatsApp');
       return;
     }
 
@@ -554,14 +611,16 @@ const ListasPage = () => {
       const newListId = listResult?.lista?.id;
       if (!newListId) throw new Error('Erro ao criar lista');
 
-      // Import contacts
+      // Import contacts with optional WhatsApp validation
       const { data: importResult, error: importError } = await supabase.functions.invoke('disparos-api', {
         body: {
           action: 'import-contatos',
           userId: user.id,
           disparoData: {
             idLista: newListId,
-            contatos: allContacts
+            contatos: allContacts,
+            validateWhatsApp: validateWhatsAppExtraction,
+            connectionId: validateWhatsAppExtraction ? parseInt(selectedConnectionId) : undefined
           }
         }
       });
@@ -570,14 +629,18 @@ const ListasPage = () => {
 
       const imported = importResult?.imported || 0;
       const duplicates = importResult?.duplicates || 0;
+      const invalid = importResult?.invalid || 0;
       
       let message = `Lista "${newExtractionListName}" criada com ${imported} contatos`;
-      if (duplicates > 0) message += ` (${duplicates} duplicados ignorados)`;
+      if (duplicates > 0) message += `, ${duplicates} duplicados`;
+      if (invalid > 0) message += `, ${invalid} inválidos`;
       
       toast.success(message);
       setExtractionModalOpen(false);
       setSelectedJobIds([]);
       setNewExtractionListName('');
+      setValidateWhatsAppExtraction(false);
+      setSelectedConnectionId("");
       fetchListas();
       
     } catch (error: any) {
@@ -914,8 +977,124 @@ const ListasPage = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Excel Import Modal */}
+        <Dialog open={excelImportModalOpen} onOpenChange={(open) => {
+          setExcelImportModalOpen(open);
+          if (!open) {
+            setPendingExcelFile(null);
+            setExcelListName("");
+            setValidateWhatsApp(false);
+            setSelectedConnectionId("");
+          }
+        }}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="text-primary flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5" />
+                Importar Excel
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Configure as opções de importação para o arquivo: {pendingExcelFile?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Nome da Lista *</Label>
+                <Input
+                  placeholder="Digite o nome da lista"
+                  value={excelListName}
+                  onChange={(e) => setExcelListName(e.target.value)}
+                  className="bg-background/50"
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2 py-2">
+                <Checkbox
+                  id="validateWhatsApp"
+                  checked={validateWhatsApp}
+                  onCheckedChange={(checked) => setValidateWhatsApp(checked === true)}
+                />
+                <label
+                  htmlFor="validateWhatsApp"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Validar números no WhatsApp antes de importar
+                </label>
+              </div>
+              
+              {validateWhatsApp && (
+                <div className="space-y-2">
+                  <Label>Conexão para Validação *</Label>
+                  {loadingConnections ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Carregando conexões...
+                    </div>
+                  ) : connections.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhuma conexão disponível</p>
+                  ) : (
+                    <Select value={selectedConnectionId} onValueChange={setSelectedConnectionId}>
+                      <SelectTrigger className="bg-background/50">
+                        <SelectValue placeholder="Selecione uma conexão" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        {connections.map((conn) => (
+                          <SelectItem key={conn.id} value={conn.id.toString()}>
+                            {conn.NomeConexao || conn.Telefone || `Conexão ${conn.id}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    A validação pode demorar mais tempo dependendo da quantidade de contatos
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setExcelImportModalOpen(false);
+                    setPendingExcelFile(null);
+                    setExcelListName("");
+                    setValidateWhatsApp(false);
+                    setSelectedConnectionId("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                  onClick={processExcelImport}
+                  disabled={saving || !excelListName.trim() || (validateWhatsApp && !selectedConnectionId)}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Importando...
+                    </>
+                  ) : (
+                    "Importar"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Import from Extraction Modal */}
-        <Dialog open={extractionModalOpen} onOpenChange={setExtractionModalOpen}>
+        <Dialog open={extractionModalOpen} onOpenChange={(open) => {
+          setExtractionModalOpen(open);
+          if (!open) {
+            setSelectedJobIds([]);
+            setNewExtractionListName('');
+            setValidateWhatsAppExtraction(false);
+            setSelectedConnectionId("");
+          }
+        }}>
           <DialogContent className="bg-card border-border max-w-2xl">
             <DialogHeader>
               <DialogTitle className="text-primary flex items-center gap-2">
@@ -948,7 +1127,7 @@ const ListasPage = () => {
                     Nenhuma extração encontrada
                   </div>
                 ) : (
-                  <div className="max-h-64 overflow-y-auto border border-border rounded-lg">
+                  <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
                     {searchJobs.map((job) => {
                       const resultsCount = Array.isArray(job.results) ? job.results.length : 0;
                       const phonesCount = Array.isArray(job.results) 
@@ -986,6 +1165,55 @@ const ListasPage = () => {
                 )}
               </div>
               
+              <div className="flex items-center space-x-2 py-2">
+                <Checkbox
+                  id="validateWhatsAppExtraction"
+                  checked={validateWhatsAppExtraction}
+                  onCheckedChange={(checked) => {
+                    setValidateWhatsAppExtraction(checked === true);
+                    if (checked && connections.length === 0) {
+                      fetchConnections();
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="validateWhatsAppExtraction"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Validar números no WhatsApp antes de importar
+                </label>
+              </div>
+              
+              {validateWhatsAppExtraction && (
+                <div className="space-y-2">
+                  <Label>Conexão para Validação *</Label>
+                  {loadingConnections ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Carregando conexões...
+                    </div>
+                  ) : connections.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhuma conexão disponível</p>
+                  ) : (
+                    <Select value={selectedConnectionId} onValueChange={setSelectedConnectionId}>
+                      <SelectTrigger className="bg-background/50">
+                        <SelectValue placeholder="Selecione uma conexão" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        {connections.map((conn) => (
+                          <SelectItem key={conn.id} value={conn.id.toString()}>
+                            {conn.NomeConexao || conn.Telefone || `Conexão ${conn.id}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    A validação pode demorar mais tempo dependendo da quantidade de contatos
+                  </p>
+                </div>
+              )}
+              
               <div className="flex gap-3 pt-4">
                 <Button
                   variant="outline"
@@ -994,6 +1222,8 @@ const ListasPage = () => {
                     setExtractionModalOpen(false);
                     setSelectedJobIds([]);
                     setNewExtractionListName('');
+                    setValidateWhatsAppExtraction(false);
+                    setSelectedConnectionId("");
                   }}
                 >
                   Cancelar
@@ -1001,7 +1231,7 @@ const ListasPage = () => {
                 <Button
                   className="flex-1 bg-primary hover:bg-primary/90"
                   onClick={handleImportFromExtraction}
-                  disabled={importingExtraction || selectedJobIds.length === 0 || !newExtractionListName.trim()}
+                  disabled={importingExtraction || selectedJobIds.length === 0 || !newExtractionListName.trim() || (validateWhatsAppExtraction && !selectedConnectionId)}
                 >
                   {importingExtraction ? (
                     <>
