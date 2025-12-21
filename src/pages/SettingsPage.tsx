@@ -961,54 +961,79 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Eventos disponíveis:</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
-                      <div className="flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-emerald-500" />
-                        <span className="text-xs text-foreground">Lead adicionado</span>
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Eventos disponíveis</p>
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-emerald-500/5 to-transparent border border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                          <Plus className="w-4 h-4 text-emerald-500" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-foreground">Lead adicionado</span>
+                          <p className="text-[10px] text-muted-foreground">Novo lead criado no CRM</p>
+                        </div>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch defaultChecked className="data-[state=checked]:bg-emerald-500" />
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
-                      <div className="flex items-center gap-2">
-                        <RefreshCw className="w-4 h-4 text-blue-500" />
-                        <span className="text-xs text-foreground">Card atualizado</span>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-blue-500/5 to-transparent border border-blue-500/20 hover:border-blue-500/40 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                          <RefreshCw className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-foreground">Card atualizado</span>
+                          <p className="text-[10px] text-muted-foreground">Dados do lead alterados</p>
+                        </div>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch defaultChecked className="data-[state=checked]:bg-blue-500" />
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
-                      <div className="flex items-center gap-2">
-                        <ArrowRight className="w-4 h-4 text-amber-500" />
-                        <span className="text-xs text-foreground">Card movido de coluna</span>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-500/5 to-transparent border border-amber-500/20 hover:border-amber-500/40 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                          <ArrowRight className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-foreground">Card movido de coluna</span>
+                          <p className="text-[10px] text-muted-foreground">Lead mudou de etapa</p>
+                        </div>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch defaultChecked className="data-[state=checked]:bg-amber-500" />
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-purple-500" />
-                        <span className="text-xs text-foreground">Lead respondeu</span>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-purple-500/5 to-transparent border border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                          <MessageSquare className="w-4 h-4 text-purple-500" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-foreground">Lead respondeu</span>
+                          <p className="text-[10px] text-muted-foreground">Mensagem recebida do lead</p>
+                        </div>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch defaultChecked className="data-[state=checked]:bg-purple-500" />
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/20">
-                      <div className="flex items-center gap-2">
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                        <span className="text-xs text-foreground">Lead excluído</span>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-red-500/5 to-transparent border border-red-500/20 hover:border-red-500/40 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-foreground">Lead excluído</span>
+                          <p className="text-[10px] text-muted-foreground">Lead removido do CRM</p>
+                        </div>
                       </div>
-                      <Switch />
+                      <Switch className="data-[state=checked]:bg-red-500" />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                <div className="flex gap-3 pt-2">
+                  <Button variant="outline" size="default" className="flex-1 h-11 border-dashed hover:border-primary hover:bg-primary/5" onClick={() => {
                     toast({ title: "Teste enviado!", description: "Webhook de teste enviado com sucesso" });
                   }}>
-                    <Zap className="w-4 h-4 mr-2" /> Testar Webhook
+                    <Zap className="w-4 h-4 mr-2 text-amber-500" /> Testar Webhook
                   </Button>
-                  <Button className="flex-1" size="sm">
+                  <Button size="default" className="flex-1 h-11 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25">
                     <Save className="w-4 h-4 mr-2" /> Salvar Configurações
                   </Button>
                 </div>
