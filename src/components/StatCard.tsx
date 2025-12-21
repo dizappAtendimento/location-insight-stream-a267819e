@@ -24,34 +24,34 @@ export function StatCard({
 }: StatCardProps) {
   const accentStyles = {
     primary: {
-      gradient: 'from-primary/80 via-primary/50 to-transparent',
-      value: 'text-primary',
-      icon: 'text-primary/70',
-      glow: 'hover:shadow-primary/10',
+      border: 'border-l-primary/60',
+      value: 'text-foreground',
+      icon: 'text-primary bg-primary/10',
+      iconBorder: 'border-primary/20',
     },
     success: {
-      gradient: 'from-emerald-500/80 via-emerald-500/50 to-transparent',
-      value: 'text-emerald-400',
-      icon: 'text-emerald-500/70',
-      glow: 'hover:shadow-emerald-500/10',
+      border: 'border-l-emerald-500/60',
+      value: 'text-emerald-500',
+      icon: 'text-emerald-500 bg-emerald-500/10',
+      iconBorder: 'border-emerald-500/20',
     },
     warning: {
-      gradient: 'from-amber-500/80 via-amber-500/50 to-transparent',
-      value: 'text-amber-400',
-      icon: 'text-amber-500/70',
-      glow: 'hover:shadow-amber-500/10',
+      border: 'border-l-amber-500/60',
+      value: 'text-amber-500',
+      icon: 'text-amber-500 bg-amber-500/10',
+      iconBorder: 'border-amber-500/20',
     },
     info: {
-      gradient: 'from-sky-500/80 via-sky-500/50 to-transparent',
-      value: 'text-sky-400',
-      icon: 'text-sky-500/70',
-      glow: 'hover:shadow-sky-500/10',
+      border: 'border-l-sky-500/60',
+      value: 'text-sky-500',
+      icon: 'text-sky-500 bg-sky-500/10',
+      iconBorder: 'border-sky-500/20',
     },
     highlight: {
-      gradient: 'from-highlight/80 via-highlight/50 to-transparent',
+      border: 'border-l-highlight/60',
       value: 'text-highlight',
-      icon: 'text-highlight/70',
-      glow: 'hover:shadow-highlight/10',
+      icon: 'text-highlight bg-highlight/10',
+      iconBorder: 'border-highlight/20',
     },
   };
 
@@ -60,49 +60,42 @@ export function StatCard({
   return (
     <div 
       className={cn(
-        "stat-card group p-5 opacity-0 animate-fade-in-up hover-lift",
-        styles.glow,
+        "stat-card group p-5 opacity-0 animate-fade-in-up hover-lift border-l-[3px]",
+        styles.border,
         className
       )}
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* Top accent line */}
-      <div className={cn(
-        "absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r",
-        styles.gradient
-      )} />
-      
-      {/* Subtle corner glow */}
-      <div className="absolute -top-8 -right-8 w-24 h-24 bg-gradient-radial from-primary/5 to-transparent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
-      <div className="relative flex items-start justify-between">
-        <div className="space-y-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="space-y-3 flex-1 min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
             {title}
           </p>
           <p className={cn(
-            "text-3xl font-bold tracking-tight transition-colors",
+            "text-[2rem] font-bold tracking-tight leading-none transition-colors duration-300",
             styles.value
           )}>
             {typeof value === 'number' ? value.toLocaleString('pt-BR') : value}
           </p>
           {trend && (
             <p className={cn(
-              "text-xs font-medium flex items-center gap-1",
-              trendPositive ? "text-emerald-400" : "text-muted-foreground"
+              "text-xs font-medium flex items-center gap-1.5 pt-0.5",
+              trendPositive ? "text-emerald-500" : "text-muted-foreground"
             )}>
               <span className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                trendPositive ? "bg-emerald-400 animate-pulse-soft" : "bg-muted-foreground"
+                "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                trendPositive ? "bg-emerald-500 animate-pulse-soft" : "bg-muted-foreground/50"
               )} />
-              {trend}
+              <span className="truncate">{trend}</span>
             </p>
           )}
         </div>
         <div className={cn(
-          "flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-secondary/80 to-secondary/40 border border-border/30 transition-all duration-300 group-hover:scale-105"
+          "flex items-center justify-center w-12 h-12 rounded-xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 flex-shrink-0",
+          styles.icon,
+          styles.iconBorder
         )}>
-          <Icon className={cn("w-5 h-5 transition-colors", styles.icon)} strokeWidth={1.5} />
+          <Icon className="w-5 h-5" strokeWidth={1.75} />
         </div>
       </div>
     </div>

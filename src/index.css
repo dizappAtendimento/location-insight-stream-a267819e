@@ -172,20 +172,29 @@
     );
   }
 
-  /* Stat card styles */
+  /* Stat card styles - refined */
   .stat-card {
-    @apply relative overflow-hidden rounded-xl border border-border/40 bg-card/80 backdrop-blur-sm;
-    @apply transition-all duration-300 hover:border-border/60 hover:shadow-lg hover:shadow-primary/5;
+    @apply relative overflow-hidden rounded-2xl border border-border/30 bg-card;
+    @apply transition-all duration-500 ease-out;
+    @apply hover:border-border/50 hover:shadow-xl hover:shadow-primary/[0.08];
+    box-shadow: 0 1px 3px hsl(var(--foreground) / 0.04),
+                0 4px 20px hsl(var(--foreground) / 0.02);
   }
 
   .stat-card::before {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0;
-    @apply transition-opacity duration-300;
+    @apply absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-transparent opacity-0;
+    @apply transition-opacity duration-500;
   }
 
   .stat-card:hover::before {
     @apply opacity-100;
+  }
+
+  .stat-card::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    @apply bg-gradient-to-t from-transparent via-transparent to-background/5;
   }
 
   /* Platform accent styles */
@@ -364,14 +373,15 @@
 .stagger-7 { animation-delay: 0.35s; }
 .stagger-8 { animation-delay: 0.4s; }
 
-/* Hover lift effect */
+/* Hover lift effect - refined */
 .hover-lift {
-  @apply transition-all duration-300;
+  @apply transition-all duration-500 ease-out;
 }
 
 .hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px -5px hsl(var(--primary) / 0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px -8px hsl(var(--foreground) / 0.12),
+              0 4px 12px -2px hsl(var(--primary) / 0.08);
 }
 
 /* Focus visible styles */
