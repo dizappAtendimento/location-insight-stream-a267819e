@@ -68,26 +68,54 @@ serve(async (req) => {
         if (formattedPhone.length > 11) {
           formattedPhone = formattedPhone.substring(0, 11);
         }
+        // Validar formato: deve ter entre 10 e 11 dígitos
+        const isValidPhone = formattedPhone.length >= 10 && formattedPhone.length <= 11;
+        
+        // Criar payload do cliente
+        const customerPayload: Record<string, unknown> = {
+          name,
+          email,
+          cpfCnpj: cpfCnpj?.replace(/\D/g, ''),
+          externalReference: userId
+        };
+        
+        // Só adicionar telefone se for válido
+        if (isValidPhone && formattedPhone) {
+          customerPayload.mobilePhone = formattedPhone;
+        }
         
         // Criar novo cliente
-        const customerResponse = await fetch(`${ASAAS_API_URL}/customers`, {
+        let customerResponse = await fetch(`${ASAAS_API_URL}/customers`, {
           method: 'POST',
           headers: {
             'access_token': ASAAS_API_KEY,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            name,
-            email,
-            cpfCnpj: cpfCnpj?.replace(/\D/g, ''),
-            phone: formattedPhone || undefined,
-            mobilePhone: formattedPhone || undefined,
-            externalReference: userId
-          })
+          body: JSON.stringify(customerPayload)
         });
 
-        const customerData = await customerResponse.json();
+        let customerData = await customerResponse.json();
         console.log('[asaas-api] Create customer response:', customerData);
+
+        // Se erro de telefone, tentar criar sem telefone
+        if (customerData.errors && customerData.errors.some((e: { code: string }) => 
+            e.code === 'invalid_phone' || e.code === 'invalid_mobilePhone')) {
+          console.log('[asaas-api] Retrying without phone...');
+          delete customerPayload.mobilePhone;
+          delete customerPayload.phone;
+          
+          customerResponse = await fetch(`${ASAAS_API_URL}/customers`, {
+            method: 'POST',
+            headers: {
+              'access_token': ASAAS_API_KEY,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(customerPayload)
+          });
+          
+          customerData = await customerResponse.json();
+          console.log('[asaas-api] Create customer retry response:', customerData);
+        }
 
         if (customerData.errors) {
           throw new Error(customerData.errors[0]?.description || 'Erro ao criar cliente');
