@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink } from 'lucide-react';
+import { Kanban, MessageSquare, User, Phone, Clock, MoreHorizontal, Plus, ArrowRight, DollarSign, StickyNote, Pencil, X, Save, Settings, Trash2, Volume2, VolumeX, ExternalLink, Search } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -154,6 +154,7 @@ const CrmPage = () => {
   const [columnTitle, setColumnTitle] = useState('');
   const [isAddingLead, setIsAddingLead] = useState(false);
   const [newLead, setNewLead] = useState({ nome: '', telefone: '', valor: 0, mensagem: '' });
+  const [searchTerm, setSearchTerm] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem('crm-sound-enabled');
     return saved !== null ? saved === 'true' : true;
@@ -313,7 +314,7 @@ const CrmPage = () => {
   };
 
   const getTotalValueByColumn = (colunaId: number) => {
-    return getLeadsByColumn(colunaId).reduce((sum, lead) => sum + (lead.valor || 0), 0);
+    return getLeadsByColumnFiltered(colunaId).reduce((sum, lead) => sum + (lead.valor || 0), 0);
   };
 
   const formatDate = (date: string | null) => {
@@ -396,6 +397,20 @@ const CrmPage = () => {
   const startEditColumn = (colunaId: number, currentTitle: string) => {
     setEditingColumn(colunaId);
     setColumnTitle(currentTitle);
+  };
+
+  // Filtrar leads pela busca
+  const filteredLeads = leads.filter(lead => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      (lead.nome?.toLowerCase().includes(search)) ||
+      (lead.telefone?.includes(search))
+    );
+  });
+
+  const getLeadsByColumnFiltered = (colunaId: number) => {
+    return filteredLeads.filter(lead => lead.idColuna === colunaId);
   };
 
   const saveColumnTitle = async (colunaId: number) => {
@@ -547,7 +562,7 @@ const CrmPage = () => {
     <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Kanban className="w-6 h-6 text-primary" />
@@ -557,12 +572,21 @@ const CrmPage = () => {
               Gerencie seus leads e oportunidades
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou telefone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-[220px]"
+              />
+            </div>
             <Badge variant="outline" className="px-3 py-1">
-              {leads.length} leads
+              {filteredLeads.length} leads
             </Badge>
             <Badge variant="secondary" className="px-3 py-1">
-              {formatCurrency(leads.reduce((sum, l) => sum + (l.valor || 0), 0))}
+              {formatCurrency(filteredLeads.reduce((sum, l) => sum + (l.valor || 0), 0))}
             </Badge>
             <Button 
               onClick={() => setSoundEnabled(!soundEnabled)} 
@@ -632,7 +656,7 @@ const CrmPage = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <Badge variant="secondary" className="text-xs">
-                      {getLeadsByColumn(column.id).length}
+                      {getLeadsByColumnFiltered(column.id).length}
                     </Badge>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -685,13 +709,13 @@ const CrmPage = () => {
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
                   </div>
-                ) : getLeadsByColumn(column.id).length === 0 ? (
+                ) : getLeadsByColumnFiltered(column.id).length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                     <Plus className="w-8 h-8 mb-2 opacity-30" />
-                    <span className="text-xs">Arraste leads aqui</span>
+                    <span className="text-xs">{searchTerm ? 'Nenhum lead encontrado' : 'Arraste leads aqui'}</span>
                   </div>
                 ) : (
-                  getLeadsByColumn(column.id).map((lead) => (
+                  getLeadsByColumnFiltered(column.id).map((lead) => (
                     <Card
                       key={lead.id}
                       draggable
