@@ -722,55 +722,6 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                 )}
               </div>
 
-              {/* Plano Extrator */}
-              <div className="p-5 rounded-xl bg-gradient-to-br from-card to-card/50 border border-border/50 space-y-5 transition-all hover:border-blue-500/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={cn("w-3 h-3 rounded-full", extratorPlan ? "bg-gradient-to-r from-blue-500 to-cyan-400 animate-pulse" : "bg-muted")}></div>
-                    <h3 className="text-sm font-semibold text-foreground">Extrator</h3>
-                  </div>
-                  {extratorPlan && <span className="text-xs text-muted-foreground">Ativo</span>}
-                </div>
-                
-                {loadingPlans ? (
-                  <div className="space-y-3">
-                    <div className="h-16 bg-muted/50 animate-pulse rounded-lg"></div>
-                    <div className="h-4 bg-muted/50 animate-pulse rounded w-2/3"></div>
-                  </div>
-                ) : extratorPlan ? (
-                  <>
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20">
-                      <div className="flex items-center justify-between">
-                        <p className="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                          {extratorPlan.planoNome || 'Sem plano'}
-                        </p>
-                        {extratorPlan.dataValidade && (
-                          <div className={cn("flex items-center gap-1 text-xs px-2 py-1 rounded-full", isPast(new Date(extratorPlan.dataValidade)) ? "bg-red-500/20 text-red-400" : differenceInDays(new Date(extratorPlan.dataValidade), new Date()) <= 7 ? "bg-amber-500/20 text-amber-400" : "bg-blue-500/20 text-blue-400")}>
-                            <Calendar className="w-3 h-3" />
-                            {isPast(new Date(extratorPlan.dataValidade)) ? 'Expirado' : format(new Date(extratorPlan.dataValidade), "dd/MM/yyyy", { locale: ptBR })}
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-2 text-xs text-muted-foreground space-y-1">
-                        <p className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-blue-400" /> {isUnlimitedValue(extratorPlan.limitePlaces) ? 'Places ilimitado' : `${formatLimit(extratorPlan.limitePlaces)} extrações Places`}</p>
-                        <p className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-blue-400" /> {isUnlimitedValue(extratorPlan.limiteInstagram) ? 'Instagram ilimitado' : `${formatLimit(extratorPlan.limiteInstagram)} extrações Instagram`}</p>
-                        <p className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-blue-400" /> {isUnlimitedValue(extratorPlan.limiteLinkedin) ? 'LinkedIn ilimitado' : `${formatLimit(extratorPlan.limiteLinkedin)} extrações LinkedIn`}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Uso do Plano</p>
-                      <UsageBar label="Places" used={extratorPlan.usadoPlaces} limit={extratorPlan.limitePlaces} color="blue" />
-                      <UsageBar label="Instagram" used={extratorPlan.usadoInstagram} limit={extratorPlan.limiteInstagram} color="blue" />
-                      <UsageBar label="LinkedIn" used={extratorPlan.usadoLinkedin} limit={extratorPlan.limiteLinkedin} color="blue" />
-                    </div>
-                  </>
-                ) : (
-                  <div className="py-8 text-center">
-                    <p className="text-sm text-muted-foreground">Nenhum plano ativo</p>
-                    <p className="text-xs text-muted-foreground mt-1">Entre em contato para ativar</p>
-                  </div>
-                )}
-              </div>
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
