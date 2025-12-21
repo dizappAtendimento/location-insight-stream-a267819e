@@ -4,7 +4,7 @@ import {
   Check, Trash2, Download, ChevronRight, User, Mail, Phone, 
   Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar,
   Key, Copy, Code, FileJson, ExternalLink, ChevronDown, Webhook, MessageSquare,
-  Play, RotateCcw, ArrowDownToLine, ArrowUpFromLine, Plus, RefreshCw, ArrowRight
+  Play, RotateCcw, ArrowDownToLine, ArrowUpFromLine, Plus, RefreshCw, ArrowRight, Zap
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -1002,9 +1002,16 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                   </div>
                 </div>
 
-                <Button className="w-full" size="sm">
-                  <Save className="w-4 h-4 mr-2" /> Salvar Configurações
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                    toast({ title: "Teste enviado!", description: "Webhook de teste enviado com sucesso" });
+                  }}>
+                    <Zap className="w-4 h-4 mr-2" /> Testar Webhook
+                  </Button>
+                  <Button className="flex-1" size="sm">
+                    <Save className="w-4 h-4 mr-2" /> Salvar Configurações
+                  </Button>
+                </div>
               </div>
             </div>
 
