@@ -68,19 +68,22 @@ serve(async (req) => {
         // Fetch counts for each list
         const listasWithCounts = await Promise.all((data || []).map(async (lista: any) => {
           let count = 0;
-          if (lista.tipo === 'contatos') {
+          // Check for both 'contatos' and 'contacts' (legacy)
+          if (lista.tipo === 'contatos' || lista.tipo === 'contacts') {
             const { count: contatosCount } = await supabase
               .from('SAAS_Contatos')
               .select('*', { count: 'exact', head: true })
               .eq('idLista', lista.id);
             count = contatosCount || 0;
           } else {
+            // For grupos type
             const { count: gruposCount } = await supabase
               .from('SAAS_Grupos')
               .select('*', { count: 'exact', head: true })
               .eq('idLista', lista.id);
             count = gruposCount || 0;
           }
+          console.log(`[Disparos API] Lista ${lista.id} (${lista.tipo}): ${count} items`);
           return { ...lista, _count: count };
         }));
 
