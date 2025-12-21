@@ -43,13 +43,21 @@ interface Plan {
   beneficios_extras: string[] | null;
 }
 
-const COLOR_MAP: Record<string, { gradient: string; text: string }> = {
-  violet: { gradient: 'from-violet-500 to-purple-600', text: 'text-violet-500' },
-  blue: { gradient: 'from-blue-500 to-cyan-500', text: 'text-blue-500' },
-  emerald: { gradient: 'from-emerald-500 to-teal-500', text: 'text-emerald-500' },
-  orange: { gradient: 'from-orange-500 to-amber-500', text: 'text-orange-500' },
-  rose: { gradient: 'from-rose-500 to-pink-500', text: 'text-rose-500' },
-  amber: { gradient: 'from-amber-500 to-yellow-500', text: 'text-amber-500' },
+const COLOR_MAP: Record<string, { gradient: string; text: string; bg: string }> = {
+  violet: { gradient: 'from-violet-500 to-purple-600', text: 'text-violet-500', bg: 'bg-violet-900' },
+  blue: { gradient: 'from-blue-500 to-cyan-500', text: 'text-blue-500', bg: 'bg-blue-900' },
+  emerald: { gradient: 'from-emerald-500 to-teal-500', text: 'text-emerald-500', bg: 'bg-emerald-900' },
+  orange: { gradient: 'from-orange-500 to-amber-500', text: 'text-orange-500', bg: 'bg-orange-900' },
+  rose: { gradient: 'from-rose-500 to-pink-500', text: 'text-rose-500', bg: 'bg-rose-900' },
+  amber: { gradient: 'from-amber-500 to-yellow-500', text: 'text-amber-500', bg: 'bg-amber-900' },
+  zinc: { gradient: 'from-zinc-500 to-zinc-600', text: 'text-zinc-400', bg: 'bg-zinc-800' },
+  slate: { gradient: 'from-slate-500 to-slate-600', text: 'text-slate-400', bg: 'bg-slate-800' },
+  red: { gradient: 'from-red-500 to-red-600', text: 'text-red-500', bg: 'bg-red-900' },
+  pink: { gradient: 'from-pink-500 to-pink-600', text: 'text-pink-500', bg: 'bg-pink-900' },
+  indigo: { gradient: 'from-indigo-500 to-indigo-600', text: 'text-indigo-500', bg: 'bg-indigo-900' },
+  cyan: { gradient: 'from-cyan-500 to-cyan-600', text: 'text-cyan-500', bg: 'bg-cyan-900' },
+  teal: { gradient: 'from-teal-500 to-teal-600', text: 'text-teal-500', bg: 'bg-teal-900' },
+  lime: { gradient: 'from-lime-500 to-lime-600', text: 'text-lime-500', bg: 'bg-lime-900' },
 };
 
 interface PaymentData {
@@ -303,7 +311,7 @@ export default function ContratarPage() {
     return (
       <Card 
         key={plan.id} 
-        className={`relative overflow-hidden border ${isPopular ? 'border-amber-500/50 ring-2 ring-amber-500/20' : 'border-zinc-700'} bg-zinc-900 hover:shadow-2xl transition-all duration-500 group ${isPopular ? 'scale-105 z-10' : ''}`}
+        className={`relative overflow-hidden border ${isPopular ? 'border-amber-500/50 ring-2 ring-amber-500/20' : 'border-zinc-700'} ${colors.bg} hover:shadow-2xl transition-all duration-500 group ${isPopular ? 'scale-105 z-10' : ''}`}
       >
         {isPopular && (
           <div className="absolute -top-1 -right-1">

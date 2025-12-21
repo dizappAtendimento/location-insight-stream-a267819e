@@ -63,6 +63,14 @@ const COLOR_OPTIONS = [
   { value: 'orange', label: 'Laranja', class: 'bg-orange-500' },
   { value: 'rose', label: 'Rosa', class: 'bg-rose-500' },
   { value: 'amber', label: 'Amarelo', class: 'bg-amber-500' },
+  { value: 'zinc', label: 'Cinza', class: 'bg-zinc-700' },
+  { value: 'slate', label: 'Ardósia', class: 'bg-slate-700' },
+  { value: 'red', label: 'Vermelho', class: 'bg-red-500' },
+  { value: 'pink', label: 'Rosa Claro', class: 'bg-pink-500' },
+  { value: 'indigo', label: 'Índigo', class: 'bg-indigo-500' },
+  { value: 'cyan', label: 'Ciano', class: 'bg-cyan-500' },
+  { value: 'teal', label: 'Teal', class: 'bg-teal-500' },
+  { value: 'lime', label: 'Lima', class: 'bg-lime-500' },
 ];
 
 const defaultPlanForm = {
