@@ -404,16 +404,16 @@ const HistoricoPage = () => {
     switch (status?.toLowerCase()) {
       case 'em andamento':
       case 'em_andamento':
-        return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/30">Em andamento</Badge>;
+        return <Badge className="badge-warning border">Em andamento</Badge>;
       case 'agendado':
-        return <Badge className="bg-purple-500/20 text-purple-500 border-purple-500/30 hover:bg-purple-500/30">Agendado</Badge>;
+        return <Badge className="badge-purple border">Agendado</Badge>;
       case 'finalizado':
       case 'enviado':
-        return <Badge className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">Finalizado</Badge>;
+        return <Badge className="badge-success border">Finalizado</Badge>;
       case 'cancelado':
-        return <Badge className="bg-red-500/20 text-red-500 border-red-500/30 hover:bg-red-500/30">Cancelado</Badge>;
+        return <Badge className="badge-error border">Cancelado</Badge>;
       case 'pausado':
-        return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/30">Pausado</Badge>;
+        return <Badge className="badge-warning border">Pausado</Badge>;
       default:
         return <Badge className="bg-muted text-muted-foreground">Aguardando</Badge>;
     }
@@ -422,14 +422,14 @@ const HistoricoPage = () => {
   const getTipoBadge = (tipo: string | null) => {
     if (tipo === 'grupo' || tipo === 'grupos') {
       return (
-        <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30 hover:bg-blue-500/30">
+        <Badge className="badge-info border">
           <Users className="w-3 h-3 mr-1" />
           Grupos
         </Badge>
       );
     }
     return (
-      <Badge className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">
+      <Badge className="badge-success border">
         <Send className="w-3 h-3 mr-1" />
         Individual
       </Badge>
@@ -448,7 +448,7 @@ const HistoricoPage = () => {
         <div className="opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Histórico</h1>
+              <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Histórico</h1>
               <p className="text-muted-foreground text-xs sm:text-sm">Visualize suas extrações e disparos</p>
             </div>
           </div>

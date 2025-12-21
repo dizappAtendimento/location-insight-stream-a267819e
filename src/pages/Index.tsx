@@ -61,7 +61,7 @@ const Index = () => {
       <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         {/* Header */}
         <div className="opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Google Places Extractor</h1>
+          <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Google Places Extractor</h1>
           <p className="text-muted-foreground text-xs sm:text-sm">Encontre empresas e estabelecimentos</p>
         </div>
 
