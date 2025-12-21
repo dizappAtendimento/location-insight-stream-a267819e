@@ -102,6 +102,7 @@ const ConexoesPage = () => {
     setCheckingStatus(prev => ({ ...prev, [connection.id]: true }));
     
     try {
+      // Check connection status
       const { data, error } = await supabase.functions.invoke('evolution-api', {
         body: { 
           action: 'status', 
@@ -114,13 +115,30 @@ const ConexoesPage = () => {
       
       const status = data?.state === 'open' ? 'open' : 'close';
       
+      // Also check CRM webhook status
+      let crmAtivo = false;
+      if (status === 'open') {
+        try {
+          const { data: webhookData } = await supabase.functions.invoke('evolution-api', {
+            body: { 
+              action: 'check-crm-webhook', 
+              instanceName: connection.instanceName,
+              apikey: connection.Apikey
+            }
+          });
+          crmAtivo = webhookData?.crmAtivo || false;
+        } catch (e) {
+          console.error('Error checking CRM webhook:', e);
+        }
+      }
+      
       setConnections(prev => prev.map(c => 
-        c.id === connection.id ? { ...c, status } : c
+        c.id === connection.id ? { ...c, status, crmAtivo } : c
       ));
     } catch (error) {
       console.error('Error checking status:', error);
       setConnections(prev => prev.map(c => 
-        c.id === connection.id ? { ...c, status: 'close' } : c
+        c.id === connection.id ? { ...c, status: 'close', crmAtivo: false } : c
       ));
     } finally {
       setCheckingStatus(prev => ({ ...prev, [connection.id]: false }));
