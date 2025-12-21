@@ -7,8 +7,9 @@ const corsHeaders = {
 };
 
 interface LoginRequest {
+  action?: string;
   email: string;
-  password: string;
+  password?: string;
 }
 
 serve(async (req) => {
@@ -27,7 +28,69 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body: LoginRequest = await req.json();
-    const { email, password } = body;
+    const { action, email, password } = body;
+
+    // Password recovery flow
+    if (action === 'recover-password') {
+      if (!email) {
+        return new Response(
+          JSON.stringify({ error: 'Email é obrigatório' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[Recovery] Checking email: ${email}`);
+
+      // Check if user exists
+      const { data: user, error: userError } = await supabase
+        .from('SAAS_Usuarios')
+        .select('id, Email, nome')
+        .eq('Email', email)
+        .maybeSingle();
+
+      if (userError) {
+        console.error('[Recovery] Database error:', userError);
+        return new Response(
+          JSON.stringify({ error: 'Erro ao verificar email' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!user) {
+        console.log(`[Recovery] Email not found: ${email}`);
+        return new Response(
+          JSON.stringify({ error: 'Email não encontrado' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Generate 6 digit code
+      const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      console.log(`[Recovery] Sending code to webhook for: ${email}`);
+
+      // Send to webhook
+      try {
+        await fetch('https://n8n.apolinario.site/webhook-test/dizapp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.Email,
+            code: recoveryCode,
+            nome: user.nome,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        console.log(`[Recovery] Webhook sent successfully for: ${email}`);
+      } catch (webhookError) {
+        console.error('[Recovery] Webhook error:', webhookError);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Código enviado para seu email' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!email || !password) {
       return new Response(
