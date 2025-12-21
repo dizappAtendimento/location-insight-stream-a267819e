@@ -229,16 +229,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-slate-800/50">
-
-        {/* Toggle Button */}
-        <button 
-          onClick={() => setOpen(collapsed)}
-          className="w-full py-1.5 rounded-md flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors"
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
-      </SidebarFooter>
     </Sidebar>
   );
 }
