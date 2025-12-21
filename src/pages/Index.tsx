@@ -34,10 +34,13 @@ const Index = () => {
   const [planLimit, setPlanLimit] = useState<number | null>(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
-  // Fetch plan limits
+  // Fetch plan limits - check both regular plan and extrator plan
   useEffect(() => {
     const fetchPlanLimit = async () => {
-      if (!user?.planoExtratorId) {
+      // Try regular plan first, then extrator plan
+      const planIdToCheck = user?.planoId || user?.planoExtratorId;
+      
+      if (!planIdToCheck) {
         setPlanLimit(0);
         setIsLoadingPlan(false);
         return;
@@ -47,7 +50,7 @@ const Index = () => {
         const { data, error } = await supabase
           .from('SAAS_Planos')
           .select('qntPlaces')
-          .eq('id', user.planoExtratorId)
+          .eq('id', planIdToCheck)
           .maybeSingle();
 
         if (error) {
@@ -65,7 +68,7 @@ const Index = () => {
     };
 
     fetchPlanLimit();
-  }, [user?.planoExtratorId]);
+  }, [user?.planoId, user?.planoExtratorId]);
 
   // Track completed jobs in history
   useEffect(() => {
