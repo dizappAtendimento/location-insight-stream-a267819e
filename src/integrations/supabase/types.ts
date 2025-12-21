@@ -576,11 +576,14 @@ export type Database = {
       }
       SAAS_Planos: {
         Row: {
+          beneficios_extras: string[] | null
+          cor: string | null
           created_at: string
           destaque: boolean | null
           diasValidade: number | null
           id: number
           nome: string | null
+          ordem: number | null
           preco: number | null
           qntConexoes: number | null
           qntContatos: number | null
@@ -591,13 +594,17 @@ export type Database = {
           qntListas: number | null
           qntPlaces: number | null
           tipo: string | null
+          visivel_contratacao: boolean | null
         }
         Insert: {
+          beneficios_extras?: string[] | null
+          cor?: string | null
           created_at?: string
           destaque?: boolean | null
           diasValidade?: number | null
           id?: number
           nome?: string | null
+          ordem?: number | null
           preco?: number | null
           qntConexoes?: number | null
           qntContatos?: number | null
@@ -608,13 +615,17 @@ export type Database = {
           qntListas?: number | null
           qntPlaces?: number | null
           tipo?: string | null
+          visivel_contratacao?: boolean | null
         }
         Update: {
+          beneficios_extras?: string[] | null
+          cor?: string | null
           created_at?: string
           destaque?: boolean | null
           diasValidade?: number | null
           id?: number
           nome?: string | null
+          ordem?: number | null
           preco?: number | null
           qntConexoes?: number | null
           qntContatos?: number | null
@@ -625,6 +636,7 @@ export type Database = {
           qntListas?: number | null
           qntPlaces?: number | null
           tipo?: string | null
+          visivel_contratacao?: boolean | null
         }
         Relationships: []
       }
