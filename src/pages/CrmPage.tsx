@@ -564,17 +564,17 @@ const CrmPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Kanban className="w-6 h-6 text-primary" />
-              CRM - Leads
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Gerencie seus leads e oportunidades
-            </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-highlight/10 border border-highlight/20">
+              <Kanban className="w-5 h-5 text-highlight" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">CRM - Leads</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm">Gerencie seus leads e oportunidades</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
