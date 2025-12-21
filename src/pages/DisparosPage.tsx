@@ -445,7 +445,7 @@ export default function DisparosPage() {
           {/* Formulário */}
           <div className="space-y-6">
             {/* Conexões */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '50ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Conexões Disponíveis *</CardTitle>
@@ -469,15 +469,16 @@ export default function DisparosPage() {
                 ) : connections.length === 0 ? (
                   <p className="text-muted-foreground text-sm">Nenhuma conexão encontrada.</p>
                 ) : (
-                  connections.map(conn => (
+                  connections.map((conn, index) => (
                     <div
                       key={conn.id}
                       onClick={() => toggleConnection(conn.id)}
-                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
                         selectedConnections.includes(conn.id)
-                          ? 'border-primary bg-primary/10'
+                          ? 'border-primary bg-primary/10 shadow-sm'
                           : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
                       }`}
+                      style={{ animationDelay: `${index * 30}ms` }}
                     >
                       <div className="flex items-center gap-3">
                         {conn.photo ? (
@@ -519,7 +520,7 @@ export default function DisparosPage() {
             </Card>
 
             {/* Listas & CSV */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Destinatários *</CardTitle>
               </CardHeader>
@@ -534,15 +535,16 @@ export default function DisparosPage() {
                   ) : lists.length === 0 ? (
                     <p className="text-muted-foreground text-sm">Nenhuma lista de contatos encontrada.</p>
                   ) : (
-                    lists.map(list => (
+                    lists.map((list, index) => (
                       <div
                         key={list.id}
                         onClick={() => toggleList(list.id)}
-                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
                           selectedLists.includes(list.id)
-                            ? 'border-primary bg-primary/10'
+                            ? 'border-primary bg-primary/10 shadow-sm'
                             : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
                         }`}
+                        style={{ animationDelay: `${index * 30}ms` }}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
@@ -586,13 +588,13 @@ export default function DisparosPage() {
             </Card>
 
             {/* Mensagens */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '150ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Mensagens *</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {messages.map((msg, idx) => (
-                  <div key={msg.id} className="p-4 rounded-lg border border-border/50 bg-background/50 space-y-3">
+                  <div key={msg.id} className="p-4 rounded-lg border border-border/50 bg-background/50 space-y-3 transition-all duration-200 hover:border-primary/30">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm font-medium">Mensagem {idx + 1}</Label>
                       <Button
@@ -724,7 +726,7 @@ export default function DisparosPage() {
             </Card>
 
             {/* Configurações */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
@@ -816,7 +818,7 @@ export default function DisparosPage() {
                         variant={selectedDays.includes(i) ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => toggleDay(i)}
-                        className={selectedDays.includes(i) ? '' : 'border-border/50'}
+                        className={`transition-all duration-200 hover:scale-105 active:scale-95 ${selectedDays.includes(i) ? '' : 'border-border/50'}`}
                       >
                         {d}
                       </Button>
@@ -830,7 +832,8 @@ export default function DisparosPage() {
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full h-12 text-lg bg-violet-600 hover:bg-violet-700"
+              className="w-full h-12 text-lg bg-violet-600 hover:bg-violet-700 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] opacity-0 animate-fade-in"
+              style={{ animationDelay: '250ms', animationFillMode: 'forwards' }}
               size="lg"
             >
               {loading ? (
