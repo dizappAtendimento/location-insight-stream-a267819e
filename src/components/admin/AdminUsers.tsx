@@ -30,7 +30,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit2, UserX, UserCheck, RefreshCw, UserPlus, Calendar, Zap, Database, Eye, EyeOff, Copy } from 'lucide-react';
+import { Search, Edit2, RefreshCw, UserPlus, Zap, Database, Eye, Copy, Users, Sparkles } from 'lucide-react';
 import { format, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -85,10 +85,8 @@ export function AdminUsers() {
     nome: '',
     Email: '',
     telefone: '',
-    // Disparador
     plano: '',
     dataValidade: '',
-    // Extrator
     plano_extrator: '',
     dataValidade_extrator: '',
   });
@@ -98,20 +96,14 @@ export function AdminUsers() {
     Email: '',
     telefone: '',
     senha: '',
-    // Disparador
     plano: '',
     dataValidade: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
-    // Extrator
     plano_extrator: '',
     dataValidade_extrator: '',
   });
 
   const disparadorPlans = plans.filter(p => !p.tipo || p.tipo === 'disparador');
   const extratorPlans = plans.filter(p => p.tipo === 'extrator');
-  
-  console.log('Plans loaded:', plans);
-  console.log('Disparador plans:', disparadorPlans);
-  console.log('Extrator plans:', extratorPlans);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -301,13 +293,6 @@ export function AdminUsers() {
     }
   };
 
-  const handleRenewUser = (user: User, type: 'disparador' | 'extrator') => {
-    setRenewingUser(user);
-    setRenewType(type);
-    setRenewDays(30);
-    setIsRenewDialogOpen(true);
-  };
-
   const handleConfirmRenew = async () => {
     if (!renewingUser) return;
 
@@ -356,12 +341,41 @@ export function AdminUsers() {
     }
   };
 
+  // Get badge color based on plan name
+  const getPlanBadgeStyle = (planName: string | null, isActive: boolean) => {
+    if (!planName) return '';
+    const name = planName.toLowerCase();
+    
+    if (!isActive) return 'bg-muted text-muted-foreground';
+    
+    if (name.includes('gold') || name.includes('ouro')) {
+      return 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-0';
+    }
+    if (name.includes('diamante') || name.includes('diamond')) {
+      return 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white border-0';
+    }
+    if (name.includes('platina') || name.includes('platinum')) {
+      return 'bg-gradient-to-r from-slate-400 to-zinc-500 text-white border-0';
+    }
+    if (name.includes('max') || name.includes('ilimitado')) {
+      return 'bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0';
+    }
+    if (name.includes('free') || name.includes('grátis')) {
+      return 'bg-muted/80 text-muted-foreground border-border/50';
+    }
+    
+    return 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground border-0';
+  };
+
   if (isLoading) {
     return (
-      <Card className="bg-card/50 border-border/50">
+      <Card className="border-border/40 overflow-hidden">
         <CardContent className="p-6">
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="flex items-center justify-center py-16">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Carregando usuários...</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -369,33 +383,46 @@ export function AdminUsers() {
   }
 
   return (
-    <Card className="bg-card/50 border-border/50">
-      <CardHeader className="pb-4">
+    <Card className="border-border/40 overflow-hidden">
+      <CardHeader className="pb-4 border-b border-border/30 bg-muted/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">Usuários ({users.length})</CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:w-64">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+            Usuários ({users.length})
+          </CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 sm:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar usuário..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 bg-background/50"
+                className="pl-10 bg-background/50 border-border/40 focus:border-primary/50"
               />
             </div>
-            <Button variant="outline" size="icon" onClick={fetchUsers}>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={fetchUsers}
+              className="border-border/40 hover:bg-muted/50"
+            >
               <RefreshCw className="w-4 h-4" />
             </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="gap-1.5">
+                <Button className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg">
                   <UserPlus className="w-4 h-4" />
                   Adicionar
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Adicionar Usuário</DialogTitle>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    Adicionar Usuário
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -434,12 +461,12 @@ export function AdminUsers() {
                   </div>
 
                   <Tabs defaultValue="disparador" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="disparador" className="gap-1.5">
+                    <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                      <TabsTrigger value="disparador" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                         <Zap className="w-3 h-3" />
                         Disparador
                       </TabsTrigger>
-                      <TabsTrigger value="extrator" className="gap-1.5">
+                      <TabsTrigger value="extrator" className="gap-1.5 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
                         <Database className="w-3 h-3" />
                         Extrator
                       </TabsTrigger>
@@ -496,7 +523,7 @@ export function AdminUsers() {
                     </TabsContent>
                   </Tabs>
 
-                  <Button onClick={handleAddUser} className="w-full">
+                  <Button onClick={handleAddUser} className="w-full bg-gradient-to-r from-primary to-primary/80">
                     Criar Usuário
                   </Button>
                 </div>
@@ -509,86 +536,115 @@ export function AdminUsers() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent border-border/50">
-                <TableHead className="w-[280px]">Usuário</TableHead>
-                <TableHead className="w-[200px] text-center">Plano Disparador</TableHead>
-                <TableHead className="w-[200px] text-center">Plano Extrator</TableHead>
-                <TableHead className="w-[140px] text-right">Ações</TableHead>
+              <TableRow className="hover:bg-transparent border-border/30 bg-muted/30">
+                <TableHead className="w-[280px] text-xs font-semibold uppercase tracking-wider">Usuário</TableHead>
+                <TableHead className="w-[220px] text-center text-xs font-semibold uppercase tracking-wider">Plano Disparador</TableHead>
+                <TableHead className="w-[220px] text-center text-xs font-semibold uppercase tracking-wider">Plano Extrator</TableHead>
+                <TableHead className="w-[100px] text-right text-xs font-semibold uppercase tracking-wider">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id} className="group border-border/20 hover:bg-muted/30">
-                  {/* Usuário */}
-                  <TableCell className="py-2.5">
-                    <p className="font-medium">{user.nome || 'Sem nome'}</p>
-                    <p className="text-xs text-muted-foreground">{user.Email}</p>
-                    {user.senha && (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 mt-0.5">
-                            <Eye className="w-3 h-3" />
-                            Ver senha
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-2" align="start">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-mono">{user.senha}</span>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6"
-                              onClick={() => {
-                                navigator.clipboard.writeText(user.senha || '');
-                                toast({ title: 'Copiado!', description: 'Senha copiada para a área de transferência' });
-                              }}
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  </TableCell>
-                  
-                  {/* Disparador */}
-                  <TableCell className="py-2.5 text-center">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="text-xs text-blue-400">{user.plano_nome || '—'}</span>
-                      <Switch
-                        checked={!!user.status}
-                        onCheckedChange={() => handleToggleStatus(user.id, 'disparador')}
-                        className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500/50 scale-75"
-                      />
+                <TableRow key={user.id} className="group border-border/20 hover:bg-muted/20 transition-colors">
+                  {/* User Info */}
+                  <TableCell className="py-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
+                        {(user.nome || user.Email || '?')[0].toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate">{user.nome || 'Sem nome'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.Email}</p>
+                        {user.senha && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 mt-1">
+                                <Eye className="w-3 h-3" />
+                                Ver senha
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-3" align="start">
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{user.senha}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(user.senha || '');
+                                    toast({ title: 'Copiado!', description: 'Senha copiada para a área de transferência' });
+                                  }}
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
                     </div>
-                    {user.dataValidade && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {format(new Date(user.dataValidade), 'dd/MM/yyyy')}
-                      </p>
-                    )}
                   </TableCell>
                   
-                  {/* Extrator */}
-                  <TableCell className="py-2.5 text-center">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="text-xs text-violet-400">{user.plano_extrator_nome || '—'}</span>
-                      <Switch
-                        checked={!!user.status_ex}
-                        onCheckedChange={() => handleToggleStatus(user.id, 'extrator')}
-                        className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500/50 scale-75"
-                      />
+                  {/* Disparador Plan */}
+                  <TableCell className="py-3 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        {user.plano_nome ? (
+                          <Badge className={`text-[10px] font-semibold px-2.5 py-0.5 ${getPlanBadgeStyle(user.plano_nome, !!user.status)}`}>
+                            {user.plano_nome}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                        <Switch
+                          checked={!!user.status}
+                          onCheckedChange={() => handleToggleStatus(user.id, 'disparador')}
+                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-400/60 scale-[0.8]"
+                        />
+                      </div>
+                      {user.dataValidade && (
+                        <p className="text-[10px] text-muted-foreground font-medium">
+                          {format(new Date(user.dataValidade), 'dd/MM/yyyy')}
+                        </p>
+                      )}
                     </div>
-                    {user.dataValidade_extrator && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy')}
-                      </p>
-                    )}
                   </TableCell>
                   
-                  {/* Ações */}
-                  <TableCell className="py-2.5 text-right">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditUser(user)} title="Editar">
-                      <Edit2 className="w-3.5 h-3.5" />
+                  {/* Extrator Plan */}
+                  <TableCell className="py-3 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        {user.plano_extrator_nome ? (
+                          <Badge className={`text-[10px] font-semibold px-2.5 py-0.5 ${getPlanBadgeStyle(user.plano_extrator_nome, !!user.status_ex)}`}>
+                            {user.plano_extrator_nome}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                        <Switch
+                          checked={!!user.status_ex}
+                          onCheckedChange={() => handleToggleStatus(user.id, 'extrator')}
+                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-400/60 scale-[0.8]"
+                        />
+                      </div>
+                      {user.dataValidade_extrator && (
+                        <p className="text-[10px] text-muted-foreground font-medium">
+                          {format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy')}
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  
+                  {/* Actions */}
+                  <TableCell className="py-3 text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 hover:bg-primary/10 hover:text-primary" 
+                      onClick={() => handleEditUser(user)} 
+                      title="Editar"
+                    >
+                      <Edit2 className="w-4 h-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -597,8 +653,14 @@ export function AdminUsers() {
           </Table>
         </div>
         {filteredUsers.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            Nenhum usuário encontrado
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-4 rounded-full bg-muted/50 mb-4">
+              <Users className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Nenhum usuário encontrado</h3>
+            <p className="text-sm text-muted-foreground">
+              {searchTerm ? 'Tente uma busca diferente' : 'Adicione seu primeiro usuário'}
+            </p>
           </div>
         )}
       </CardContent>
@@ -607,7 +669,10 @@ export function AdminUsers() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-primary" />
+              Editar Usuário
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -635,12 +700,12 @@ export function AdminUsers() {
             </div>
 
             <Tabs defaultValue="disparador" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="disparador" className="gap-1.5">
+              <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                <TabsTrigger value="disparador" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Zap className="w-3 h-3" />
                   Disparador
                 </TabsTrigger>
-                <TabsTrigger value="extrator" className="gap-1.5">
+                <TabsTrigger value="extrator" className="gap-1.5 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
                   <Database className="w-3 h-3" />
                   Extrator
                 </TabsTrigger>
@@ -697,7 +762,7 @@ export function AdminUsers() {
               </TabsContent>
             </Tabs>
 
-            <Button onClick={handleSaveUser} className="w-full">
+            <Button onClick={handleSaveUser} className="w-full bg-gradient-to-r from-primary to-primary/80">
               Salvar Alterações
             </Button>
           </div>
@@ -751,7 +816,7 @@ export function AdminUsers() {
                 { locale: ptBR }
               )}
             </p>
-            <Button onClick={handleConfirmRenew} className="w-full">
+            <Button onClick={handleConfirmRenew} className="w-full bg-gradient-to-r from-primary to-primary/80">
               Confirmar Renovação
             </Button>
           </div>
