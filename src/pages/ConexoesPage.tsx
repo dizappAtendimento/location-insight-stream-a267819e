@@ -353,6 +353,41 @@ const ConexoesPage = () => {
     return `${key.substring(0, 5)}...${key.substring(key.length - 4)}`;
   };
 
+  const setupCrmWebhookForAll = async () => {
+    if (!user?.id) return;
+    
+    const connectedInstances = connections.filter(c => c.status === 'open' && c.instanceName);
+    
+    if (connectedInstances.length === 0) {
+      toast({
+        title: "Aviso",
+        description: "Não há conexões ativas para configurar",
+      });
+      return;
+    }
+
+    let successCount = 0;
+    for (const conn of connectedInstances) {
+      try {
+        await supabase.functions.invoke('evolution-api', {
+          body: { 
+            action: 'setup-crm-webhook', 
+            instanceName: conn.instanceName,
+            userId: user.id
+          }
+        });
+        successCount++;
+      } catch (error) {
+        console.error('Error setting up webhook for:', conn.instanceName, error);
+      }
+    }
+    
+    toast({
+      title: "Sucesso",
+      description: `Webhook CRM configurado em ${successCount} conexões! Agora as respostas virão automaticamente para o CRM.`,
+    });
+  };
+
   const deleteDisconnectedConnections = async () => {
     if (!user?.id) return;
     
@@ -445,6 +480,15 @@ const ConexoesPage = () => {
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={setupCrmWebhookForAll}
+              className="bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20"
+            >
+              <Wifi className="w-4 h-4 mr-2" />
+              Ativar CRM
+            </Button>
+            
             <Button
               variant="outline"
               onClick={deleteDisconnectedConnections}

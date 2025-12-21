@@ -125,6 +125,9 @@ serve(async (req) => {
         );
 
       case "create-instance":
+        // Configura webhook do CRM automaticamente
+        const crmWebhookUrl = `${SUPABASE_URL}/functions/v1/crm-webhook`;
+        
         response = await fetch(`${baseUrl}/instance/create`, {
           method: "POST",
           headers,
@@ -132,10 +135,17 @@ serve(async (req) => {
             instanceName: instanceName,
             qrcode: true,
             integration: "WHATSAPP-BAILEYS",
+            webhook: {
+              url: crmWebhookUrl,
+              byEvents: false,
+              base64: false,
+              headers: {},
+              events: ["MESSAGES_UPSERT"]
+            }
           }),
         });
         result = await response.json();
-        console.log(`[Evolution API] Instance created: ${instanceName}`);
+        console.log(`[Evolution API] Instance created: ${instanceName} with CRM webhook: ${crmWebhookUrl}`);
 
         // Salva no banco usando service_role
         if (userId && result?.instance) {
@@ -813,6 +823,32 @@ serve(async (req) => {
             total: phones.length,
             withWhatsApp: allResults.filter((r: any) => r.exists).length
           }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
+      case "setup-crm-webhook":
+        // Configura webhook do CRM em uma instância existente
+        const crmWebhookEndpoint = `${SUPABASE_URL}/functions/v1/crm-webhook`;
+        
+        console.log(`[Evolution API] Setting up CRM webhook for ${instanceName}: ${crmWebhookEndpoint}`);
+        
+        response = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            url: crmWebhookEndpoint,
+            byEvents: false,
+            base64: false,
+            headers: {},
+            events: ["MESSAGES_UPSERT"]
+          }),
+        });
+        
+        result = await response.json();
+        console.log(`[Evolution API] Webhook setup result:`, JSON.stringify(result));
+        
+        return new Response(
+          JSON.stringify({ success: true, webhook: crmWebhookEndpoint, result }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
