@@ -100,9 +100,11 @@ const ListasPage = () => {
   const [searchJobs, setSearchJobs] = useState<any[]>([]);
   const [existingListas, setExistingListas] = useState<any[]>([]);
   const [existingGrupos, setExistingGrupos] = useState<any[]>([]);
+  const [existingBatePapo, setExistingBatePapo] = useState<any[]>([]);
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [selectedListaIds, setSelectedListaIds] = useState<number[]>([]);
   const [selectedGrupoListaIds, setSelectedGrupoListaIds] = useState<number[]>([]);
+  const [selectedBatePapoIds, setSelectedBatePapoIds] = useState<number[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [importingExtraction, setImportingExtraction] = useState(false);
   const [newExtractionListName, setNewExtractionListName] = useState("");
@@ -116,7 +118,7 @@ const ListasPage = () => {
   const [excelImportModalOpen, setExcelImportModalOpen] = useState(false);
   const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null);
   const [excelListName, setExcelListName] = useState("");
-  const [importSource, setImportSource] = useState<'extractions' | 'lists' | 'groups'>('extractions');
+  const [importSource, setImportSource] = useState<'extractions' | 'lists' | 'groups' | 'batepapo'>('extractions');
 
   const fetchListas = async () => {
     if (!user?.id) return;
@@ -573,6 +575,15 @@ const ListasPage = () => {
       // Auto-select all group lists
       setSelectedGrupoListaIds(groupLists.map((l: any) => l.id));
       
+      // Filter bate-papo lists with items
+      const batePapoLists = (listasResult?.listas || []).filter(
+        (l: any) => (l.tipo === 'bate-papo' || l.tipo === 'batepapo' || l.tipo === 'chat') && (l._count || 0) > 0
+      );
+      setExistingBatePapo(batePapoLists);
+      
+      // Auto-select all bate-papo lists
+      setSelectedBatePapoIds(batePapoLists.map((l: any) => l.id));
+      
     } catch (error) {
       console.error('Error fetching sources:', error);
       toast.error('Erro ao carregar fontes');
@@ -588,8 +599,9 @@ const ListasPage = () => {
     const hasExtractions = selectedJobIds.length > 0;
     const hasLists = selectedListaIds.length > 0;
     const hasGroups = selectedGrupoListaIds.length > 0;
+    const hasBatePapo = selectedBatePapoIds.length > 0;
     
-    if (!hasExtractions && !hasLists && !hasGroups) {
+    if (!hasExtractions && !hasLists && !hasGroups && !hasBatePapo) {
       toast.error('Selecione pelo menos uma fonte');
       return;
     }
@@ -701,6 +713,31 @@ const ListasPage = () => {
           }
         });
       }
+      
+      // Collect contacts from selected bate-papo lists
+      for (const listaId of selectedBatePapoIds) {
+        const { data: contatos, error: contatosError } = await supabase
+          .from('SAAS_Contatos')
+          .select('nome, telefone')
+          .eq('idLista', listaId);
+        
+        if (contatosError) throw contatosError;
+        
+        (contatos || []).forEach((c: any) => {
+          if (c.telefone) {
+            let telefone = c.telefone.replace(/\D/g, '');
+            if (telefone.length === 10 || telefone.length === 11) {
+              telefone = '55' + telefone;
+            }
+            if (telefone) {
+              allContacts.push({
+                nome: c.nome || '',
+                telefone
+              });
+            }
+          }
+        });
+      }
 
       if (allContacts.length === 0) {
         toast.error('Nenhum contato encontrado nas fontes selecionadas');
@@ -709,7 +746,7 @@ const ListasPage = () => {
       }
 
       // Create list
-      const sourcesCount = selectedJobIds.length + selectedListaIds.length + selectedGrupoListaIds.length;
+      const sourcesCount = selectedJobIds.length + selectedListaIds.length + selectedGrupoListaIds.length + selectedBatePapoIds.length;
       const { data: listResult, error: listError } = await supabase.functions.invoke("disparos-api", {
         body: {
           action: "create-lista",
@@ -756,6 +793,7 @@ const ListasPage = () => {
       setSelectedJobIds([]);
       setSelectedListaIds([]);
       setSelectedGrupoListaIds([]);
+      setSelectedBatePapoIds([]);
       setNewExtractionListName('');
       setValidateWhatsAppExtraction(false);
       setSelectedConnectionId("");
@@ -1269,6 +1307,16 @@ const ListasPage = () => {
                 >
                   Listas de Grupos ({existingGrupos.length})
                 </button>
+                <button
+                  onClick={() => setImportSource('batepapo')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    importSource === 'batepapo' 
+                      ? 'border-primary text-primary' 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Bate-Papo ({existingBatePapo.length})
+                </button>
               </div>
               
               {loadingJobs ? (
@@ -1393,12 +1441,49 @@ const ListasPage = () => {
                     </div>
                   )}
                 </div>
+              ) : importSource === 'batepapo' ? (
+                <div className="space-y-2">
+                  {existingBatePapo.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhuma lista de bate-papo encontrada
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
+                      {existingBatePapo.map((lista) => (
+                        <div 
+                          key={lista.id} 
+                          className="flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-muted/30"
+                        >
+                          <Checkbox
+                            checked={selectedBatePapoIds.includes(lista.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedBatePapoIds([...selectedBatePapoIds, lista.id]);
+                              } else {
+                                setSelectedBatePapoIds(selectedBatePapoIds.filter(id => id !== lista.id));
+                              }
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{lista.nome}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {lista._count || 0} contatos
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(lista.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : null}
               
               {/* Selection summary */}
-              {(selectedJobIds.length > 0 || selectedListaIds.length > 0 || selectedGrupoListaIds.length > 0) && (
+              {(selectedJobIds.length > 0 || selectedListaIds.length > 0 || selectedGrupoListaIds.length > 0 || selectedBatePapoIds.length > 0) && (
                 <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
-                  Selecionado: {selectedJobIds.length} extração(ões), {selectedListaIds.length} lista(s) de contatos, {selectedGrupoListaIds.length} lista(s) de grupos
+                  Selecionado: {selectedJobIds.length} extração(ões), {selectedListaIds.length} lista(s) de contatos, {selectedGrupoListaIds.length} lista(s) de grupos, {selectedBatePapoIds.length} bate-papo
                 </div>
               )}
               
@@ -1460,6 +1545,7 @@ const ListasPage = () => {
                     setSelectedJobIds([]);
                     setSelectedListaIds([]);
                     setSelectedGrupoListaIds([]);
+                    setSelectedBatePapoIds([]);
                     setNewExtractionListName('');
                     setValidateWhatsAppExtraction(false);
                     setSelectedConnectionId("");
@@ -1471,7 +1557,7 @@ const ListasPage = () => {
                 <Button
                   className="flex-1 bg-primary hover:bg-primary/90"
                   onClick={handleImportFromSource}
-                  disabled={importingExtraction || (selectedJobIds.length === 0 && selectedListaIds.length === 0 && selectedGrupoListaIds.length === 0) || !newExtractionListName.trim() || (validateWhatsAppExtraction && !selectedConnectionId)}
+                  disabled={importingExtraction || (selectedJobIds.length === 0 && selectedListaIds.length === 0 && selectedGrupoListaIds.length === 0 && selectedBatePapoIds.length === 0) || !newExtractionListName.trim() || (validateWhatsAppExtraction && !selectedConnectionId)}
                 >
                   {importingExtraction ? (
                     <>
@@ -1479,7 +1565,7 @@ const ListasPage = () => {
                       Importando...
                     </>
                   ) : (
-                    `Importar (${selectedJobIds.length + selectedListaIds.length + selectedGrupoListaIds.length})`
+                    `Importar (${selectedJobIds.length + selectedListaIds.length + selectedGrupoListaIds.length + selectedBatePapoIds.length})`
                   )}
                 </Button>
               </div>
