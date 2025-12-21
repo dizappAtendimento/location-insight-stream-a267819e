@@ -37,7 +37,20 @@ interface Plan {
   qntListas: number | null;
   destaque: boolean | null;
   tipo: string | null;
+  ordem: number | null;
+  cor: string | null;
+  visivel_contratacao: boolean | null;
+  beneficios_extras: string[] | null;
 }
+
+const COLOR_MAP: Record<string, { gradient: string; text: string }> = {
+  violet: { gradient: 'from-violet-500 to-purple-600', text: 'text-violet-500' },
+  blue: { gradient: 'from-blue-500 to-cyan-500', text: 'text-blue-500' },
+  emerald: { gradient: 'from-emerald-500 to-teal-500', text: 'text-emerald-500' },
+  orange: { gradient: 'from-orange-500 to-amber-500', text: 'text-orange-500' },
+  rose: { gradient: 'from-rose-500 to-pink-500', text: 'text-rose-500' },
+  amber: { gradient: 'from-amber-500 to-yellow-500', text: 'text-amber-500' },
+};
 
 interface PaymentData {
   paymentId: string;
@@ -74,7 +87,9 @@ export default function ContratarPage() {
         });
 
         if (!error && data?.plans) {
-          const disparadorPlans = data.plans.filter((p: Plan) => p.tipo === 'disparador' || !p.tipo);
+          const disparadorPlans = data.plans
+            .filter((p: Plan) => (p.tipo === 'disparador' || !p.tipo) && p.visivel_contratacao !== false)
+            .sort((a: Plan, b: Plan) => (a.ordem || 0) - (b.ordem || 0));
           setPlans(disparadorPlans);
         }
       } catch (err) {
@@ -268,22 +283,17 @@ export default function ContratarPage() {
     }
   };
 
-  const getPlanColors = (index: number) => {
-    const colors = [
-      { gradient: 'from-violet-500 to-purple-600', bg: 'from-violet-500/10 to-purple-600/5', text: 'text-violet-500', border: 'border-violet-500/30' },
-      { gradient: 'from-blue-500 to-cyan-500', bg: 'from-blue-500/10 to-cyan-500/5', text: 'text-blue-500', border: 'border-blue-500/30' },
-      { gradient: 'from-emerald-500 to-teal-500', bg: 'from-emerald-500/10 to-teal-500/5', text: 'text-emerald-500', border: 'border-emerald-500/30' },
-      { gradient: 'from-orange-500 to-amber-500', bg: 'from-orange-500/10 to-amber-500/5', text: 'text-orange-500', border: 'border-orange-500/30' },
-    ];
-    return colors[index % colors.length];
+  const getPlanColors = (plan: Plan) => {
+    const cor = plan.cor || 'violet';
+    return COLOR_MAP[cor] || COLOR_MAP.violet;
   };
 
-  const renderPlanCard = (plan: Plan, index: number) => {
-    const colors = getPlanColors(index);
+  const renderPlanCard = (plan: Plan) => {
+    const colors = getPlanColors(plan);
     const isPopular = plan.destaque === true;
     
-    // Lista de benefícios - pode ser expandida
-    const benefits = [
+    // Lista de benefícios padrão
+    const defaultBenefits = [
       { icon: Link2, color: 'text-cyan-400', text: `${plan.qntConexoes} conexões WhatsApp` },
       { icon: List, color: 'text-violet-400', text: `${plan.qntListas} listas de contatos` },
       { icon: Contact, color: 'text-amber-400', text: `${plan.qntContatos?.toLocaleString('pt-BR')} contatos` },
@@ -316,22 +326,36 @@ export default function ContratarPage() {
         
         <CardContent className="relative space-y-6">
           <div className="space-y-2">
-            {benefits.map((benefit, i) => (
+            {defaultBenefits.map((benefit, i) => (
               <div key={i} className="flex items-center gap-3 py-2">
                 <Check className="w-5 h-5 text-emerald-500 shrink-0" />
                 <benefit.icon className={`w-4 h-4 ${benefit.color} shrink-0`} />
                 <span className="text-sm text-zinc-300">{benefit.text}</span>
               </div>
             ))}
+            {/* Benefícios extras do banco */}
+            {plan.beneficios_extras && plan.beneficios_extras.length > 0 && plan.beneficios_extras.map((beneficio, i) => (
+              <div key={`extra-${i}`} className="flex items-center gap-3 py-2">
+                <Check className="w-5 h-5 text-emerald-500 shrink-0" />
+                <Zap className="w-4 h-4 text-yellow-400 shrink-0" />
+                <span className="text-sm text-zinc-300">{beneficio}</span>
+              </div>
+            ))}
           </div>
           
-          <Button 
-            onClick={() => handleSelectPlan(plan)}
-            className={`w-full gap-2 bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white shadow-lg`}
-          >
-            <QrCode className="w-4 h-4" />
-            Pagar com PIX
-          </Button>
+          {(plan.preco || 0) >= 5 ? (
+            <Button 
+              onClick={() => handleSelectPlan(plan)}
+              className={`w-full gap-2 bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white shadow-lg`}
+            >
+              <QrCode className="w-4 h-4" />
+              Pagar com PIX
+            </Button>
+          ) : (
+            <p className="text-xs text-center text-zinc-500">
+              Plano gratuito ou promocional
+            </p>
+          )}
         </CardContent>
       </Card>
     );
@@ -395,7 +419,7 @@ export default function ContratarPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
-              {plans.map((plan, index) => renderPlanCard(plan, index))}
+              {plans.map((plan) => renderPlanCard(plan))}
             </div>
           )}
         </div>

@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown, Instagram, Linkedin, MapPin, MessageCircle, Calendar, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Link2, List, Send, Contact, Search, Sparkles, Crown, Instagram, Linkedin, MapPin, MessageCircle, Calendar, Star, Eye, EyeOff, ArrowUpDown, Palette, X } from 'lucide-react';
 
 interface Plan {
   id: number;
@@ -50,7 +50,20 @@ interface Plan {
   destaque: boolean | null;
   tipo: string | null;
   total_usuarios: number | null;
+  ordem: number | null;
+  cor: string | null;
+  visivel_contratacao: boolean | null;
+  beneficios_extras: string[] | null;
 }
+
+const COLOR_OPTIONS = [
+  { value: 'violet', label: 'Roxo', class: 'bg-violet-500' },
+  { value: 'blue', label: 'Azul', class: 'bg-blue-500' },
+  { value: 'emerald', label: 'Verde', class: 'bg-emerald-500' },
+  { value: 'orange', label: 'Laranja', class: 'bg-orange-500' },
+  { value: 'rose', label: 'Rosa', class: 'bg-rose-500' },
+  { value: 'amber', label: 'Amarelo', class: 'bg-amber-500' },
+];
 
 const defaultPlanForm = {
   nome: '',
@@ -66,6 +79,10 @@ const defaultPlanForm = {
   qntLinkedin: '',
   qntPlaces: '',
   tipo: 'disparador',
+  ordem: '0',
+  cor: 'violet',
+  visivel_contratacao: true,
+  beneficios_extras: [] as string[],
 };
 
 export function AdminPlans() {
@@ -114,6 +131,10 @@ export function AdminPlans() {
       qntLinkedin: plan.qntLinkedin?.toString() || '',
       qntPlaces: plan.qntPlaces?.toString() || '',
       tipo: plan.tipo || 'disparador',
+      ordem: plan.ordem?.toString() || '0',
+      cor: plan.cor || 'violet',
+      visivel_contratacao: plan.visivel_contratacao ?? true,
+      beneficios_extras: plan.beneficios_extras || [],
     });
     setIsDialogOpen(true);
   };
@@ -139,6 +160,10 @@ export function AdminPlans() {
       qntLinkedin: parseInt(planForm.qntLinkedin) || 0,
       qntPlaces: parseInt(planForm.qntPlaces) || 0,
       tipo: planForm.tipo,
+      ordem: parseInt(planForm.ordem) || 0,
+      cor: planForm.cor,
+      visivel_contratacao: planForm.visivel_contratacao,
+      beneficios_extras: planForm.beneficios_extras,
     };
 
     try {
@@ -484,6 +509,69 @@ export function AdminPlans() {
                     id="destaque"
                     checked={planForm.destaque}
                     onCheckedChange={(checked) => setPlanForm({ ...planForm, destaque: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-emerald-500" />
+                    <Label htmlFor="visivel" className="text-sm font-medium cursor-pointer">
+                      Visível na página de contratação
+                    </Label>
+                  </div>
+                  <Switch
+                    id="visivel"
+                    checked={planForm.visivel_contratacao}
+                    onCheckedChange={(checked) => setPlanForm({ ...planForm, visivel_contratacao: checked })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <ArrowUpDown className="w-3 h-3 text-primary" />
+                      Ordem de exibição
+                    </Label>
+                    <Input
+                      type="number"
+                      value={planForm.ordem}
+                      onChange={(e) => setPlanForm({ ...planForm, ordem: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Palette className="w-3 h-3 text-primary" />
+                      Cor do card
+                    </Label>
+                    <Select value={planForm.cor} onValueChange={(value) => setPlanForm({ ...planForm, cor: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COLOR_OPTIONS.map(color => (
+                          <SelectItem key={color.value} value={color.value}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full ${color.class}`} />
+                              {color.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    Benefícios extras (um por linha)
+                  </Label>
+                  <textarea
+                    className="w-full min-h-[80px] p-2 text-sm rounded-md border border-border bg-background resize-none"
+                    value={planForm.beneficios_extras.join('\n')}
+                    onChange={(e) => setPlanForm({ 
+                      ...planForm, 
+                      beneficios_extras: e.target.value.split('\n').filter(b => b.trim()) 
+                    })}
+                    placeholder="Ex: Suporte prioritário&#10;Acesso antecipado a novos recursos"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
