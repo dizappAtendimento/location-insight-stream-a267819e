@@ -111,7 +111,8 @@ const ListasPage = () => {
   const [importingExtraction, setImportingExtraction] = useState(false);
   const [newExtractionListName, setNewExtractionListName] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
-  
+  const [platformFilter, setPlatformFilter] = useState("");
+
   // WhatsApp validation states
   const [validateWhatsApp, setValidateWhatsApp] = useState(false);
   const [validateWhatsAppExtraction, setValidateWhatsAppExtraction] = useState(false);
@@ -1288,6 +1289,7 @@ const ListasPage = () => {
             setSelectedConnectionId("");
             setImportSource('extractions');
             setLocationFilter("");
+            setPlatformFilter("");
           }
         }}>
           <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1341,31 +1343,53 @@ const ListasPage = () => {
                 </div>
               ) : importSource === 'extractions' ? (
                 <div className="space-y-2">
-                  {/* Location Filter */}
+                  {/* Filters */}
                   {searchJobs.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Filtrar por Localidade</Label>
-                      <Select 
-                        value={locationFilter || "all"} 
-                        onValueChange={(value) => {
-                          const filterValue = value === "all" ? "" : value;
-                          setLocationFilter(filterValue);
-                          // Just filter the view, don't auto-select
-                        }}
-                      >
-                        <SelectTrigger className="bg-background/50">
-                          <SelectValue placeholder="Todas as localidades" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                          <SelectItem value="all">Todas as localidades</SelectItem>
-                          {/* Get unique locations from searchJobs */}
-                          {[...new Set(searchJobs.map(j => j.location).filter(Boolean))].map((location) => (
-                            <SelectItem key={location} value={location}>
-                              {location}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Platform Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Plataforma</Label>
+                        <Select 
+                          value={platformFilter || "all"} 
+                          onValueChange={(value) => {
+                            setPlatformFilter(value === "all" ? "" : value);
+                          }}
+                        >
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Todas as plataformas" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="all">Todas as plataformas</SelectItem>
+                            <SelectItem value="places">Google Places</SelectItem>
+                            <SelectItem value="whatsapp-groups">WhatsApp</SelectItem>
+                            <SelectItem value="instagram">Instagram</SelectItem>
+                            <SelectItem value="linkedin">LinkedIn</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Location Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Localidade</Label>
+                        <Select 
+                          value={locationFilter || "all"} 
+                          onValueChange={(value) => {
+                            setLocationFilter(value === "all" ? "" : value);
+                          }}
+                        >
+                          <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Todas as localidades" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="all">Todas as localidades</SelectItem>
+                            {[...new Set(searchJobs.map(j => j.location).filter(Boolean))].map((location) => (
+                              <SelectItem key={location} value={location}>
+                                {location}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   )}
                   
@@ -1376,14 +1400,25 @@ const ListasPage = () => {
                   ) : (
                     <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
                       {searchJobs
-                        .filter(job => !locationFilter || (job.location || '').toLowerCase().includes(locationFilter.toLowerCase()))
+                        .filter(job => {
+                          // Platform filter
+                          if (platformFilter) {
+                            const jobType = job.source === 'local' ? job.type : 'places';
+                            if (jobType !== platformFilter) return false;
+                          }
+                          // Location filter
+                          if (locationFilter && !(job.location || '').toLowerCase().includes(locationFilter.toLowerCase())) {
+                            return false;
+                          }
+                          return true;
+                        })
                         .map((job) => {
                           const resultsCount = job.total_found || (Array.isArray(job.results) ? job.results.length : 0);
                           const phonesCount = job.phonesFound ?? (Array.isArray(job.results) 
                             ? job.results.filter((r: any) => r.phone).length 
                             : 0);
                           const sourceLabel = job.source === 'local' 
-                            ? (job.type === 'whatsapp-groups' ? 'WhatsApp' : job.type === 'places' ? 'Google Places' : job.type || 'Local')
+                            ? (job.type === 'whatsapp-groups' ? 'WhatsApp' : job.type === 'places' ? 'Google Places' : job.type === 'instagram' ? 'Instagram' : job.type === 'linkedin' ? 'LinkedIn' : job.type || 'Local')
                             : 'Google Places';
                           
                           return (
