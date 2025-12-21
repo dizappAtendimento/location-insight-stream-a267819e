@@ -248,6 +248,11 @@ export default function MaturadorPage() {
     return conn?.NomeConexao || instanceName;
   }, [connections]);
 
+  const getConnectionPhoto = useCallback((instanceName: string) => {
+    const conn = connections.find(c => c.instanceName === instanceName);
+    return conn?.FotoPerfil || null;
+  }, [connections]);
+
   const availableConnections1 = useMemo(() => 
     connections.filter(c => c.id.toString() !== selectedConnection2), 
     [connections, selectedConnection2]
@@ -472,9 +477,29 @@ export default function MaturadorPage() {
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 text-sm font-medium">
-                                <span className="truncate">{getConnectionName(session.instanceName1)}</span>
+                                {getConnectionPhoto(session.instanceName1) ? (
+                                  <img 
+                                    src={getConnectionPhoto(session.instanceName1)!} 
+                                    alt={getConnectionName(session.instanceName1)}
+                                    className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                                    {getConnectionName(session.instanceName1).charAt(0).toUpperCase()}
+                                  </div>
+                                )}
                                 <ArrowRightLeft className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                <span className="truncate">{getConnectionName(session.instanceName2)}</span>
+                                {getConnectionPhoto(session.instanceName2) ? (
+                                  <img 
+                                    src={getConnectionPhoto(session.instanceName2)!} 
+                                    alt={getConnectionName(session.instanceName2)}
+                                    className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                                    {getConnectionName(session.instanceName2).charAt(0).toUpperCase()}
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge className={`${statusConfig.bg} ${statusConfig.text} border-0 text-[10px] px-2 py-0`}>
