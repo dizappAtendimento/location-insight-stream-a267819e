@@ -33,8 +33,13 @@ import {
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
 
-const menuItems = [
+// Itens sempre visíveis
+const baseMenuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutGrid },
+];
+
+// Itens do disparador
+const disparadorMenuItems = [
   { title: 'Histórico', url: '/historico', icon: Clock },
   { title: 'Conexões', url: '/conexoes', icon: Link2 },
   { title: 'Disparos', url: '/disparos', icon: Send },
@@ -44,6 +49,7 @@ const menuItems = [
   { title: 'Maturador', url: '/maturador', icon: Flame },
 ];
 
+// Itens do extrator
 const extractorItems = [
   { title: 'Instagram', url: '/instagram', icon: Instagram, colorClass: 'text-instagram' },
   { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, colorClass: 'text-linkedin' },
@@ -62,6 +68,16 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Filtrar menu baseado nos produtos ativos
+  const hasDisparador = user?.statusDisparador === true;
+  const hasExtrator = user?.statusExtrator === true;
+  
+  // Montar menuItems dinamicamente
+  const menuItems = [
+    ...baseMenuItems,
+    ...(hasDisparador ? disparadorMenuItems : []),
+  ];
 
   return (
     <Sidebar
@@ -125,49 +141,51 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Extratores */}
-        <SidebarGroup className="mb-4">
-          <SidebarGroupLabel className={cn(
-            "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
-            collapsed && "sr-only"
-          )}>
-            Extratores
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-0.5">
-              {extractorItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                    className="p-0 h-auto"
-                  >
-                    <Link 
-                      to={item.url} 
-                      className={cn(
-                        "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
-                        collapsed && "justify-center px-0",
-                        isActive(item.url) 
-                          ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
-                          : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-                      )}
+        {/* Extratores - só mostra se tem acesso ao extrator */}
+        {hasExtrator && (
+          <SidebarGroup className="mb-4">
+            <SidebarGroupLabel className={cn(
+              "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
+              collapsed && "sr-only"
+            )}>
+              Extratores
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-0.5">
+                {extractorItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                      className="p-0 h-auto"
                     >
-                      <item.icon 
+                      <Link 
+                        to={item.url} 
                         className={cn(
-                          "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
-                          item.colorClass
-                        )} 
-                        strokeWidth={1.5} 
-                      />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                          "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
+                          collapsed && "justify-center px-0",
+                          isActive(item.url) 
+                            ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
+                            : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                        )}
+                      >
+                        <item.icon 
+                          className={cn(
+                            "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
+                            item.colorClass
+                          )} 
+                          strokeWidth={1.5} 
+                        />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Sistema */}
         <SidebarGroup>

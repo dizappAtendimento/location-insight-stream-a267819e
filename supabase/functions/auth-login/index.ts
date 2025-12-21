@@ -41,7 +41,7 @@ serve(async (req) => {
     // Query user by email using service role (bypasses RLS)
     const { data: user, error } = await supabase
       .from('SAAS_Usuarios')
-      .select('id, nome, Email, telefone, "Status Ex", senha, avatar_url')
+      .select('id, nome, Email, telefone, status, "Status Ex", senha, avatar_url')
       .eq('Email', email)
       .maybeSingle();
 
@@ -91,7 +91,8 @@ serve(async (req) => {
           nome: user.nome,
           Email: user.Email,
           telefone: user.telefone,
-          status: user['Status Ex'],
+          statusDisparador: user.status === true,
+          statusExtrator: user['Status Ex'] === true,
           avatar_url: user.avatar_url,
         }
       }),
