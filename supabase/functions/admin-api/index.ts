@@ -54,6 +54,12 @@ serve(async (req) => {
           .select('*', { count: 'exact', head: true })
           .eq('status', true);
 
+        // Get inactive users
+        const { count: inactiveUsers } = await supabase
+          .from('SAAS_Usuarios')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', false);
+
         // Get total plans
         const { count: totalPlans } = await supabase
           .from('SAAS_Planos')
@@ -84,17 +90,73 @@ serve(async (req) => {
           .from('SAAS_Contatos')
           .select('*', { count: 'exact', head: true });
 
+        // Get users with paid plans (plano is not null and status is true)
+        const { data: usersData } = await supabase
+          .from('SAAS_Usuarios')
+          .select('id, plano, dataValidade, status');
+
+        const { data: plansData } = await supabase
+          .from('SAAS_Planos')
+          .select('id, nome, preco');
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const in7Days = new Date(today);
+        in7Days.setDate(in7Days.getDate() + 7);
+        const in30Days = new Date(today);
+        in30Days.setDate(in30Days.getDate() + 30);
+
+        // Calculate users with paid plans (preco > 0)
+        const paidPlanIds = plansData?.filter(p => p.preco && p.preco > 0).map(p => p.id) || [];
+        const paidUsers = usersData?.filter(u => u.plano && paidPlanIds.includes(u.plano) && u.status) || [];
+        
+        // Calculate total monthly revenue
+        let monthlyRevenue = 0;
+        paidUsers.forEach(user => {
+          const plan = plansData?.find(p => p.id === user.plano);
+          if (plan?.preco) {
+            monthlyRevenue += plan.preco;
+          }
+        });
+
+        // Expired users (dataValidade < today)
+        const expiredUsers = usersData?.filter(u => {
+          if (!u.dataValidade) return false;
+          const expDate = new Date(u.dataValidade);
+          return expDate < today;
+        }) || [];
+
+        // Expiring in 7 days
+        const expiringIn7Days = usersData?.filter(u => {
+          if (!u.dataValidade) return false;
+          const expDate = new Date(u.dataValidade);
+          return expDate >= today && expDate <= in7Days;
+        }) || [];
+
+        // Expiring in 30 days
+        const expiringIn30Days = usersData?.filter(u => {
+          if (!u.dataValidade) return false;
+          const expDate = new Date(u.dataValidade);
+          return expDate >= today && expDate <= in30Days;
+        }) || [];
+
         console.log(`[Admin API] Stats fetched successfully`);
 
         return new Response(
           JSON.stringify({
             totalUsers: totalUsers || 0,
             activeUsers: activeUsers || 0,
+            inactiveUsers: inactiveUsers || 0,
             totalPlans: totalPlans || 0,
             disparosThisMonth: disparosThisMonth || 0,
             totalConnections: totalConnections || 0,
             totalLists: totalLists || 0,
             totalContacts: totalContacts || 0,
+            paidUsers: paidUsers.length,
+            monthlyRevenue: monthlyRevenue,
+            expiredUsers: expiredUsers.length,
+            expiringIn7Days: expiringIn7Days.length,
+            expiringIn30Days: expiringIn30Days.length,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

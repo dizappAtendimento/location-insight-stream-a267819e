@@ -1,20 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, UserCheck, CreditCard, Send, Link2, List, Contact, TrendingUp, Activity, Sparkles, Zap } from 'lucide-react';
+import { Users, UserCheck, CreditCard, Send, Link2, List, Contact, TrendingUp, Activity, Sparkles, Zap, DollarSign, Clock, AlertTriangle, UserX, Calendar, Ban } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface Stats {
   totalUsers: number;
   activeUsers: number;
+  inactiveUsers: number;
   totalPlans: number;
   disparosThisMonth: number;
   totalConnections: number;
   totalLists: number;
   totalContacts: number;
+  paidUsers: number;
+  monthlyRevenue: number;
+  expiredUsers: number;
+  expiringIn7Days: number;
+  expiringIn30Days: number;
 }
 
 interface ChartData {
@@ -34,6 +41,7 @@ interface UserWithPlan {
   status_ex: boolean | null;
   dataValidade: string | null;
   dataValidade_extrator: string | null;
+  created_at: string | null;
 }
 
 export function AdminStats() {
@@ -80,71 +88,47 @@ export function AdminStats() {
     fetchStats();
   }, []);
 
-  const statCards = [
-    { 
-      title: 'Total de Usuários', 
-      value: stats?.totalUsers || 0, 
-      icon: Users, 
-      gradient: 'from-blue-500 to-cyan-400',
-      bgGradient: 'from-blue-500/20 to-cyan-400/10',
-      iconBg: 'bg-blue-500/20',
-      textColor: 'text-blue-500'
-    },
-    { 
-      title: 'Usuários Ativos', 
-      value: stats?.activeUsers || 0, 
-      icon: UserCheck, 
-      gradient: 'from-emerald-500 to-teal-400',
-      bgGradient: 'from-emerald-500/20 to-teal-400/10',
-      iconBg: 'bg-emerald-500/20',
-      textColor: 'text-emerald-500'
-    },
-    { 
-      title: 'Planos Cadastrados', 
-      value: stats?.totalPlans || 0, 
-      icon: CreditCard, 
-      gradient: 'from-violet-500 to-purple-400',
-      bgGradient: 'from-violet-500/20 to-purple-400/10',
-      iconBg: 'bg-violet-500/20',
-      textColor: 'text-violet-500'
-    },
-    { 
-      title: 'Disparos (Mês)', 
-      value: stats?.disparosThisMonth || 0, 
-      icon: Send, 
-      gradient: 'from-orange-500 to-amber-400',
-      bgGradient: 'from-orange-500/20 to-amber-400/10',
-      iconBg: 'bg-orange-500/20',
-      textColor: 'text-orange-500'
-    },
-    { 
-      title: 'Conexões', 
-      value: stats?.totalConnections || 0, 
-      icon: Link2, 
-      gradient: 'from-cyan-500 to-sky-400',
-      bgGradient: 'from-cyan-500/20 to-sky-400/10',
-      iconBg: 'bg-cyan-500/20',
-      textColor: 'text-cyan-500'
-    },
-    { 
-      title: 'Listas', 
-      value: stats?.totalLists || 0, 
-      icon: List, 
-      gradient: 'from-pink-500 to-rose-400',
-      bgGradient: 'from-pink-500/20 to-rose-400/10',
-      iconBg: 'bg-pink-500/20',
-      textColor: 'text-pink-500'
-    },
-    { 
-      title: 'Contatos', 
-      value: stats?.totalContacts || 0, 
-      icon: Contact, 
-      gradient: 'from-amber-500 to-yellow-400',
-      bgGradient: 'from-amber-500/20 to-yellow-400/10',
-      iconBg: 'bg-amber-500/20',
-      textColor: 'text-amber-500'
-    },
-  ];
+  // Helper function to get expiration status
+  const getExpirationStatus = (dataValidade: string | null) => {
+    if (!dataValidade) return { text: '—', color: 'text-muted-foreground', badge: null };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expDate = new Date(dataValidade);
+    const daysLeft = differenceInDays(expDate, today);
+    
+    if (daysLeft < 0) {
+      return { 
+        text: `Expirou há ${Math.abs(daysLeft)} dias`, 
+        color: 'text-red-500',
+        badge: <Badge variant="destructive" className="text-[10px]">Expirado</Badge>
+      };
+    } else if (daysLeft === 0) {
+      return { 
+        text: 'Expira hoje', 
+        color: 'text-orange-500',
+        badge: <Badge className="text-[10px] bg-orange-500">Hoje</Badge>
+      };
+    } else if (daysLeft <= 7) {
+      return { 
+        text: `${daysLeft} dias restantes`, 
+        color: 'text-orange-500',
+        badge: <Badge className="text-[10px] bg-orange-500">{daysLeft} dias</Badge>
+      };
+    } else if (daysLeft <= 30) {
+      return { 
+        text: `${daysLeft} dias restantes`, 
+        color: 'text-yellow-500',
+        badge: <Badge className="text-[10px] bg-yellow-500 text-yellow-900">{daysLeft} dias</Badge>
+      };
+    } else {
+      return { 
+        text: format(expDate, 'dd/MM/yyyy'), 
+        color: 'text-emerald-500',
+        badge: <Badge className="text-[10px] bg-emerald-500">{daysLeft} dias</Badge>
+      };
+    }
+  };
 
   // Default chart data if not loaded
   const defaultUsersOverTime = chartData?.usersOverTime || [
@@ -181,11 +165,91 @@ export function AdminStats() {
     { name: 'Lista 5', contacts: 356 },
   ];
 
+  // Main stat cards
+  const mainStatCards = [
+    { 
+      title: 'Receita Mensal', 
+      value: `R$ ${(stats?.monthlyRevenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+      subtitle: `${stats?.paidUsers || 0} assinaturas pagas`,
+      icon: DollarSign, 
+      bgGradient: 'from-emerald-500/20 to-teal-500/10',
+      iconBg: 'bg-emerald-500/20',
+      textColor: 'text-emerald-500'
+    },
+    { 
+      title: 'Total Usuários', 
+      value: stats?.totalUsers || 0, 
+      subtitle: `${stats?.activeUsers || 0} ativos`,
+      icon: Users, 
+      bgGradient: 'from-blue-500/20 to-cyan-400/10',
+      iconBg: 'bg-blue-500/20',
+      textColor: 'text-blue-500'
+    },
+    { 
+      title: 'Conexões', 
+      value: stats?.totalConnections || 0, 
+      subtitle: `${stats?.totalUsers ? (stats.totalConnections / stats.totalUsers).toFixed(1) : 0} por usuário`,
+      icon: Link2, 
+      bgGradient: 'from-violet-500/20 to-purple-400/10',
+      iconBg: 'bg-violet-500/20',
+      textColor: 'text-violet-500'
+    },
+    { 
+      title: 'Disparos (Mês)', 
+      value: stats?.disparosThisMonth || 0, 
+      subtitle: `${stats ? Math.round(stats.disparosThisMonth / 30) : 0} por dia`,
+      icon: Send, 
+      bgGradient: 'from-orange-500/20 to-amber-400/10',
+      iconBg: 'bg-orange-500/20',
+      textColor: 'text-orange-500'
+    },
+  ];
+
+  // Secondary stat cards
+  const secondaryStatCards = [
+    { 
+      title: 'Vencendo em 7 dias', 
+      value: stats?.expiringIn7Days || 0, 
+      subtitle: `+${stats?.expiringIn30Days || 0} em 30 dias`,
+      icon: Clock, 
+      bgGradient: 'from-amber-500/20 to-yellow-500/10',
+      iconBg: 'bg-amber-500/20',
+      textColor: 'text-amber-500'
+    },
+    { 
+      title: 'Expirados', 
+      value: stats?.expiredUsers || 0, 
+      subtitle: 'Acesso bloqueado',
+      icon: AlertTriangle, 
+      bgGradient: 'from-red-500/20 to-rose-500/10',
+      iconBg: 'bg-red-500/20',
+      textColor: 'text-red-500'
+    },
+    { 
+      title: 'Inativos', 
+      value: stats?.inactiveUsers || 0, 
+      subtitle: 'Sem plano ativo',
+      icon: UserX, 
+      bgGradient: 'from-slate-500/20 to-gray-500/10',
+      iconBg: 'bg-slate-500/20',
+      textColor: 'text-slate-500'
+    },
+    { 
+      title: 'Planos Pagos', 
+      value: stats?.paidUsers || 0, 
+      subtitle: 'Usuários pagantes',
+      icon: CreditCard, 
+      bgGradient: 'from-cyan-500/20 to-sky-500/10',
+      iconBg: 'bg-cyan-500/20',
+      textColor: 'text-cyan-500'
+    },
+  ];
+
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 7 }).map((_, i) => (
+          {Array.from({ length: 8 }).map((_, i) => (
             <Card key={i} className="relative overflow-hidden border-border/40 animate-pulse">
               <CardContent className="p-6">
                 <div className="h-4 bg-muted rounded w-24 mb-3" />
@@ -207,36 +271,60 @@ export function AdminStats() {
 
   return (
     <div className="space-y-6">
-      {/* Stat Cards - Modern Glass Design */}
+      {/* Main Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat, index) => (
+        {mainStatCards.map((stat, index) => (
           <Card 
             key={stat.title} 
             className="relative overflow-hidden border-border/40 bg-card hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 group"
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            {/* Gradient background overlay */}
             <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-50 group-hover:opacity-70 transition-opacity duration-500`} />
-            
-            {/* Decorative elements */}
-            <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br ${stat.gradient} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity duration-500`} />
-            
             <CardContent className="relative p-5">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.title}</p>
-                  <p className={`text-3xl font-bold ${stat.textColor}`}>
-                    {stat.value.toLocaleString('pt-BR')}
+                  <p className={`text-2xl font-bold ${stat.textColor}`}>
+                    {typeof stat.value === 'number' ? stat.value.toLocaleString('pt-BR') : stat.value}
                   </p>
+                  <p className="text-[11px] text-muted-foreground">{stat.subtitle}</p>
                 </div>
                 <div className={`p-3 rounded-xl ${stat.iconBg} ring-1 ring-white/10 backdrop-blur-sm`}>
-                  <stat.icon className={`w-6 h-6 ${stat.textColor}`} />
+                  <stat.icon className={`w-5 h-5 ${stat.textColor}`} />
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Secondary Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {secondaryStatCards.map((stat, index) => (
+          <Card 
+            key={stat.title} 
+            className="relative overflow-hidden border-border/40 bg-card hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 group"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-50 group-hover:opacity-70 transition-opacity duration-500`} />
+            <CardContent className="relative p-5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.title}</p>
+                  <p className={`text-2xl font-bold ${stat.textColor}`}>
+                    {stat.value.toLocaleString('pt-BR')}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">{stat.subtitle}</p>
+                </div>
+                <div className={`p-3 rounded-xl ${stat.iconBg} ring-1 ring-white/10 backdrop-blur-sm`}>
+                  <stat.icon className={`w-5 h-5 ${stat.textColor}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -527,7 +615,10 @@ export function AdminStats() {
             <div className="p-1.5 rounded-lg bg-violet-500/10">
               <Users className="w-4 h-4 text-violet-500" />
             </div>
-            Comparativo de Produtos por Usuário
+            Todos os Usuários
+            <span className="text-muted-foreground font-normal text-xs ml-2">
+              {usersWithPlans.length} usuários encontrados
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -536,42 +627,67 @@ export function AdminStats() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-border/30 bg-muted/30">
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Usuário</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Disparador</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Validade Disp.</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Plano</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Vencimento</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Dias Restantes</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Status</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-center">Criado em</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {usersWithPlans.slice(0, 10).map((user) => (
-                  <TableRow key={user.id} className="border-border/20 hover:bg-muted/30 transition-colors">
-                    <TableCell className="py-3">
-                      <p className="text-sm font-semibold">{user.nome || 'Sem nome'}</p>
-                      <p className="text-[11px] text-muted-foreground">{user.Email}</p>
-                    </TableCell>
-                    <TableCell className="text-center py-3">
-                      <div className="flex flex-col items-center gap-1.5">
-                        {user.plano_nome ? (
-                          <Badge 
-                            variant={user.status ? 'default' : 'secondary'} 
-                            className={`text-[10px] font-semibold ${user.status ? 'bg-gradient-to-r from-primary to-primary/80' : ''}`}
-                          >
-                            {user.plano_nome}
-                          </Badge>
+                {usersWithPlans.slice(0, 15).map((user) => {
+                  const expStatus = getExpirationStatus(user.dataValidade);
+                  return (
+                    <TableRow key={user.id} className="border-border/20 hover:bg-muted/30 transition-colors">
+                      <TableCell className="py-3">
+                        <p className="text-sm font-semibold">{user.nome || 'Sem nome'}</p>
+                        <p className="text-[11px] text-muted-foreground">{user.Email}</p>
+                      </TableCell>
+                      <TableCell className="text-center py-3">
+                        <div className="flex flex-col items-center gap-1.5">
+                          {user.plano_nome ? (
+                            <Badge 
+                              variant={user.status ? 'default' : 'secondary'} 
+                              className={`text-[10px] font-semibold ${user.status ? 'bg-gradient-to-r from-primary to-primary/80' : ''}`}
+                            >
+                              {user.plano_nome}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center py-3">
+                        {user.dataValidade ? (
+                          <span className={`text-xs font-medium ${expStatus.color}`}>
+                            {format(new Date(user.dataValidade), 'dd/MM/yyyy')}
+                          </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center py-3">
-                      {user.dataValidade ? (
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {format(new Date(user.dataValidade), 'dd/MM/yyyy')}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-center py-3">
+                        {expStatus.badge || <span className="text-xs text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-center py-3">
+                        {user.status ? (
+                          <Badge className="text-[10px] bg-emerald-500">Ativo</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px]">Inativo</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center py-3">
+                        {user.created_at ? (
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(user.created_at), 'dd/MM/yyyy')}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
