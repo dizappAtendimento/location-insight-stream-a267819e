@@ -965,62 +965,52 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
 
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Eventos disponíveis</p>
-                  <div className="grid gap-2">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-emerald-500/5 to-transparent border border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+                  <div className="grid gap-1.5">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                          <Plus className="w-4 h-4 text-emerald-500" />
-                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-500/10 text-emerald-500">POST</span>
                         <div>
-                          <span className="text-sm font-medium text-foreground">Lead adicionado</span>
+                          <span className="text-sm font-medium text-foreground">lead.created</span>
                           <p className="text-[10px] text-muted-foreground">Novo lead criado no CRM</p>
                         </div>
                       </div>
-                      <Switch defaultChecked className="data-[state=checked]:bg-emerald-500" />
+                      <Switch className="data-[state=checked]:bg-emerald-500" />
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-blue-500/5 to-transparent border border-blue-500/20 hover:border-blue-500/40 transition-colors">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                          <RefreshCw className="w-4 h-4 text-blue-500" />
-                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-blue-500/10 text-blue-500">PUT</span>
                         <div>
-                          <span className="text-sm font-medium text-foreground">Card atualizado</span>
+                          <span className="text-sm font-medium text-foreground">lead.updated</span>
                           <p className="text-[10px] text-muted-foreground">Dados do lead alterados</p>
                         </div>
                       </div>
-                      <Switch defaultChecked className="data-[state=checked]:bg-blue-500" />
+                      <Switch className="data-[state=checked]:bg-blue-500" />
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-500/5 to-transparent border border-amber-500/20 hover:border-amber-500/40 transition-colors">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                          <ArrowRight className="w-4 h-4 text-amber-500" />
-                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-amber-500/10 text-amber-500">PUT</span>
                         <div>
-                          <span className="text-sm font-medium text-foreground">Card movido de coluna</span>
-                          <p className="text-[10px] text-muted-foreground">Lead mudou de etapa</p>
+                          <span className="text-sm font-medium text-foreground">lead.moved</span>
+                          <p className="text-[10px] text-muted-foreground">Lead mudou de coluna/etapa</p>
                         </div>
                       </div>
-                      <Switch defaultChecked className="data-[state=checked]:bg-amber-500" />
+                      <Switch className="data-[state=checked]:bg-amber-500" />
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-purple-500/5 to-transparent border border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                          <MessageSquare className="w-4 h-4 text-purple-500" />
-                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-purple-500/10 text-purple-500">POST</span>
                         <div>
-                          <span className="text-sm font-medium text-foreground">Lead respondeu</span>
+                          <span className="text-sm font-medium text-foreground">lead.message</span>
                           <p className="text-[10px] text-muted-foreground">Mensagem recebida do lead</p>
                         </div>
                       </div>
-                      <Switch defaultChecked className="data-[state=checked]:bg-purple-500" />
+                      <Switch className="data-[state=checked]:bg-purple-500" />
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-red-500/5 to-transparent border border-red-500/20 hover:border-red-500/40 transition-colors">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-red-500/10 text-red-500">DELETE</span>
                         <div>
-                          <span className="text-sm font-medium text-foreground">Lead excluído</span>
+                          <span className="text-sm font-medium text-foreground">lead.deleted</span>
                           <p className="text-[10px] text-muted-foreground">Lead removido do CRM</p>
                         </div>
                       </div>
