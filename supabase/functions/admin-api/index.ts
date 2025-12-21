@@ -574,7 +574,7 @@ serve(async (req) => {
         if (userData.plano) {
           const { data: planInfo } = await supabase
             .from('SAAS_Planos')
-            .select('nome, qntDisparos, qntConexoes, qntContatos, qntListas, qntExtracoes')
+            .select('nome, qntDisparos, qntConexoes, qntContatos, qntListas, qntExtracoes, qntPlaces, qntInstagram, qntLinkedin')
             .eq('id', userData.plano)
             .single();
 
@@ -615,7 +615,7 @@ serve(async (req) => {
             disparosCount = count || 0;
           }
 
-          // Get extractions/searches this month
+          // Get extractions/searches this month - count per source if possible
           const { count: extracoesCount } = await supabase
             .from('search_jobs')
             .select('*', { count: 'exact', head: true })
@@ -629,11 +629,17 @@ serve(async (req) => {
             limiteContatos: planInfo?.qntContatos || null,
             limiteListas: planInfo?.qntListas || null,
             limiteExtracoes: planInfo?.qntExtracoes || null,
+            limitePlaces: planInfo?.qntPlaces || null,
+            limiteInstagram: planInfo?.qntInstagram || null,
+            limiteLinkedin: planInfo?.qntLinkedin || null,
             usadoDisparos: disparosCount,
             usadoConexoes: conexoesCount || 0,
             usadoContatos: contatosCount || 0,
             usadoListas: listasCount || 0,
             usadoExtracoes: extracoesCount || 0,
+            usadoPlaces: 0,
+            usadoInstagram: 0,
+            usadoLinkedin: 0,
             dataValidade: userData.dataValidade || null,
           };
         }

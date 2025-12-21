@@ -44,11 +44,17 @@ interface PlanUsage {
   limiteContatos: number | null;
   limiteListas: number | null;
   limiteExtracoes: number | null;
+  limitePlaces: number | null;
+  limiteInstagram: number | null;
+  limiteLinkedin: number | null;
   usadoDisparos: number;
   usadoConexoes: number;
   usadoContatos: number;
   usadoListas: number;
   usadoExtracoes: number;
+  usadoPlaces: number;
+  usadoInstagram: number;
+  usadoLinkedin: number;
   dataValidade: string | null;
 }
 
@@ -72,27 +78,32 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 const isUnlimitedValue = (value: number | null): boolean => {
-  if (value === null || value === 0) return true;
+  if (value === null) return true;
   return value > 999999999;
+};
+
+const hasNoAccess = (value: number | null): boolean => {
+  return value === 0;
 };
 
 const UsageBar = ({ label, used, limit, color = 'green' }: { label: string; used: number; limit: number | null; color?: 'green' | 'blue' }) => {
   const isUnlimited = isUnlimitedValue(limit);
-  const percentage = isUnlimited ? Math.min((used / 100) * 10, 100) : Math.min((used / (limit || 1)) * 100, 100);
+  const noAccess = hasNoAccess(limit);
+  const percentage = isUnlimited ? Math.min((used / 100) * 10, 100) : noAccess ? 0 : Math.min((used / (limit || 1)) * 100, 100);
   const colorClass = color === 'blue' ? 'bg-gradient-to-r from-blue-500 to-cyan-400' : 'bg-gradient-to-r from-emerald-500 to-green-400';
-  const textColor = color === 'blue' ? 'text-blue-400' : 'text-emerald-400';
+  const textColor = noAccess ? 'text-muted-foreground' : (color === 'blue' ? 'text-blue-400' : 'text-emerald-400');
   
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
         <span className={textColor + ' font-medium'}>
-          {used.toLocaleString('pt-BR')} / {isUnlimited ? 'Ilimitado' : limit?.toLocaleString('pt-BR')}
+          {noAccess ? 'Não incluso' : `${used.toLocaleString('pt-BR')} / ${isUnlimited ? 'Ilimitado' : limit?.toLocaleString('pt-BR')}`}
         </span>
       </div>
       <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
         <div 
-          className={cn("h-full rounded-full transition-all duration-500", colorClass)} 
+          className={cn("h-full rounded-full transition-all duration-500", noAccess ? 'bg-muted' : colorClass)} 
           style={{ width: `${isUnlimited ? 100 : percentage}%` }}
         />
       </div>
@@ -101,6 +112,7 @@ const UsageBar = ({ label, used, limit, color = 'green' }: { label: string; used
 };
 
 const formatLimit = (value: number | null): string => {
+  if (hasNoAccess(value)) return '0';
   if (isUnlimitedValue(value)) return 'ilimitado';
   return value?.toLocaleString('pt-BR') || '0';
 };
@@ -953,7 +965,16 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                         <UsageBar label="Conexões" used={disparadorPlan.usadoConexoes} limit={disparadorPlan.limiteConexoes} />
                         <UsageBar label="Contatos" used={disparadorPlan.usadoContatos} limit={disparadorPlan.limiteContatos} />
                         <UsageBar label="Listas" used={disparadorPlan.usadoListas} limit={disparadorPlan.limiteListas} />
-                        <UsageBar label="Consultas/Extrações" used={disparadorPlan.usadoExtracoes} limit={disparadorPlan.limiteExtracoes} />
+                      </div>
+                      
+                      {/* Extrações por canal */}
+                      <div className="pt-4 border-t border-border/30 space-y-3">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Consultas/Extrações por Canal</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                          <UsageBar label="📍 Google Places" used={disparadorPlan.usadoPlaces || 0} limit={disparadorPlan.limitePlaces} color="blue" />
+                          <UsageBar label="📸 Instagram" used={disparadorPlan.usadoInstagram || 0} limit={disparadorPlan.limiteInstagram} color="blue" />
+                          <UsageBar label="💼 LinkedIn" used={disparadorPlan.usadoLinkedin || 0} limit={disparadorPlan.limiteLinkedin} color="blue" />
+                        </div>
                       </div>
                     </div>
                   </>
