@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Instagram, Search, FileDown, Mail, Loader2, Phone, MapPin, Users, Sparkles } from 'lucide-react';
+import { Instagram, Search, FileDown, Mail, Loader2, Phone, MapPin, Users, Sparkles, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useExtractionHistory } from '@/hooks/useExtractionHistory';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 
 interface InstagramLead {
@@ -21,6 +24,7 @@ interface InstagramLead {
 
 const InstagramExtractor = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { addRecord } = useExtractionHistory();
   const [segment, setSegment] = useState('');
   const [location, setLocation] = useState('');
@@ -28,6 +32,45 @@ const InstagramExtractor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [leads, setLeads] = useState<InstagramLead[]>([]);
   const [searchedSegment, setSearchedSegment] = useState('');
+  const [planLimit, setPlanLimit] = useState<number | null>(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(true);
+
+  // Fetch plan limits
+  useEffect(() => {
+    const fetchPlanLimit = async () => {
+      const planIdToCheck = user?.planoId || user?.planoExtratorId;
+      
+      if (!planIdToCheck) {
+        setPlanLimit(0);
+        setIsLoadingPlan(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('SAAS_Planos')
+          .select('qntInstagram')
+          .eq('id', planIdToCheck)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching plan:', error);
+          setPlanLimit(0);
+        } else {
+          setPlanLimit(data?.qntInstagram ?? 0);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setPlanLimit(0);
+      } finally {
+        setIsLoadingPlan(false);
+      }
+    };
+
+    fetchPlanLimit();
+  }, [user?.planoId, user?.planoExtratorId]);
+
+  const hasInstagramQuota = planLimit !== null && planLimit > 0;
 
   const extractLeads = async () => {
     if (!segment.trim()) {
@@ -90,6 +133,19 @@ const InstagramExtractor = () => {
           <p className="text-muted-foreground text-xs sm:text-sm">Encontre perfis por segmento e nicho</p>
         </div>
 
+        {/* Plan limit alert */}
+        {!isLoadingPlan && !hasInstagramQuota && (
+          <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between w-full">
+              <span>Seu plano não inclui extrações do Instagram.</span>
+              <Link to="/contratar">
+                <Button variant="outline" size="sm" className="ml-4">Fazer Upgrade</Button>
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Search Card */}
           <Card className="opacity-0 animate-fade-in-up overflow-hidden" style={{ animationDelay: '100ms' }}>
@@ -140,7 +196,7 @@ const InstagramExtractor = () => {
               <Button 
                 onClick={extractLeads} 
                 className="w-full h-11 bg-gradient-instagram hover:opacity-90 shadow-lg shadow-pink-500/25 transition-all duration-300 hover:shadow-pink-500/40 hover:scale-[1.02]" 
-                disabled={isLoading}
+                disabled={isLoading || !hasInstagramQuota}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
                 {isLoading ? 'Buscando perfis...' : 'Iniciar Busca'}
