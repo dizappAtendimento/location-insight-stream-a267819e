@@ -507,7 +507,12 @@ export default function DisparosGrupoPage() {
                             : 'border-border/50 bg-muted/20 hover:border-primary/40'
                         }`}
                       >
-                        <span className="font-medium text-sm">{list.nome}</span>
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Users className="w-4 h-4 text-primary" />
+                          </div>
+                          <span className="font-medium text-sm">{list.nome}</span>
+                        </div>
                         {selectedLists.includes(list.id) && (
                           <CheckCircle className="w-5 h-5 text-primary" />
                         )}
@@ -576,7 +581,7 @@ export default function DisparosGrupoPage() {
                     {/* Media preview */}
                     {msg.media && (
                       <div className="flex items-center justify-between p-2 rounded bg-primary/10 border border-primary/20">
-                        <span className="text-sm">📎 {msg.media.filename} ({msg.media.type})</span>
+                        <span className="text-sm flex items-center gap-1"><FileText className="w-3 h-3" /> {msg.media.filename} ({msg.media.type})</span>
                         <Button
                           variant="ghost"
                           size="sm"
