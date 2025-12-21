@@ -36,13 +36,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Plus, Users, MessageSquare, Pencil, Trash2, List, Search, Loader2, Eye, Download } from "lucide-react";
+import { RefreshCw, Plus, Users, MessageSquare, Pencil, Trash2, List, Search, Loader2, Eye, Download, Upload, FileSpreadsheet } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useRef } from "react";
 
 interface Lista {
   id: number;
@@ -82,6 +83,9 @@ const ListasPage = () => {
   const [saving, setSaving] = useState(false);
   const [listaCounts, setListaCounts] = useState<Record<number, number>>({});
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [uploadingId, setUploadingId] = useState<number | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetList, setUploadTargetList] = useState<Lista | null>(null);
 
   const fetchListas = async () => {
     if (!user?.id) return;
@@ -160,6 +164,133 @@ const ListasPage = () => {
       toast.error('Erro ao baixar Excel');
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleUploadClick = (lista: Lista) => {
+    if (lista.tipo !== 'contatos' && lista.tipo !== 'contacts') {
+      toast.error('Upload só é permitido para listas de contatos');
+      return;
+    }
+    setUploadTargetList(lista);
+    uploadInputRef.current?.click();
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !uploadTargetList || !user?.id) {
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
+      return;
+    }
+
+    setUploadingId(uploadTargetList.id);
+    
+    try {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+          
+          if (jsonData.length < 2) {
+            toast.error('Arquivo vazio ou sem dados');
+            return;
+          }
+
+          // Get header row and find nome/telefone columns
+          const headers = (jsonData[0] as string[]).map((h: string) => h?.toString()?.toLowerCase()?.trim());
+          
+          let nomeIdx = headers.findIndex((h: string) => h === 'nome' || h === 'name');
+          let telefoneIdx = headers.findIndex((h: string) => 
+            h === 'telefone' || h === 'numero' || h === 'número' || h === 'phone' || h === 'celular' || h === 'whatsapp'
+          );
+
+          // If no headers found, assume first column is nome, second is telefone
+          if (nomeIdx === -1 && telefoneIdx === -1) {
+            nomeIdx = 0;
+            telefoneIdx = 1;
+          } else if (nomeIdx === -1) {
+            nomeIdx = telefoneIdx === 0 ? 1 : 0;
+          } else if (telefoneIdx === -1) {
+            telefoneIdx = nomeIdx === 0 ? 1 : 0;
+          }
+
+          const contacts: { nome: string; telefone: string }[] = [];
+          
+          // Start from row 1 (skip header)
+          for (let i = 1; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (!row || row.length === 0) continue;
+            
+            const nome = row[nomeIdx]?.toString()?.trim() || '';
+            let telefone = row[telefoneIdx]?.toString()?.trim() || '';
+            
+            // Clean phone number - remove non-digits
+            telefone = telefone.replace(/\D/g, '');
+            
+            // Skip if no phone
+            if (!telefone) continue;
+            
+            // Add country code if needed
+            if (telefone.length === 10 || telefone.length === 11) {
+              telefone = '55' + telefone;
+            }
+            
+            contacts.push({ nome, telefone });
+          }
+
+          if (contacts.length === 0) {
+            toast.error('Nenhum contato válido encontrado no arquivo');
+            return;
+          }
+
+          // Send to API
+          const { data: result, error } = await supabase.functions.invoke('disparos-api', {
+            body: {
+              action: 'import-contatos',
+              userId: user.id,
+              disparoData: {
+                idLista: uploadTargetList.id,
+                contatos: contacts
+              }
+            }
+          });
+
+          if (error) throw error;
+
+          const imported = result?.imported || contacts.length;
+          toast.success(`${imported} contatos importados com sucesso!`);
+          fetchListas(); // Refresh to update counts
+          
+        } catch (error: any) {
+          console.error('Error processing file:', error);
+          toast.error(error.message || 'Erro ao processar arquivo');
+        } finally {
+          setUploadingId(null);
+          setUploadTargetList(null);
+          if (uploadInputRef.current) uploadInputRef.current.value = '';
+        }
+      };
+
+      reader.onerror = () => {
+        toast.error('Erro ao ler arquivo');
+        setUploadingId(null);
+        setUploadTargetList(null);
+        if (uploadInputRef.current) uploadInputRef.current.value = '';
+      };
+
+      reader.readAsBinaryString(file);
+      
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      toast.error('Erro ao fazer upload do arquivo');
+      setUploadingId(null);
+      setUploadTargetList(null);
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
     }
   };
 
@@ -330,6 +461,15 @@ const ListasPage = () => {
 
   return (
     <DashboardLayout>
+      {/* Hidden file input for Excel upload */}
+      <input
+        type="file"
+        ref={uploadInputRef}
+        onChange={handleFileUpload}
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+      />
+      
       <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
@@ -554,6 +694,22 @@ const ListasPage = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            {(lista.tipo === 'contatos' || lista.tipo === 'contacts') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleUploadClick(lista)}
+                                disabled={uploadingId === lista.id}
+                                className="hover:text-blue-500 hover:bg-blue-500/10"
+                                title="Importar Excel"
+                              >
+                                {uploadingId === lista.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Upload className="w-4 h-4" />
+                                )}
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
