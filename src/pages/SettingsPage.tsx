@@ -1035,14 +1035,20 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                             </div>
                           </div>
                           
-                          <Button 
-                            onClick={() => handleSelectPlan(plan)}
-                            className={`w-full gap-2 bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white shadow-lg text-sm`}
-                            size="sm"
-                          >
-                            <QrCode className="w-4 h-4" />
-                            Pagar com PIX
-                          </Button>
+                          {(plan.preco || 0) >= 5 ? (
+                            <Button 
+                              onClick={() => handleSelectPlan(plan)}
+                              className={`w-full gap-2 bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white shadow-lg text-sm`}
+                              size="sm"
+                            >
+                              <QrCode className="w-4 h-4" />
+                              Pagar com PIX
+                            </Button>
+                          ) : (
+                            <p className="text-xs text-center text-muted-foreground">
+                              Plano gratuito ou promocional
+                            </p>
+                          )}
                         </CardContent>
                       </Card>
                     );
