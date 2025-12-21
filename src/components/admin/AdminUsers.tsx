@@ -568,8 +568,8 @@ export function AdminUsers() {
             <TableHeader>
               <TableRow className="hover:bg-transparent border-border/30 bg-muted/30">
                 <TableHead className="w-[280px] text-xs font-semibold uppercase tracking-wider">Usuário</TableHead>
-                <TableHead className="w-[220px] text-center text-xs font-semibold uppercase tracking-wider">Plano Disparador</TableHead>
-                <TableHead className="w-[220px] text-center text-xs font-semibold uppercase tracking-wider">Plano Extrator</TableHead>
+                <TableHead className="w-[200px] text-center text-xs font-semibold uppercase tracking-wider">Plano</TableHead>
+                <TableHead className="w-[120px] text-center text-xs font-semibold uppercase tracking-wider">Consultas</TableHead>
                 <TableHead className="w-[100px] text-right text-xs font-semibold uppercase tracking-wider">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -620,7 +620,7 @@ export function AdminUsers() {
                     </div>
                   </TableCell>
                   
-                  {/* Disparador Plan */}
+                  {/* Plano */}
                   <TableCell className="py-3">
                     <div className="flex flex-col items-center gap-1.5 min-w-[120px]">
                       <div className="flex items-center justify-center gap-2 w-full">
@@ -645,28 +645,13 @@ export function AdminUsers() {
                     </div>
                   </TableCell>
                   
-                  {/* Extrator Plan */}
-                  <TableCell className="py-3">
-                    <div className="flex flex-col items-center gap-1.5 min-w-[120px]">
-                      <div className="flex items-center justify-center gap-2 w-full">
-                        <div className="w-[70px] flex justify-end">
-                          {user.plano_extrator_nome ? (
-                            <Badge className={`text-[10px] font-semibold px-2.5 py-0.5 ${getPlanBadgeStyle(user.plano_extrator_nome, !!user.status_ex)}`}>
-                              {user.plano_extrator_nome}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </div>
-                        <Switch
-                          checked={!!user.status_ex}
-                          onCheckedChange={() => handleToggleStatus(user.id, 'extrator')}
-                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-muted-foreground/30 scale-[0.8]"
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-medium h-4">
-                        {user.dataValidade_extrator ? format(new Date(user.dataValidade_extrator), 'dd/MM/yyyy') : ''}
-                      </p>
+                  {/* Consultas */}
+                  <TableCell className="py-3 text-center">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-sm font-semibold text-foreground">
+                        {user.total_disparos || 0}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">realizadas</span>
                     </div>
                   </TableCell>
                   
