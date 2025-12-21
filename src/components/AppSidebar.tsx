@@ -10,9 +10,8 @@ import {
   Flame,
   Instagram,
   Linkedin,
-  MapPin,
+  Navigation,
   Settings,
-  MessageCircle,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,7 +72,7 @@ const extractorItems = [
   { 
     title: 'Google Places', 
     url: '/places', 
-    icon: MapPin, 
+    icon: Navigation,
     ringColor: 'ring-cyan-500',
     iconColor: 'text-cyan-500',
     hoverRing: 'group-hover/link:ring-cyan-400',
