@@ -261,6 +261,12 @@ serve(async (req) => {
         });
         result = await response.json();
         console.log(`[Evolution API] Fetched contacts for ${instanceName}: ${Array.isArray(result) ? result.length : 0}`);
+        
+        // Log sample contact para debug
+        if (Array.isArray(result) && result.length > 0) {
+          console.log(`[Evolution API] Sample contact structure:`, JSON.stringify(result[0]));
+        }
+        
         return new Response(
           JSON.stringify({ contacts: result || [] }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
