@@ -26,7 +26,9 @@ export function AdminSuperAdmins() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newAdminName, setNewAdminName] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [firstAdminId, setFirstAdminId] = useState<string | null>(null);
 
@@ -61,8 +63,20 @@ export function AdminSuperAdmins() {
   }, []);
 
   const handleAddAdmin = async () => {
+    if (!newAdminName.trim()) {
+      toast.error('Digite o nome do administrador');
+      return;
+    }
     if (!newAdminEmail.trim()) {
-      toast.error('Digite o email do usuário');
+      toast.error('Digite o email do administrador');
+      return;
+    }
+    if (!newAdminPassword.trim()) {
+      toast.error('Digite a senha do administrador');
+      return;
+    }
+    if (newAdminPassword.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
@@ -71,7 +85,9 @@ export function AdminSuperAdmins() {
       const { data, error } = await supabase.functions.invoke('admin-api', {
         body: { 
           action: 'add-admin',
-          email: newAdminEmail.trim()
+          nome: newAdminName.trim(),
+          email: newAdminEmail.trim(),
+          senha: newAdminPassword
         }
       });
 
@@ -83,7 +99,9 @@ export function AdminSuperAdmins() {
       }
 
       toast.success('Administrador adicionado com sucesso!');
+      setNewAdminName('');
       setNewAdminEmail('');
+      setNewAdminPassword('');
       setIsAddDialogOpen(false);
       fetchAdmins();
     } catch (err) {
@@ -168,18 +186,38 @@ export function AdminSuperAdmins() {
               <DialogHeader>
                 <DialogTitle>Adicionar Super Admin</DialogTitle>
                 <DialogDescription>
-                  Digite o email de um usuário já cadastrado na plataforma para conceder acesso administrativo.
+                  Preencha os dados para criar um novo administrador.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email do usuário</Label>
+                  <Label htmlFor="name">Nome</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Nome do administrador"
+                    value={newAdminName}
+                    onChange={(e) => setNewAdminName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="usuario@exemplo.com"
+                    placeholder="admin@exemplo.com"
                     value={newAdminEmail}
                     onChange={(e) => setNewAdminEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={newAdminPassword}
+                    onChange={(e) => setNewAdminPassword(e.target.value)}
                   />
                 </div>
               </div>
