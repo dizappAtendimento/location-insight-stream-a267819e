@@ -859,7 +859,7 @@ const CrmPage = () => {
                               </p>
                               <p className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Phone className="w-3 h-3" />
-                                {lead.telefone?.slice(-8) || '-'}
+                                {lead.telefone || '-'}
                               </p>
                             </div>
                           </div>
