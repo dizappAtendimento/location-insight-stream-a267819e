@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -103,6 +103,8 @@ const SettingsPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'perfil';
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -368,7 +370,7 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
           <p className="text-xs text-muted-foreground mt-1">Gerencie seu perfil, preferências e integrações</p>
         </div>
 
-        <Tabs defaultValue="perfil" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="w-full flex mb-6 p-1 bg-muted/50 rounded-xl border border-border/30">
             <TabsTrigger value="perfil" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <User className="w-3.5 h-3.5" />

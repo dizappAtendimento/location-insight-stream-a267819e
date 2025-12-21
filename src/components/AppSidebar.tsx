@@ -58,7 +58,7 @@ const extractorItems = [
   { title: 'Google Places', url: '/places', icon: MapPin, colorClass: 'text-places' },
   { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, colorClass: 'text-whatsapp' },
   { title: 'Suporte', url: 'https://api.whatsapp.com/send/?phone=5561992557146&text&type=phone_number&app_absent=0', icon: Headphones, colorClass: 'text-emerald-400', external: true },
-  { title: 'Planos', url: '/configuracoes', icon: CreditCard, colorClass: 'text-amber-400' },
+  { title: 'Planos', url: '/configuracoes?tab=planos', icon: CreditCard, colorClass: 'text-amber-400' },
 ];
 
 const systemItems = [
