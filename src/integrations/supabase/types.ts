@@ -191,10 +191,12 @@ export type Database = {
           created_at: string
           id: number
           idColuna: number
+          idLista: number | null
           idUsuario: string
           instanceName: string | null
           mensagem: string | null
           nome: string | null
+          nomeLista: string | null
           telefone: string | null
           updated_at: string
           valor: number | null
@@ -203,10 +205,12 @@ export type Database = {
           created_at?: string
           id?: number
           idColuna: number
+          idLista?: number | null
           idUsuario: string
           instanceName?: string | null
           mensagem?: string | null
           nome?: string | null
+          nomeLista?: string | null
           telefone?: string | null
           updated_at?: string
           valor?: number | null
@@ -215,10 +219,12 @@ export type Database = {
           created_at?: string
           id?: number
           idColuna?: number
+          idLista?: number | null
           idUsuario?: string
           instanceName?: string | null
           mensagem?: string | null
           nome?: string | null
+          nomeLista?: string | null
           telefone?: string | null
           updated_at?: string
           valor?: number | null
