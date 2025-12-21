@@ -97,10 +97,17 @@ const HistoricoPage = () => {
   };
 
   const typeColors: Record<string, string> = {
-    instagram: 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/30',
-    linkedin: 'bg-[#0A66C2] shadow-lg shadow-[#0A66C2]/30',
-    places: 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/30',
-    'whatsapp-groups': 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/30',
+    instagram: 'bg-pink-500/10 border border-pink-500/30',
+    linkedin: 'bg-blue-500/10 border border-blue-500/30',
+    places: 'bg-emerald-500/10 border border-emerald-500/30',
+    'whatsapp-groups': 'bg-emerald-500/10 border border-emerald-500/30',
+  };
+
+  const typeIconColors: Record<string, string> = {
+    instagram: 'text-pink-500',
+    linkedin: 'text-blue-500',
+    places: 'text-emerald-500',
+    'whatsapp-groups': 'text-emerald-500',
   };
 
   const typeBadgeColors: Record<string, string> = {
@@ -651,7 +658,7 @@ const HistoricoPage = () => {
                         >
                           <div className="flex items-center gap-4">
                             <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', typeColors[record.type])}>
-                              <TypeIcon className="w-6 h-6 text-white" />
+                              <TypeIcon className={cn('w-6 h-6', typeIconColors[record.type])} />
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
