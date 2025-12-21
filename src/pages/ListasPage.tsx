@@ -1644,7 +1644,7 @@ const ListasPage = () => {
                   Cancelar
                 </Button>
                 <Button
-                  className="flex-1 bg-primary hover:bg-primary/90"
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={handleImportFromSource}
                   disabled={importingExtraction || (selectedJobIds.length === 0 && selectedListaIds.length === 0 && selectedGrupoListaIds.length === 0 && selectedBatePapoIds.length === 0) || !newExtractionListName.trim() || (validateWhatsAppExtraction && !selectedConnectionId)}
                 >
