@@ -127,7 +127,7 @@ const LinkedInExtractor = () => {
     
     try {
       const { data, error } = await supabase.functions.invoke('search-linkedin', {
-        body: { segment: segment.trim(), location: location.trim(), maxResults: parseInt(maxResults) }
+        body: { segment: segment.trim(), location: location.trim(), maxResults: parseInt(maxResults), userId: user?.id }
       });
 
       if (error) throw new Error(error.message);
