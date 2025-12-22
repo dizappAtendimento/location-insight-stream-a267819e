@@ -84,6 +84,33 @@ const InstagramExtractor = () => {
     fetchPlanData();
   }, [user?.id]);
 
+  // Function to refresh plan data
+  const refreshPlanData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { action: 'get-user-plan-usage', userId: user.id }
+      });
+
+      if (error) return;
+
+      let limit = 0;
+      if (data?.disparador?.limiteInstagram && data.disparador.limiteInstagram > 0) {
+        limit = data.disparador.limiteInstagram;
+      } else if (data?.extrator?.limiteInstagram && data.extrator.limiteInstagram > 0) {
+        limit = data.extrator.limiteInstagram;
+      }
+
+      const used = data?.disparador?.usadoInstagram || data?.extrator?.usadoInstagram || 0;
+
+      setPlanLimit(limit);
+      setUsedCount(used);
+    } catch (err) {
+      console.error('Error refreshing plan:', err);
+    }
+  };
+
   // Allow extraction if limit > 0 AND used < limit
   const hasInstagramQuota = planLimit !== null && planLimit > 0 && usedCount < planLimit;
 
@@ -116,6 +143,10 @@ const InstagramExtractor = () => {
           bio: p.bioLink || undefined,
         })),
       });
+      
+      // Refresh plan data after extraction completes
+      refreshPlanData();
+      
       toast({ title: "Extração concluída", description: `${profiles.length} perfis encontrados` });
     } catch (error) {
       toast({ title: "Erro na extração", description: error instanceof Error ? error.message : "Erro", variant: "destructive" });

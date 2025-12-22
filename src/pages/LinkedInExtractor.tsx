@@ -86,6 +86,33 @@ const LinkedInExtractor = () => {
     fetchPlanData();
   }, [user?.id]);
 
+  // Function to refresh plan data
+  const refreshPlanData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { action: 'get-user-plan-usage', userId: user.id }
+      });
+
+      if (error) return;
+
+      let limit = 0;
+      if (data?.disparador?.limiteLinkedin && data.disparador.limiteLinkedin > 0) {
+        limit = data.disparador.limiteLinkedin;
+      } else if (data?.extrator?.limiteLinkedin && data.extrator.limiteLinkedin > 0) {
+        limit = data.extrator.limiteLinkedin;
+      }
+
+      const used = data?.disparador?.usadoLinkedin || data?.extrator?.usadoLinkedin || 0;
+
+      setPlanLimit(limit);
+      setUsedCount(used);
+    } catch (err) {
+      console.error('Error refreshing plan:', err);
+    }
+  };
+
   // Allow extraction if limit > 0 AND used < limit
   const hasLinkedinQuota = planLimit !== null && planLimit > 0 && usedCount < planLimit;
 
@@ -126,6 +153,9 @@ const LinkedInExtractor = () => {
           link: p.profileLink,
         })),
       });
+      
+      // Refresh plan data after extraction completes
+      refreshPlanData();
       
       toast({ title: "Extração concluída", description: `${profiles.length} perfis encontrados` });
     } catch (error) {

@@ -148,6 +148,7 @@ const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'perfil';
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -196,24 +197,25 @@ const SettingsPage = () => {
     }
   }, [user]);
 
+  const fetchPlanUsage = async () => {
+    if (!user?.id) return;
+    setLoadingPlans(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { action: 'get-user-plan-usage', userId: user.id }
+      });
+      if (error) throw error;
+      if (data?.disparador) setDisparadorPlan(data.disparador);
+      if (data?.extrator) setExtratorPlan(data.extrator);
+      if (data?.apiKey !== undefined) setUserApiKey(data.apiKey);
+    } catch (error) {
+      console.error('Error fetching plan usage:', error);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPlanUsage = async () => {
-      if (!user?.id) return;
-      setLoadingPlans(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('admin-api', {
-          body: { action: 'get-user-plan-usage', userId: user.id }
-        });
-        if (error) throw error;
-        if (data?.disparador) setDisparadorPlan(data.disparador);
-        if (data?.extrator) setExtratorPlan(data.extrator);
-        if (data?.apiKey !== undefined) setUserApiKey(data.apiKey);
-      } catch (error) {
-        console.error('Error fetching plan usage:', error);
-      } finally {
-        setLoadingPlans(false);
-      }
-    };
     fetchPlanUsage();
   }, [user]);
 
@@ -621,7 +623,12 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
           <p className="text-xs text-muted-foreground mt-1">Gerencie seu perfil, preferências e integrações</p>
         </div>
 
-        <Tabs defaultValue={defaultTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={(value) => {
+          setActiveTab(value);
+          if (value === 'planos') {
+            fetchPlanUsage();
+          }
+        }} className="w-full">
           <TabsList className="w-full flex mb-6 p-1 bg-muted/50 rounded-xl border border-border/30">
             <TabsTrigger value="perfil" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
               <User className="w-3.5 h-3.5" />
