@@ -270,13 +270,12 @@ export default function ContratarPage() {
         throw new Error(data?.error || 'Erro ao ativar plano');
       }
 
-      toast.success('Pagamento confirmado! Seu plano foi ativado.');
+      toast.success('Pagamento confirmado! Redirecionando...');
       
-      // Redirecionar para dashboard após 2 segundos
+      // Redirecionar para dashboard imediatamente
       setTimeout(() => {
-        navigate('/dashboard');
-        window.location.reload();
-      }, 2000);
+        window.location.href = '/dashboard';
+      }, 1500);
 
     } catch (err: any) {
       console.error('Error activating plan:', err);

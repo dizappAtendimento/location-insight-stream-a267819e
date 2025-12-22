@@ -177,7 +177,7 @@ export function PlanExpirationAlert() {
   };
 
   const activatePlan = async () => {
-    if (!currentPlan || !user) return;
+    if (!currentPlan || !user || !paymentData) return;
 
     try {
       const { error } = await supabase.functions.invoke('asaas-api', {
@@ -185,17 +185,17 @@ export function PlanExpirationAlert() {
           action: 'activate-plan',
           userId: user.id,
           planId: currentPlan.id,
-          planType: currentPlan.tipo
+          paymentId: paymentData.paymentId
         }
       });
 
       if (error) throw error;
 
-      toast.success('Plano renovado com sucesso!');
+      toast.success('Plano renovado com sucesso! Redirecionando...');
       
       setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+        window.location.href = '/dashboard';
+      }, 1500);
     } catch (error) {
       console.error('Error activating plan:', error);
       toast.error('Erro ao ativar plano');
