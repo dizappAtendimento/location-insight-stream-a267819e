@@ -38,7 +38,7 @@ const LinkedInExtractor = () => {
   const [usedCount, setUsedCount] = useState<number>(0);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
-  // Fetch plan limits and usage - check both regular plan and extrator plan
+  // Fetch plan limits and usage - query database directly
   useEffect(() => {
     const fetchPlanData = async () => {
       if (!user?.id) {
@@ -49,14 +49,21 @@ const LinkedInExtractor = () => {
       }
 
       try {
+        // First get user's plan IDs from database (not from cached context)
+        const { data: userData } = await supabase
+          .from('SAAS_Usuarios')
+          .select('plano, plano_extrator')
+          .eq('id', user.id)
+          .maybeSingle();
+
         let limit = 0;
 
         // Check regular plan first
-        if (user?.planoId) {
+        if (userData?.plano) {
           const { data } = await supabase
             .from('SAAS_Planos')
             .select('qntLinkedin')
-            .eq('id', user.planoId)
+            .eq('id', userData.plano)
             .maybeSingle();
           
           if (data?.qntLinkedin && data.qntLinkedin > 0) {
@@ -65,11 +72,11 @@ const LinkedInExtractor = () => {
         }
 
         // If no limit from regular plan, check extrator plan
-        if (limit === 0 && user?.planoExtratorId) {
+        if (limit === 0 && userData?.plano_extrator) {
           const { data } = await supabase
             .from('SAAS_Planos')
             .select('qntLinkedin')
-            .eq('id', user.planoExtratorId)
+            .eq('id', userData.plano_extrator)
             .maybeSingle();
           
           if (data?.qntLinkedin && data.qntLinkedin > 0) {
@@ -78,7 +85,6 @@ const LinkedInExtractor = () => {
         }
 
         // TODO: Get usage count when LinkedIn extraction tracking table exists
-        // For now, set to 0 (no tracking yet)
         setPlanLimit(limit);
         setUsedCount(0);
       } catch (err) {
@@ -91,7 +97,7 @@ const LinkedInExtractor = () => {
     };
 
     fetchPlanData();
-  }, [user?.id, user?.planoId, user?.planoExtratorId]);
+  }, [user?.id]);
 
   // Allow extraction if limit > 0 AND used < limit
   const hasLinkedinQuota = planLimit !== null && planLimit > 0 && usedCount < planLimit;
