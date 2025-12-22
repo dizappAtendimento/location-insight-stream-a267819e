@@ -148,12 +148,12 @@ serve(async (req) => {
 
       const { data: planInfo } = await supabase
         .from('SAAS_Planos')
-        .select('qntExtracoes')
+        .select('qntInstagram')
         .eq('id', userData.plano)
         .single();
 
-      const limiteExtracoes = planInfo?.qntExtracoes || 0;
-      const isUnlimited = limiteExtracoes === 0 || limiteExtracoes > 999999999;
+      const limiteInstagram = planInfo?.qntInstagram || 0;
+      const isUnlimited = limiteInstagram === 0 || limiteInstagram > 999999999;
 
       if (!isUnlimited) {
         const monthStart = new Date();
@@ -164,15 +164,16 @@ serve(async (req) => {
           .from('search_jobs')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
+          .eq('type', 'instagram')
           .gte('created_at', monthStart.toISOString());
 
-        if ((extracoesUsadas || 0) >= limiteExtracoes) {
+        if ((extracoesUsadas || 0) >= limiteInstagram) {
           return new Response(
             JSON.stringify({ 
-              error: `Limite de consultas atingido (${extracoesUsadas}/${limiteExtracoes} este mês). Faça upgrade do seu plano para continuar.`,
+              error: `Limite de consultas Instagram atingido (${extracoesUsadas}/${limiteInstagram} este mês). Faça upgrade do seu plano para continuar.`,
               limitReached: true,
               used: extracoesUsadas,
-              limit: limiteExtracoes
+              limit: limiteInstagram
             }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
