@@ -73,16 +73,31 @@ serve(async (req: Request) => {
       );
     }
 
-    // Create new user (status false until admin activates)
+    // Buscar plano Trial para novos usuários
+    const { data: trialPlan } = await supabase
+      .from("SAAS_Planos")
+      .select("id, diasValidade")
+      .eq("nome", "Trial")
+      .eq("tipo", "disparador")
+      .single();
+
+    // Calcular data de validade (3 dias a partir de agora)
+    const dataValidade = trialPlan?.diasValidade 
+      ? new Date(Date.now() + trialPlan.diasValidade * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      : null;
+
+    // Create new user with Trial plan
     const { data: newUser, error: insertError } = await supabase
       .from("SAAS_Usuarios")
       .insert({
         nome: nome.trim(),
         Email: email.toLowerCase().trim(),
         telefone: telefone?.trim() || null,
-        senha: password, // In production, this should be hashed
-        status: false, // User needs to be activated by admin
+        senha: password,
+        status: trialPlan ? true : false, // Ativo se tiver plano Trial
         "Status Ex": false,
+        plano: trialPlan?.id || null,
+        dataValidade: dataValidade,
       })
       .select("id, nome, Email, telefone")
       .single();
@@ -98,7 +113,9 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Cadastro realizado com sucesso! Aguarde a ativação da sua conta.",
+        message: trialPlan 
+          ? "Cadastro realizado! Você tem acesso ao plano Trial por 3 dias."
+          : "Cadastro realizado com sucesso! Aguarde a ativação da sua conta.",
         user: newUser 
       }),
       { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
