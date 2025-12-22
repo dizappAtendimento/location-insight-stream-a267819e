@@ -622,6 +622,30 @@ serve(async (req) => {
             .eq('user_id', userId)
             .gte('created_at', monthStart.toISOString());
 
+          // Count Places extractions
+          const { count: placesCount } = await supabase
+            .from('search_jobs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('type', 'places')
+            .gte('created_at', monthStart.toISOString());
+
+          // Count Instagram extractions
+          const { count: instagramCount } = await supabase
+            .from('search_jobs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('type', 'instagram')
+            .gte('created_at', monthStart.toISOString());
+
+          // Count LinkedIn extractions
+          const { count: linkedinCount } = await supabase
+            .from('search_jobs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('type', 'linkedin')
+            .gte('created_at', monthStart.toISOString());
+
           disparadorData = {
             planoNome: planInfo?.nome || null,
             limiteDisparos: planInfo?.qntDisparos || null,
@@ -637,9 +661,9 @@ serve(async (req) => {
             usadoContatos: contatosCount || 0,
             usadoListas: listasCount || 0,
             usadoExtracoes: extracoesCount || 0,
-            usadoPlaces: 0,
-            usadoInstagram: 0,
-            usadoLinkedin: 0,
+            usadoPlaces: placesCount || 0,
+            usadoInstagram: instagramCount || 0,
+            usadoLinkedin: linkedinCount || 0,
             dataValidade: userData.dataValidade || null,
           };
         }
@@ -652,7 +676,7 @@ serve(async (req) => {
             .eq('id', userData.plano_extrator)
             .single();
 
-          // Get extraction counts this month
+          // Get extraction counts this month by type
           const monthStart = new Date();
           monthStart.setDate(1);
           monthStart.setHours(0, 0, 0, 0);
@@ -661,6 +685,21 @@ serve(async (req) => {
             .from('search_jobs')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
+            .eq('type', 'places')
+            .gte('created_at', monthStart.toISOString());
+
+          const { count: instagramCount } = await supabase
+            .from('search_jobs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('type', 'instagram')
+            .gte('created_at', monthStart.toISOString());
+
+          const { count: linkedinCount } = await supabase
+            .from('search_jobs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('type', 'linkedin')
             .gte('created_at', monthStart.toISOString());
 
           extratorData = {
@@ -669,8 +708,8 @@ serve(async (req) => {
             limiteInstagram: planInfo?.qntInstagram || null,
             limiteLinkedin: planInfo?.qntLinkedin || null,
             usadoPlaces: placesCount || 0,
-            usadoInstagram: 0, // TODO: Add when Instagram extraction table exists
-            usadoLinkedin: 0,  // TODO: Add when LinkedIn extraction table exists
+            usadoInstagram: instagramCount || 0,
+            usadoLinkedin: linkedinCount || 0,
             dataValidade: userData.dataValidade_extrator || null,
           };
         }

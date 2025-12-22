@@ -123,7 +123,7 @@ const InstagramExtractor = () => {
     setSearchedSegment(segment);
     try {
       const { data, error } = await supabase.functions.invoke('search-instagram', {
-        body: { segment: segment.trim(), location: location.trim(), maxResults: parseInt(maxResults) }
+        body: { segment: segment.trim(), location: location.trim(), maxResults: parseInt(maxResults), userId: user?.id }
       });
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);

@@ -273,6 +273,29 @@ serve(async (req) => {
     const profiles = Array.from(allProfiles.values()).slice(0, maxResults);
     console.log(`Returning ${profiles.length} unique profiles for segment: ${segment}`);
 
+    // ==== SAVE EXTRACTION TO DATABASE ====
+    if (userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && profiles.length > 0) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      try {
+        await supabase.from('search_jobs').insert({
+          user_id: userId,
+          query: segment,
+          location: location || null,
+          max_results: maxResults,
+          status: 'completed',
+          type: 'instagram',
+          total_found: profiles.length,
+          results: profiles,
+          completed_at: new Date().toISOString(),
+          session_id: `instagram_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        });
+        console.log(`[search-instagram] Saved extraction to database for user ${userId}`);
+      } catch (dbError) {
+        console.error('[search-instagram] Error saving to database:', dbError);
+      }
+    }
+    // ==== END SAVE ====
+
     return new Response(
       JSON.stringify({ 
         profiles,
