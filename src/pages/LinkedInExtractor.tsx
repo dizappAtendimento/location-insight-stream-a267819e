@@ -38,7 +38,7 @@ const LinkedInExtractor = () => {
   const [usedCount, setUsedCount] = useState<number>(0);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
-  // Fetch plan limits and usage - query database directly
+  // Fetch plan limits via admin-api (bypasses RLS)
   useEffect(() => {
     const fetchPlanData = async () => {
       if (!user?.id) {
@@ -49,44 +49,31 @@ const LinkedInExtractor = () => {
       }
 
       try {
-        // First get user's plan IDs from database (not from cached context)
-        const { data: userData } = await supabase
-          .from('SAAS_Usuarios')
-          .select('plano, plano_extrator')
-          .eq('id', user.id)
-          .maybeSingle();
+        const { data, error } = await supabase.functions.invoke('admin-api', {
+          body: { action: 'get-user-plan-usage', userId: user.id }
+        });
 
+        if (error) {
+          console.error('Error fetching plan:', error);
+          setPlanLimit(0);
+          setUsedCount(0);
+          setIsLoadingPlan(false);
+          return;
+        }
+
+        // Get limit from disparador or extrator plan
         let limit = 0;
-
-        // Check regular plan first
-        if (userData?.plano) {
-          const { data } = await supabase
-            .from('SAAS_Planos')
-            .select('qntLinkedin')
-            .eq('id', userData.plano)
-            .maybeSingle();
-          
-          if (data?.qntLinkedin && data.qntLinkedin > 0) {
-            limit = data.qntLinkedin;
-          }
+        if (data?.disparador?.limiteLinkedin && data.disparador.limiteLinkedin > 0) {
+          limit = data.disparador.limiteLinkedin;
+        } else if (data?.extrator?.limiteLinkedin && data.extrator.limiteLinkedin > 0) {
+          limit = data.extrator.limiteLinkedin;
         }
 
-        // If no limit from regular plan, check extrator plan
-        if (limit === 0 && userData?.plano_extrator) {
-          const { data } = await supabase
-            .from('SAAS_Planos')
-            .select('qntLinkedin')
-            .eq('id', userData.plano_extrator)
-            .maybeSingle();
-          
-          if (data?.qntLinkedin && data.qntLinkedin > 0) {
-            limit = data.qntLinkedin;
-          }
-        }
+        // Get used count from either plan
+        const used = data?.disparador?.usadoLinkedin || data?.extrator?.usadoLinkedin || 0;
 
-        // TODO: Get usage count when LinkedIn extraction tracking table exists
         setPlanLimit(limit);
-        setUsedCount(0);
+        setUsedCount(used);
       } catch (err) {
         console.error('Error:', err);
         setPlanLimit(0);
