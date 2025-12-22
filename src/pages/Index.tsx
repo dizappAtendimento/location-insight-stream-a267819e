@@ -83,6 +83,33 @@ const Index = () => {
     fetchPlanData();
   }, [user?.id]);
 
+  // Function to refresh plan data
+  const refreshPlanData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { action: 'get-user-plan-usage', userId: user.id }
+      });
+
+      if (error) return;
+
+      let limit = 0;
+      if (data?.disparador?.limitePlaces && data.disparador.limitePlaces > 0) {
+        limit = data.disparador.limitePlaces;
+      } else if (data?.extrator?.limitePlaces && data.extrator.limitePlaces > 0) {
+        limit = data.extrator.limitePlaces;
+      }
+
+      const used = data?.disparador?.usadoPlaces || data?.extrator?.usadoPlaces || 0;
+
+      setPlanLimit(limit);
+      setUsedCount(used);
+    } catch (err) {
+      console.error('Error refreshing plan:', err);
+    }
+  };
+
   // Track completed jobs in history
   useEffect(() => {
     if (activeJob && activeJob.status === 'completed' && activeJob.results.length > 0) {
@@ -106,9 +133,12 @@ const Index = () => {
             category: p.category || undefined,
           })),
         });
+        
+        // Refresh plan data after extraction completes
+        refreshPlanData();
       }
     }
-  }, [activeJob, addRecord]);
+  }, [activeJob, addRecord, user?.id]);
 
   const isJobActive = activeJob && (activeJob.status === 'running' || activeJob.status === 'pending');
   // Allow extraction if limit > 0 AND used < limit
