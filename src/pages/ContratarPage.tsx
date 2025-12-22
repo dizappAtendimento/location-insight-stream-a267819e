@@ -122,9 +122,21 @@ export default function ContratarPage() {
     }
   }, [user]);
 
-  // Check if user already has an active plan
+  // Check if user already has an active and non-expired plan
   useEffect(() => {
-    if (user && (user.statusDisparador || user.statusExtrator)) {
+    const isPlanExpired = (dataValidade: string | null): boolean => {
+      if (!dataValidade) return true;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expirationDate = new Date(dataValidade);
+      expirationDate.setHours(0, 0, 0, 0);
+      return today > expirationDate;
+    };
+
+    const hasActiveDisparador = user?.statusDisparador && !isPlanExpired(user.dataValidade);
+    const hasActiveExtrator = user?.statusExtrator && !isPlanExpired(user.dataValidadeExtrator);
+    
+    if (hasActiveDisparador || hasActiveExtrator) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -272,9 +284,12 @@ export default function ContratarPage() {
 
       toast.success('Pagamento confirmado! Redirecionando...');
       
-      // Redirecionar para dashboard imediatamente
+      // Limpar sessão e forçar novo login para atualizar dados do plano
+      // Isso garante que o usuário terá os dados atualizados do plano
+      localStorage.removeItem('saas_user');
+      
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/auth';
       }, 1500);
 
     } catch (err: any) {
