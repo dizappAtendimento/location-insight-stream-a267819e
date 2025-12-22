@@ -5,7 +5,7 @@ import {
   Pencil, X, Save, Camera, Loader2, Lock, Eye, EyeOff, CreditCard, Calendar,
   Key, Copy, Code, FileJson, ExternalLink, ChevronDown, Webhook, MessageSquare,
   Play, RotateCcw, ArrowDownToLine, ArrowUpFromLine, Plus, RefreshCw, ArrowRight, Zap,
-  QrCode, Star, CheckCircle2, Link2, List, Contact, Send
+  QrCode, Star, CheckCircle2, Link2, List, Contact, Send, MapPin, Instagram, Linkedin
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -1069,21 +1069,21 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                             {(plan.qntPlaces && plan.qntPlaces > 0) && (
                               <div className="flex items-center gap-2">
                                 <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                                <span className="w-3 h-3 text-green-500 text-[10px] font-bold">📍</span>
+                                <MapPin className="w-3 h-3 text-green-500" />
                                 <span><strong>{formatLimit(plan.qntPlaces)}</strong> Google Places</span>
                               </div>
                             )}
                             {(plan.qntInstagram && plan.qntInstagram > 0) && (
                               <div className="flex items-center gap-2">
                                 <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                                <span className="w-3 h-3 text-pink-500 text-[10px] font-bold">📸</span>
+                                <Instagram className="w-3 h-3 text-pink-500" />
                                 <span><strong>{formatLimit(plan.qntInstagram)}</strong> Instagram</span>
                               </div>
                             )}
                             {(plan.qntLinkedin && plan.qntLinkedin > 0) && (
                               <div className="flex items-center gap-2">
                                 <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                                <span className="w-3 h-3 text-blue-500 text-[10px] font-bold">💼</span>
+                                <Linkedin className="w-3 h-3 text-blue-500" />
                                 <span><strong>{formatLimit(plan.qntLinkedin)}</strong> LinkedIn</span>
                               </div>
                             )}
