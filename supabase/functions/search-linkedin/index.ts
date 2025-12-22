@@ -154,12 +154,12 @@ serve(async (req) => {
 
       const { data: planInfo } = await supabase
         .from('SAAS_Planos')
-        .select('qntExtracoes')
+        .select('qntLinkedin')
         .eq('id', userData.plano)
         .single();
 
-      const limiteExtracoes = planInfo?.qntExtracoes || 0;
-      const isUnlimited = limiteExtracoes === 0 || limiteExtracoes > 999999999;
+      const limiteLinkedin = planInfo?.qntLinkedin || 0;
+      const isUnlimited = limiteLinkedin === 0 || limiteLinkedin > 999999999;
 
       if (!isUnlimited) {
         const monthStart = new Date();
@@ -170,15 +170,16 @@ serve(async (req) => {
           .from('search_jobs')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
+          .eq('type', 'linkedin')
           .gte('created_at', monthStart.toISOString());
 
-        if ((extracoesUsadas || 0) >= limiteExtracoes) {
+        if ((extracoesUsadas || 0) >= limiteLinkedin) {
           return new Response(
             JSON.stringify({ 
-              error: `Limite de consultas atingido (${extracoesUsadas}/${limiteExtracoes} este mês). Faça upgrade do seu plano para continuar.`,
+              error: `Limite de consultas LinkedIn atingido (${extracoesUsadas}/${limiteLinkedin} este mês). Faça upgrade do seu plano para continuar.`,
               limitReached: true,
               used: extracoesUsadas,
-              limit: limiteExtracoes
+              limit: limiteLinkedin
             }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
