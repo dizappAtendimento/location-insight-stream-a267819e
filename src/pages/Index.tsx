@@ -35,7 +35,7 @@ const Index = () => {
   const [usedCount, setUsedCount] = useState<number>(0);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
-  // Fetch plan limits and usage - check both regular plan and extrator plan
+  // Fetch plan limits and usage - query database directly
   useEffect(() => {
     const fetchPlanData = async () => {
       if (!user?.id) {
@@ -46,14 +46,21 @@ const Index = () => {
       }
 
       try {
+        // First get user's plan IDs from database (not from cached context)
+        const { data: userData } = await supabase
+          .from('SAAS_Usuarios')
+          .select('plano, plano_extrator')
+          .eq('id', user.id)
+          .maybeSingle();
+
         let limit = 0;
 
         // Check regular plan first
-        if (user?.planoId) {
+        if (userData?.plano) {
           const { data } = await supabase
             .from('SAAS_Planos')
             .select('qntPlaces')
-            .eq('id', user.planoId)
+            .eq('id', userData.plano)
             .maybeSingle();
           
           if (data?.qntPlaces && data.qntPlaces > 0) {
@@ -62,11 +69,11 @@ const Index = () => {
         }
 
         // If no limit from regular plan, check extrator plan
-        if (limit === 0 && user?.planoExtratorId) {
+        if (limit === 0 && userData?.plano_extrator) {
           const { data } = await supabase
             .from('SAAS_Planos')
             .select('qntPlaces')
-            .eq('id', user.planoExtratorId)
+            .eq('id', userData.plano_extrator)
             .maybeSingle();
           
           if (data?.qntPlaces && data.qntPlaces > 0) {
@@ -97,7 +104,7 @@ const Index = () => {
     };
 
     fetchPlanData();
-  }, [user?.id, user?.planoId, user?.planoExtratorId]);
+  }, [user?.id]);
 
   // Track completed jobs in history
   useEffect(() => {
