@@ -405,12 +405,11 @@ const SettingsPage = () => {
         throw new Error(data?.error || 'Erro ao ativar plano');
       }
 
-      toast({ title: 'Pagamento confirmado!', description: 'Seu plano foi ativado.' });
+      toast({ title: 'Pagamento confirmado!', description: 'Redirecionando...' });
       
       setTimeout(() => {
-        setShowPaymentDialog(false);
-        window.location.reload();
-      }, 2000);
+        window.location.href = '/dashboard';
+      }, 1500);
 
     } catch (err: any) {
       console.error('Error activating plan:', err);
