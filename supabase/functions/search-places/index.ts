@@ -448,15 +448,15 @@ serve(async (req) => {
 
     const { data: planInfo } = await supabase
       .from('SAAS_Planos')
-      .select('qntExtracoes')
+      .select('qntPlaces')
       .eq('id', userData.plano)
       .single();
 
-    const limiteExtracoes = planInfo?.qntExtracoes || 0;
-    const isUnlimited = limiteExtracoes === 0 || limiteExtracoes > 999999999;
+    const limitePlaces = planInfo?.qntPlaces || 0;
+    const isUnlimited = limitePlaces === 0 || limitePlaces > 999999999;
 
     if (!isUnlimited) {
-      // Count extractions this month
+      // Count Places extractions this month
       const monthStart = new Date();
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
@@ -465,15 +465,16 @@ serve(async (req) => {
         .from('search_jobs')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
+        .eq('type', 'places')
         .gte('created_at', monthStart.toISOString());
 
-      if ((extracoesUsadas || 0) >= limiteExtracoes) {
+      if ((extracoesUsadas || 0) >= limitePlaces) {
         return new Response(
           JSON.stringify({ 
-            error: `Limite de consultas atingido (${extracoesUsadas}/${limiteExtracoes} este mês). Faça upgrade do seu plano para continuar.`,
+            error: `Limite de consultas Google Places atingido (${extracoesUsadas}/${limitePlaces} este mês). Faça upgrade do seu plano para continuar.`,
             limitReached: true,
             used: extracoesUsadas,
-            limit: limiteExtracoes
+            limit: limitePlaces
           }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -491,6 +492,7 @@ serve(async (req) => {
         location: location || null,
         max_results: maxResults,
         status: 'pending',
+        type: 'places',
         progress: { currentCity: 'Na fila...', percentage: 0 },
       })
       .select()
