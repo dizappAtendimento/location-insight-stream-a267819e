@@ -7,6 +7,16 @@ interface ProtectedRouteProps {
   requirePlan?: boolean;
 }
 
+// Função para verificar se o plano está expirado
+const isPlanExpired = (dataValidade: string | null): boolean => {
+  if (!dataValidade) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expirationDate = new Date(dataValidade);
+  expirationDate.setHours(0, 0, 0, 0);
+  return today > expirationDate;
+};
+
 export function ProtectedRoute({ children, requirePlan = true }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
@@ -23,11 +33,13 @@ export function ProtectedRoute({ children, requirePlan = true }: ProtectedRouteP
     return <Navigate to="/auth" replace />;
   }
 
-  // Check if user has any active plan
-  const hasActivePlan = user.statusDisparador || user.statusExtrator;
+  // Verificar se o usuário tem plano ativo E não expirado
+  const hasActiveDisparador = user.statusDisparador && !isPlanExpired(user.dataValidade);
+  const hasActiveExtrator = user.statusExtrator && !isPlanExpired(user.dataValidadeExtrator);
+  const hasActivePlan = hasActiveDisparador || hasActiveExtrator;
   
-  // If plan is required and user doesn't have one, redirect to contratar page
-  // But don't redirect if already on contratar page to avoid infinite loop
+  // Se plano é requerido e usuário não tem um ativo ou expirou, redirecionar para contratar
+  // Mas não redirecionar se já estiver na página de contratar
   if (requirePlan && !hasActivePlan && location.pathname !== '/contratar') {
     return <Navigate to="/contratar" replace />;
   }
