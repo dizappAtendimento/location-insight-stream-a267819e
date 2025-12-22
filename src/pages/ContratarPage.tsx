@@ -350,19 +350,13 @@ export default function ContratarPage() {
             ))}
           </div>
           
-          {(plan.preco || 0) >= 5 ? (
-            <Button 
-              onClick={() => handleSelectPlan(plan)}
-              className={`w-full gap-2 bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white shadow-lg`}
-            >
-              <QrCode className="w-4 h-4" />
-              Pagar com PIX
-            </Button>
-          ) : (
-            <p className="text-xs text-center text-zinc-500">
-              Plano gratuito ou promocional
-            </p>
-          )}
+          <Button 
+            onClick={() => handleSelectPlan(plan)}
+            className={`w-full gap-2 bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white shadow-lg`}
+          >
+            <QrCode className="w-4 h-4" />
+            Pagar com PIX
+          </Button>
         </CardContent>
       </Card>
     );
