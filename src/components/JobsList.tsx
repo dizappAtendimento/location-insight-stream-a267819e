@@ -126,15 +126,6 @@ export function JobsList({
                       </Button>
                     </div>
                   )}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 self-end"
-                    onClick={(e) => { e.stopPropagation(); onDeleteJob(job.id); }}
-                    title="Excluir busca"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
 

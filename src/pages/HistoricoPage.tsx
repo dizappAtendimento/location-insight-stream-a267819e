@@ -477,12 +477,6 @@ const HistoricoPage = () => {
                   Exportar
                 </Button>
               )}
-              {history.length > 0 && (
-                <Button variant="outline" size="sm" onClick={handleClearHistory} className="text-destructive hover:text-destructive">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Limpar
-                </Button>
-              )}
             </div>
 
             {/* Stats Cards */}
@@ -695,14 +689,6 @@ const HistoricoPage = () => {
                                 className="h-8 w-8 text-primary hover:text-primary"
                               >
                                 <FileSpreadsheet className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteRecord(record.id)}
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>
