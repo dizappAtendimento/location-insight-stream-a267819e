@@ -230,35 +230,94 @@ export default function AuthPage() {
     <div className="min-h-screen flex">
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-[#0d0f17] relative overflow-hidden flex-col justify-center px-12 xl:px-20">
-        {/* Diagonal lines background */}
-        <div className="absolute inset-0 opacity-20">
-          {[...Array(20)].map((_, i) => (
+        {/* Animated gradient orbs */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Large floating orb 1 */}
+          <div 
+            className="absolute w-[500px] h-[500px] rounded-full opacity-30"
+            style={{
+              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, transparent 70%)',
+              top: '10%',
+              left: '20%',
+              animation: 'float1 15s ease-in-out infinite',
+            }}
+          />
+          {/* Large floating orb 2 */}
+          <div 
+            className="absolute w-[400px] h-[400px] rounded-full opacity-25"
+            style={{
+              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.5) 0%, transparent 70%)',
+              bottom: '20%',
+              right: '10%',
+              animation: 'float2 18s ease-in-out infinite',
+            }}
+          />
+          {/* Small accent orb */}
+          <div 
+            className="absolute w-[200px] h-[200px] rounded-full opacity-40"
+            style={{
+              background: 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)',
+              top: '50%',
+              left: '60%',
+              animation: 'float3 12s ease-in-out infinite',
+            }}
+          />
+          {/* Pulse orb center */}
+          <div 
+            className="absolute w-[300px] h-[300px] rounded-full opacity-20"
+            style={{
+              background: 'radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, transparent 70%)',
+              top: '40%',
+              left: '30%',
+              animation: 'pulse-glow 4s ease-in-out infinite',
+            }}
+          />
+        </div>
+
+        {/* Animated diagonal lines */}
+        <div className="absolute inset-0 opacity-10">
+          {[...Array(12)].map((_, i) => (
             <div
               key={i}
-              className="absolute h-[1px] bg-gradient-to-r from-transparent via-highlight/30 to-transparent"
+              className="absolute h-[1px]"
               style={{
                 width: '200%',
-                top: `${i * 8}%`,
+                top: `${i * 10}%`,
                 left: '-50%',
                 transform: 'rotate(-15deg)',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(139, 92, 246, 0.5) 50%, transparent 100%)',
+                animation: `line-slide ${8 + i * 0.5}s linear infinite`,
+                animationDelay: `${i * 0.3}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Floating particles */}
+        <div className="absolute inset-0">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={`particle-${i}`}
+              className="absolute w-1 h-1 bg-highlight/40 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animation: `particle-float ${5 + Math.random() * 10}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 5}s`,
               }}
             />
           ))}
         </div>
         
-        {/* Glow effects */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-highlight/10 rounded-full filter blur-[100px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-highlight/5 rounded-full filter blur-[80px]" />
-        
         {/* Content */}
         <div className="relative z-10">
-          <img src={logo} alt="DizApp" className="h-10 w-auto mb-12" />
+          <img src={logo} alt="DizApp" className="h-10 w-auto mb-12 animate-fade-in" />
           
-          <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4">
+          <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             Bem-vindo ao DizApp
           </h1>
           
-          <p className="text-lg text-slate-400 max-w-md">
+          <p className="text-lg text-slate-400 max-w-md animate-fade-in" style={{ animationDelay: '0.2s' }}>
             Gerencie suas extrações, disparos e conexões em um só lugar
           </p>
         </div>
@@ -267,6 +326,39 @@ export default function AuthPage() {
         <p className="absolute bottom-8 left-12 xl:left-20 text-xs text-slate-600">
           v1.0.0
         </p>
+
+        {/* Animation keyframes */}
+        <style>{`
+          @keyframes float1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -30px) scale(1.05); }
+            50% { transform: translate(-20px, 20px) scale(0.95); }
+            75% { transform: translate(20px, 10px) scale(1.02); }
+          }
+          @keyframes float2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-40px, 20px) scale(1.1); }
+            66% { transform: translate(30px, -30px) scale(0.9); }
+          }
+          @keyframes float3 {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-30px, 30px); }
+          }
+          @keyframes pulse-glow {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(1.1); }
+          }
+          @keyframes line-slide {
+            0% { transform: rotate(-15deg) translateX(-30%); }
+            100% { transform: rotate(-15deg) translateX(30%); }
+          }
+          @keyframes particle-float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.4; }
+            25% { transform: translateY(-20px) translateX(10px); opacity: 0.8; }
+            50% { transform: translateY(-10px) translateX(-10px); opacity: 0.3; }
+            75% { transform: translateY(10px) translateX(5px); opacity: 0.6; }
+          }
+        `}</style>
       </div>
 
       {/* Right Side - Form */}
