@@ -35,7 +35,7 @@ const Index = () => {
   const [usedCount, setUsedCount] = useState<number>(0);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
-  // Fetch plan limits and usage - query database directly
+  // Fetch plan limits via admin-api (bypasses RLS)
   useEffect(() => {
     const fetchPlanData = async () => {
       if (!user?.id) {
@@ -46,54 +46,31 @@ const Index = () => {
       }
 
       try {
-        // First get user's plan IDs from database (not from cached context)
-        const { data: userData } = await supabase
-          .from('SAAS_Usuarios')
-          .select('plano, plano_extrator')
-          .eq('id', user.id)
-          .maybeSingle();
+        const { data, error } = await supabase.functions.invoke('admin-api', {
+          body: { action: 'get-user-plan-usage', userId: user.id }
+        });
 
+        if (error) {
+          console.error('Error fetching plan:', error);
+          setPlanLimit(0);
+          setUsedCount(0);
+          setIsLoadingPlan(false);
+          return;
+        }
+
+        // Get limit from disparador or extrator plan
         let limit = 0;
-
-        // Check regular plan first
-        if (userData?.plano) {
-          const { data } = await supabase
-            .from('SAAS_Planos')
-            .select('qntPlaces')
-            .eq('id', userData.plano)
-            .maybeSingle();
-          
-          if (data?.qntPlaces && data.qntPlaces > 0) {
-            limit = data.qntPlaces;
-          }
+        if (data?.disparador?.limitePlaces && data.disparador.limitePlaces > 0) {
+          limit = data.disparador.limitePlaces;
+        } else if (data?.extrator?.limitePlaces && data.extrator.limitePlaces > 0) {
+          limit = data.extrator.limitePlaces;
         }
 
-        // If no limit from regular plan, check extrator plan
-        if (limit === 0 && userData?.plano_extrator) {
-          const { data } = await supabase
-            .from('SAAS_Planos')
-            .select('qntPlaces')
-            .eq('id', userData.plano_extrator)
-            .maybeSingle();
-          
-          if (data?.qntPlaces && data.qntPlaces > 0) {
-            limit = data.qntPlaces;
-          }
-        }
-
-        // Get usage count this month
-        const monthStart = new Date();
-        monthStart.setDate(1);
-        monthStart.setHours(0, 0, 0, 0);
-
-        const { count } = await supabase
-          .from('search_jobs')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .gte('created_at', monthStart.toISOString());
+        // Get used count from either plan
+        const used = data?.disparador?.usadoPlaces || data?.extrator?.usadoPlaces || 0;
 
         setPlanLimit(limit);
-        setUsedCount(count || 0);
+        setUsedCount(used);
       } catch (err) {
         console.error('Error:', err);
         setPlanLimit(0);
