@@ -1074,11 +1074,6 @@ const ListasPage = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-card border-border">
-                <DropdownMenuItem onClick={() => setCreateModalOpen(true)} className="gap-2 cursor-pointer">
-                  <List className="w-4 h-4" />
-                  Lista Vazia
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => newListUploadRef.current?.click()} className="gap-2 cursor-pointer">
                   <FileSpreadsheet className="w-4 h-4" />
                   Importar Excel
