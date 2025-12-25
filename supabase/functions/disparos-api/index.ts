@@ -511,6 +511,16 @@ serve(async (req) => {
 
         if (error) {
           console.error('[Disparos API] Error deleting connection:', error);
+          // Check if it's a trigger error about pending dispatches
+          if (error.message?.includes('disparos pendentes') || error.message?.includes('Não é possível excluir')) {
+            return new Response(
+              JSON.stringify({ 
+                error: 'Não é possível excluir esta conexão pois há disparos pendentes vinculados. Aguarde a finalização ou cancele os disparos primeiro.',
+                code: 'PENDING_DISPATCHES'
+              }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
           throw error;
         }
 
