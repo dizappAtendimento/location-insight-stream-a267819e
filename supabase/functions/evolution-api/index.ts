@@ -28,13 +28,14 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
     // Parse request body safely
-    let action = '', instanceName = '', data: any = null, userId = '';
+    let action = '', instanceName = '', data: any = null, userId = '', apikey = '';
     try {
       const body = await req.json();
       action = body.action || '';
       instanceName = body.instanceName || '';
       data = body.data || null;
       userId = body.userId || '';
+      apikey = body.apikey || ''; // Support apikey at root level
     } catch (parseError) {
       console.error("[Evolution API] Error parsing request body:", parseError);
       return new Response(
@@ -746,7 +747,7 @@ serve(async (req) => {
 
       case "status":
         // Busca status de uma instância específica usando apikey própria
-        const customApikey = data?.apikey;
+        const customApikey = apikey || data?.apikey; // Support apikey at root level or in data
         const statusHeaders = {
           "Content-Type": "application/json",
           "apikey": customApikey || EVOLUTION_API_KEY,
@@ -758,7 +759,7 @@ serve(async (req) => {
         result = await response.json();
         const statusInstance = Array.isArray(result) ? result[0] : result;
         const state = statusInstance?.connectionStatus || statusInstance?.instance?.state || statusInstance?.state || 'close';
-        console.log(`[Evolution API] Status for ${instanceName}: ${state}`);
+        console.log(`[Evolution API] Status for ${instanceName}: ${state}, raw:`, JSON.stringify(statusInstance?.connectionStatus || statusInstance?.instance));
         return new Response(
           JSON.stringify({ state, instance: statusInstance }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
