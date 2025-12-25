@@ -66,6 +66,7 @@ const ConexoesPage = () => {
   const [hasPendingDispatches, setHasPendingDispatches] = useState(false);
   const [qrTimeRemaining, setQrTimeRemaining] = useState(120); // 2 minutes in seconds
   const [checkCount, setCheckCount] = useState(0);
+  const [planLimit, setPlanLimit] = useState<number | null>(null);
 
   // Fetch connections using list-user-instances (same as WhatsApp Groups page)
   const fetchConnections = useCallback(async () => {
@@ -110,6 +111,24 @@ const ConexoesPage = () => {
     }
   }, [user?.id, toast]);
 
+  // Fetch plan limit for connections
+  const fetchPlanLimit = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('vw_Usuarios_Com_Plano')
+        .select('plano_qntConexoes')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      setPlanLimit(data?.plano_qntConexoes ?? null);
+    } catch (error) {
+      console.error('Error fetching plan limit:', error);
+    }
+  }, [user?.id]);
+
   // Manual status check for a single connection
   const checkConnectionStatus = async (connection: Connection) => {
     if (!connection.instanceName) {
@@ -148,6 +167,16 @@ const ConexoesPage = () => {
 
   const createConnection = async () => {
     if (!user?.id || !newConnectionName.trim()) return;
+    
+    // Check plan limit before creating
+    if (planLimit !== null && connections.length >= planLimit) {
+      toast({
+        title: "Limite atingido",
+        description: `Seu plano permite apenas ${planLimit} conexões. Exclua uma conexão existente ou faça upgrade do seu plano.`,
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       setCreatingConnection(true);
@@ -659,6 +688,7 @@ const ConexoesPage = () => {
 
   useEffect(() => {
     fetchConnections();
+    fetchPlanLimit();
     
     // Auto-refresh a cada 20 segundos
     const interval = setInterval(() => {
@@ -666,7 +696,7 @@ const ConexoesPage = () => {
     }, 20000);
     
     return () => clearInterval(interval);
-  }, [fetchConnections]);
+  }, [fetchConnections, fetchPlanLimit]);
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -745,9 +775,11 @@ const ConexoesPage = () => {
             <Button
               size="sm"
               onClick={() => setShowCreateModal(true)}
+              disabled={planLimit !== null && connections.length >= planLimit}
+              title={planLimit !== null && connections.length >= planLimit ? `Limite de ${planLimit} conexões atingido` : undefined}
             >
               <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Nova Conexão
+              Nova Conexão {planLimit !== null && `(${connections.length}/${planLimit})`}
             </Button>
           </div>
         </div>
