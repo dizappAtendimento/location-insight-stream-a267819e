@@ -97,7 +97,13 @@ const ConexoesPage = () => {
   }, [user?.id, toast]);
 
   const checkConnectionStatus = async (connection: Connection) => {
-    if (!connection.instanceName || !connection.Apikey) return;
+    // Se não tem instanceName ou Apikey, marcar como desconectado
+    if (!connection.instanceName || !connection.Apikey) {
+      setConnections(prev => prev.map(c => 
+        c.id === connection.id ? { ...c, status: 'close' } : c
+      ));
+      return;
+    }
     
     setCheckingStatus(prev => ({ ...prev, [connection.id]: true }));
     
