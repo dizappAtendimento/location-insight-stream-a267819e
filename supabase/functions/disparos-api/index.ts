@@ -532,6 +532,81 @@ serve(async (req) => {
         );
       }
 
+      case 'force-delete-connection': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const connectionId = disparoData?.id;
+        if (!connectionId) {
+          return new Response(
+            JSON.stringify({ error: 'connection id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Disparos API] Force deleting connection ${connectionId} for user ${userId}`);
+
+        // First, update all pending/processing dispatches for this connection to 'cancelled'
+        const { data: cancelledDetails, error: cancelError } = await supabase
+          .from('SAAS_Detalhes_Disparos')
+          .update({ Status: 'cancelled', mensagemErro: 'Cancelado - conexão excluída' })
+          .eq('idConexao', connectionId)
+          .in('Status', ['pending', 'processing'])
+          .select('idDisparo');
+
+        if (cancelError) {
+          console.error('[Disparos API] Error cancelling dispatches:', cancelError);
+          throw cancelError;
+        }
+
+        const cancelledCount = cancelledDetails?.length || 0;
+        console.log(`[Disparos API] Cancelled ${cancelledCount} pending dispatches for connection ${connectionId}`);
+
+        // Update parent dispatches status if needed
+        const affectedDisparoIds = [...new Set(cancelledDetails?.map(d => d.idDisparo).filter(Boolean) || [])];
+        
+        for (const disparoId of affectedDisparoIds) {
+          // Check if all details are now done
+          const { data: remainingPending } = await supabase
+            .from('SAAS_Detalhes_Disparos')
+            .select('id')
+            .eq('idDisparo', disparoId)
+            .in('Status', ['pending', 'processing'])
+            .limit(1);
+
+          if (!remainingPending || remainingPending.length === 0) {
+            // Mark parent disparo as cancelled
+            await supabase
+              .from('SAAS_Disparos')
+              .update({ StatusDisparo: 'Cancelado' })
+              .eq('id', disparoId);
+          }
+        }
+
+        // Now delete the connection
+        const { error } = await supabase
+          .from('SAAS_Conexões')
+          .delete()
+          .eq('id', connectionId)
+          .eq('idUsuario', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error deleting connection:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Connection ${connectionId} force deleted successfully (cancelled ${cancelledCount} dispatches)`);
+        
+        return new Response(
+          JSON.stringify({ success: true, cancelledCount }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'update-user-apikey': {
         if (!userId) {
           return new Response(

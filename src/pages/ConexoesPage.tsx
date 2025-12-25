@@ -60,8 +60,10 @@ const ConexoesPage = () => {
   const [isReplacingApiKey, setIsReplacingApiKey] = useState(false);
   const [savingApiKey, setSavingApiKey] = useState(false);
   const [deletingConnection, setDeletingConnection] = useState(false);
+  const [forceDeleting, setForceDeleting] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(false);
   const [connectionInstanceName, setConnectionInstanceName] = useState<string | null>(null);
+  const [hasPendingDispatches, setHasPendingDispatches] = useState(false);
 
   // Fetch connections using list-user-instances (same as WhatsApp Groups page)
   const fetchConnections = useCallback(async () => {
@@ -292,6 +294,7 @@ const ConexoesPage = () => {
     
     try {
       setDeletingConnection(true);
+      setHasPendingDispatches(false);
       
       // Delete from database first to check if there are pending dispatches
       const { data, error } = await supabase.functions.invoke('disparos-api', {
@@ -302,33 +305,17 @@ const ConexoesPage = () => {
         }
       });
 
-      // Check for FunctionsHttpError (non-2xx status)
+      // Check for FunctionsHttpError (non-2xx status) - indicates pending dispatches
       if (error) {
         console.error('Delete connection error:', error);
-        
-        // Close modal and show error
-        setShowDeleteModal(false);
-        setSelectedConnection(null);
-        
-        toast({
-          title: "Atenção",
-          description: 'Há disparos pendentes vinculados a esta conexão. Aguarde a finalização ou cancele os disparos primeiro.',
-          variant: "destructive"
-        });
+        setHasPendingDispatches(true);
         setDeletingConnection(false);
         return;
       }
       
       // Check for specific error in response data
       if (data?.error) {
-        setShowDeleteModal(false);
-        setSelectedConnection(null);
-        
-        toast({
-          title: "Atenção",
-          description: data.error,
-          variant: "destructive"
-        });
+        setHasPendingDispatches(true);
         setDeletingConnection(false);
         return;
       }
@@ -357,12 +344,10 @@ const ConexoesPage = () => {
       setConnections(prev => prev.filter(c => c.id !== selectedConnection.id));
       setShowDeleteModal(false);
       setSelectedConnection(null);
+      setHasPendingDispatches(false);
       
     } catch (error: any) {
       console.error('Error deleting connection:', error);
-      setShowDeleteModal(false);
-      setSelectedConnection(null);
-      
       toast({
         title: "Erro",
         description: 'Não foi possível excluir a conexão',
@@ -370,6 +355,71 @@ const ConexoesPage = () => {
       });
     } finally {
       setDeletingConnection(false);
+    }
+  };
+
+  const forceDeleteConnection = async () => {
+    if (!selectedConnection || !user?.id) return;
+    
+    try {
+      setForceDeleting(true);
+      
+      // Force delete - cancels pending dispatches first
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'force-delete-connection',
+          userId: user.id,
+          disparoData: { id: selectedConnection.id }
+        }
+      });
+
+      if (error) {
+        console.error('Force delete connection error:', error);
+        throw error;
+      }
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+      
+      // Delete from Evolution API
+      if (selectedConnection.instanceName) {
+        const { error: evolutionError } = await supabase.functions.invoke('evolution-api', {
+          body: { 
+            action: 'delete-instance', 
+            instanceName: selectedConnection.instanceName,
+            apikey: selectedConnection.Apikey,
+            userId: user.id
+          }
+        });
+        
+        if (evolutionError) {
+          console.error('Error deleting from Evolution API:', evolutionError);
+        }
+      }
+      
+      const cancelledCount = data?.cancelledCount || 0;
+      toast({
+        title: "Sucesso",
+        description: cancelledCount > 0 
+          ? `Conexão excluída! ${cancelledCount} disparo(s) pendente(s) foram cancelados.`
+          : "Conexão excluída com sucesso!",
+      });
+      
+      setConnections(prev => prev.filter(c => c.id !== selectedConnection.id));
+      setShowDeleteModal(false);
+      setSelectedConnection(null);
+      setHasPendingDispatches(false);
+      
+    } catch (error: any) {
+      console.error('Error force deleting connection:', error);
+      toast({
+        title: "Erro",
+        description: 'Não foi possível excluir a conexão',
+        variant: "destructive"
+      });
+    } finally {
+      setForceDeleting(false);
     }
   };
 
@@ -959,7 +1009,12 @@ const ConexoesPage = () => {
       </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+      <Dialog open={showDeleteModal} onOpenChange={(open) => {
+        if (!open) {
+          setHasPendingDispatches(false);
+        }
+        setShowDeleteModal(open);
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
@@ -981,34 +1036,69 @@ const ConexoesPage = () => {
               </p>
             </div>
           )}
+
+          {hasPendingDispatches && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
+              <p className="text-sm text-amber-400 font-medium mb-2">
+                ⚠️ Disparos pendentes detectados
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Esta conexão possui disparos pendentes. Você pode aguardar a finalização ou forçar a exclusão, 
+                o que irá cancelar todos os disparos pendentes vinculados.
+              </p>
+            </div>
+          )}
           
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => {
                 setShowDeleteModal(false);
                 setSelectedConnection(null);
+                setHasPendingDispatches(false);
               }}
+              disabled={deletingConnection || forceDeleting}
             >
               Cancelar
             </Button>
-            <Button
-              variant="destructive"
-              onClick={deleteConnection}
-              disabled={deletingConnection}
-            >
-              {deletingConnection ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Excluir
-                </>
-              )}
-            </Button>
+            
+            {hasPendingDispatches ? (
+              <Button
+                variant="destructive"
+                onClick={forceDeleteConnection}
+                disabled={forceDeleting || deletingConnection}
+              >
+                {forceDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Forçar Exclusão
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                variant="destructive"
+                onClick={deleteConnection}
+                disabled={deletingConnection || forceDeleting}
+              >
+                {deletingConnection ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir
+                  </>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
