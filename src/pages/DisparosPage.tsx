@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Send,
   Plus,
@@ -121,63 +122,37 @@ export default function DisparosPage() {
   const fetchData = async (userId: string) => {
     setLoadingData(true);
     try {
-      // Carregar conexões e listas em paralelo
+      // Carregar conexões via evolution-api (já retorna status atualizado e sincroniza foto/telefone)
       const [connRes, listRes] = await Promise.all([
-        fetch(API_URLS.listarConexoes, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId })
+        supabase.functions.invoke('evolution-api', {
+          body: { action: 'list-user-instances', userId }
         }),
-        fetch(API_URLS.puxarLista, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId })
+        supabase.functions.invoke('disparos-api', {
+          body: { action: 'get-listas', userId }
         })
       ]);
 
       // Processar conexões
-      const connData = await connRes.json();
-      let rawConns: any[] = connData.Conexoes || (Array.isArray(connData) ? connData : []);
+      if (connRes.error) throw connRes.error;
+      const instances = connRes.data?.instances || [];
       
-      const validConns = rawConns.filter(c => (c.NomeConexao || c.name) && (c.instanceName || c.instance_name));
-      
-      // Verificar status de cada conexão
-      const mappedWithStatus: Connection[] = await Promise.all(validConns.map(async c => {
-        const instance = c.instanceName || c.instance_name;
-        const apikey = c.Apikey || c.apikey;
-        let isConnected = false;
-        
-        try {
-          if (instance && apikey) {
-            const statusRes = await fetch(`${API_URLS.evoStatus}/${instance}`, {
-              headers: { 'apikey': apikey }
-            });
-            if (statusRes.ok) {
-              const statusData = await statusRes.json();
-              const state = statusData.instance?.state || statusData.state;
-              isConnected = state === 'open' || state === 'connected';
-            }
-          }
-        } catch (err) {
-          console.error('Erro ao verificar status da conexão:', err);
-        }
-
-        return {
+      const mappedConns: Connection[] = instances
+        .filter((c: any) => c.NomeConexao && c.instanceName)
+        .map((c: any) => ({
           id: c.id,
-          name: c.NomeConexao || c.name,
-          instance: instance,
-          apikey: apikey,
-          phone: c.Telefone || c.telefone,
-          isConnected,
-          photo: c.FotoPerfil || c.fotoPerfil || null
-        };
-      }));
+          name: c.NomeConexao,
+          instance: c.instanceName,
+          apikey: c.Apikey || '',
+          phone: c.Telefone,
+          isConnected: c.status === 'open',
+          photo: c.FotoPerfil || null
+        }));
       
-      setConnections(mappedWithStatus);
+      setConnections(mappedConns);
 
       // Processar listas
-      const listData = await listRes.json();
-      let rawLists: any[] = listData.data || (Array.isArray(listData) ? listData : []);
+      if (listRes.error) throw listRes.error;
+      const rawLists: any[] = listRes.data?.data || [];
       const contactsLists = rawLists.filter((l: any) => l.tipo === 'contacts');
       setLists(contactsLists);
 

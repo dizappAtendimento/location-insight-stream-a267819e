@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Send,
   Plus,
@@ -131,49 +132,28 @@ export default function DisparosGrupoPage() {
 
   const loadConnections = async () => {
     try {
-      const res = await fetch(API_URLS.listarConexoes, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id })
+      // Usar evolution-api que já retorna status atualizado e sincroniza foto/telefone
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'list-user-instances', userId: user?.id }
       });
-      const data = await res.json();
-      const rawConns = data.Conexoes || (Array.isArray(data) ? data : []);
       
-      const validConns = rawConns.filter((c: any) => c.instanceName || c.NomeConexao);
+      if (error) throw error;
       
-      // Verificar status de cada conexão
-      const mappedWithStatus: Connection[] = await Promise.all(validConns.map(async (c: any) => {
-        const instance = c.instanceName || c.instance_name;
-        const apikey = c.Apikey || c.apikey;
-        let isConnected = false;
-        
-        try {
-          if (instance && apikey) {
-            const statusRes = await fetch(`${API_URLS.evoStatus}/${instance}`, {
-              headers: { 'apikey': apikey }
-            });
-            if (statusRes.ok) {
-              const statusData = await statusRes.json();
-              const state = statusData.instance?.state || statusData.state;
-              isConnected = state === 'open' || state === 'connected';
-            }
-          }
-        } catch (err) {
-          console.error('Erro ao verificar status da conexão:', err);
-        }
-
-        return {
-          id: c.id || c.ID,
-          name: c.NomeConexao || c.nomeConexao || c.name,
-          instance: instance,
-          phone: c.Telefone || c.telefone,
-          apikey: apikey,
-          isConnected,
-          photo: c.FotoPerfil || c.fotoPerfil || null
-        };
-      }));
+      const instances = data?.instances || [];
       
-      setConnections(mappedWithStatus);
+      const mappedConns: Connection[] = instances
+        .filter((c: any) => c.NomeConexao && c.instanceName)
+        .map((c: any) => ({
+          id: c.id,
+          name: c.NomeConexao,
+          instance: c.instanceName,
+          phone: c.Telefone,
+          apikey: c.Apikey || '',
+          isConnected: c.status === 'open',
+          photo: c.FotoPerfil || null
+        }));
+      
+      setConnections(mappedConns);
     } catch (e) {
       console.error(e);
       toast.error('Erro ao carregar conexões');
@@ -182,13 +162,13 @@ export default function DisparosGrupoPage() {
 
   const loadLists = async () => {
     try {
-      const res = await fetch(API_URLS.puxarLista, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id })
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: { action: 'get-listas', userId: user?.id }
       });
-      const data = await res.json();
-      const rawLists = data.data || (Array.isArray(data) ? data : []);
+      
+      if (error) throw error;
+      
+      const rawLists = data?.data || [];
       
       // Filtra apenas tipo 'groups'
       setLists(rawLists.filter((l: any) => l.tipo === 'groups' || l.tipo === 'Grupos'));
