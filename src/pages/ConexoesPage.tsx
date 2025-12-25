@@ -19,7 +19,8 @@ import {
   Wifi,
   WifiOff,
   Settings,
-  ChevronDown
+  ChevronDown,
+  Clock
 } from "lucide-react";
 
 interface Connection {
@@ -40,6 +41,7 @@ const ConexoesPage = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingStatus, setCheckingStatus] = useState<Record<number, boolean>>({});
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -91,6 +93,7 @@ const ConexoesPage = () => {
       }));
       
       setConnections(conns);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching connections:', error);
       toast({
@@ -571,10 +574,28 @@ const ConexoesPage = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
           <div>
             <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Conexões</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm">Gerencie suas conexões do WhatsApp</p>
+            <div className="flex items-center gap-2">
+              <p className="text-muted-foreground text-xs sm:text-sm">Gerencie suas conexões do WhatsApp</p>
+              {lastUpdated && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                  <Clock className="w-3 h-3" />
+                  Atualizado às {lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchConnections}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            
             <Button
               variant="outline"
               size="sm"
