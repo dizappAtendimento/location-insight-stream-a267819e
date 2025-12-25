@@ -539,6 +539,13 @@ const ConexoesPage = () => {
 
   useEffect(() => {
     fetchConnections();
+    
+    // Auto-refresh a cada 20 segundos
+    const interval = setInterval(() => {
+      fetchConnections();
+    }, 20000);
+    
+    return () => clearInterval(interval);
   }, [fetchConnections]);
 
   const getStatusBadge = (status?: string) => {
