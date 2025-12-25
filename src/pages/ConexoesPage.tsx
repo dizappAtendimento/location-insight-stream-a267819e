@@ -304,29 +304,15 @@ const ConexoesPage = () => {
 
       // Check for FunctionsHttpError (non-2xx status)
       if (error) {
-        // Try to extract error message from the response
-        const errorContext = (error as any)?.context;
-        let errorMessage = 'Não foi possível excluir a conexão';
+        console.error('Delete connection error:', error);
         
-        if (errorContext) {
-          try {
-            const responseBody = await errorContext.json?.() || errorContext;
-            if (responseBody?.error) {
-              errorMessage = responseBody.error;
-            }
-          } catch {
-            // If can't parse, use default message
-          }
-        }
-        
-        // Check if error message contains our specific error
-        if (error.message?.includes('400') || error.message?.includes('PENDING_DISPATCHES')) {
-          errorMessage = 'Há disparos pendentes vinculados a esta conexão. Aguarde a finalização ou cancele os disparos primeiro.';
-        }
+        // Close modal and show error
+        setShowDeleteModal(false);
+        setSelectedConnection(null);
         
         toast({
           title: "Atenção",
-          description: errorMessage,
+          description: 'Há disparos pendentes vinculados a esta conexão. Aguarde a finalização ou cancele os disparos primeiro.',
           variant: "destructive"
         });
         setDeletingConnection(false);
@@ -335,6 +321,9 @@ const ConexoesPage = () => {
       
       // Check for specific error in response data
       if (data?.error) {
+        setShowDeleteModal(false);
+        setSelectedConnection(null);
+        
         toast({
           title: "Atenção",
           description: data.error,
@@ -371,6 +360,9 @@ const ConexoesPage = () => {
       
     } catch (error: any) {
       console.error('Error deleting connection:', error);
+      setShowDeleteModal(false);
+      setSelectedConnection(null);
+      
       toast({
         title: "Erro",
         description: 'Não foi possível excluir a conexão',
