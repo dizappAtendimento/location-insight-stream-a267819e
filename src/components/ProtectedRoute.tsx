@@ -30,7 +30,7 @@ export function ProtectedRoute({ children, requirePlan = true }: ProtectedRouteP
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Verificar se o usuário tem plano ativo E não expirado

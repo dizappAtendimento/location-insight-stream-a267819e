@@ -52,7 +52,7 @@ export default function AuthPage() {
       toast.error(message);
       
       // Clear the error from URL
-      window.history.replaceState({}, '', '/auth');
+      window.history.replaceState({}, '', '/login');
     }
   }, [searchParams]);
 
