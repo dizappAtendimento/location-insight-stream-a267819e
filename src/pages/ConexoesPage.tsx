@@ -293,7 +293,58 @@ const ConexoesPage = () => {
     try {
       setDeletingConnection(true);
       
-      // Delete from Evolution API first
+      // Delete from database first to check if there are pending dispatches
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'delete-connection',
+          userId: user.id,
+          disparoData: { id: selectedConnection.id }
+        }
+      });
+
+      // Check for FunctionsHttpError (non-2xx status)
+      if (error) {
+        // Try to extract error message from the response
+        const errorContext = (error as any)?.context;
+        let errorMessage = 'Não foi possível excluir a conexão';
+        
+        if (errorContext) {
+          try {
+            const responseBody = await errorContext.json?.() || errorContext;
+            if (responseBody?.error) {
+              errorMessage = responseBody.error;
+            }
+          } catch {
+            // If can't parse, use default message
+          }
+        }
+        
+        // Check if error message contains our specific error
+        if (error.message?.includes('400') || error.message?.includes('PENDING_DISPATCHES')) {
+          errorMessage = 'Há disparos pendentes vinculados a esta conexão. Aguarde a finalização ou cancele os disparos primeiro.';
+        }
+        
+        toast({
+          title: "Atenção",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        setDeletingConnection(false);
+        return;
+      }
+      
+      // Check for specific error in response data
+      if (data?.error) {
+        toast({
+          title: "Atenção",
+          description: data.error,
+          variant: "destructive"
+        });
+        setDeletingConnection(false);
+        return;
+      }
+      
+      // Only delete from Evolution API if database deletion was successful
       if (selectedConnection.instanceName) {
         const { error: evolutionError } = await supabase.functions.invoke('evolution-api', {
           body: { 
@@ -309,27 +360,6 @@ const ConexoesPage = () => {
         }
       }
       
-      // Delete from database using edge function (bypasses RLS)
-      const { data, error } = await supabase.functions.invoke('disparos-api', {
-        body: {
-          action: 'delete-connection',
-          userId: user.id,
-          disparoData: { id: selectedConnection.id }
-        }
-      });
-
-      if (error) throw error;
-      
-      // Check for specific error in response
-      if (data?.error) {
-        toast({
-          title: "Atenção",
-          description: data.error,
-          variant: "destructive"
-        });
-        return;
-      }
-      
       toast({
         title: "Sucesso",
         description: "Conexão excluída com sucesso!",
@@ -341,12 +371,9 @@ const ConexoesPage = () => {
       
     } catch (error: any) {
       console.error('Error deleting connection:', error);
-      const errorMessage = error?.message?.includes('disparos pendentes') 
-        ? 'Há disparos pendentes vinculados. Aguarde a finalização ou cancele os disparos primeiro.'
-        : 'Não foi possível excluir a conexão';
       toast({
         title: "Erro",
-        description: errorMessage,
+        description: 'Não foi possível excluir a conexão',
         variant: "destructive"
       });
     } finally {
