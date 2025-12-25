@@ -61,29 +61,36 @@ const ConexoesPage = () => {
   const [checkingConnection, setCheckingConnection] = useState(false);
   const [connectionInstanceName, setConnectionInstanceName] = useState<string | null>(null);
 
-  // Fetch connections
+  // Fetch connections using list-user-instances (same as WhatsApp Groups page)
   const fetchConnections = useCallback(async () => {
     if (!user?.id) return;
     
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke('disparos-api', {
-        body: { action: 'get-connections', userId: user.id }
+      
+      // Use list-user-instances que já retorna o status verificado
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'list-user-instances', userId: user.id }
       });
 
       if (error) throw error;
       
-      const conns = (data?.connections || []).map((c: Connection) => ({
-        ...c,
-        status: 'checking' as const
+      const instances = data?.instances || [];
+      console.log('[Conexões] Loaded instances:', instances.length);
+      
+      // Map to Connection format
+      const conns: Connection[] = instances.map((inst: any) => ({
+        id: inst.id,
+        instanceName: inst.instanceName,
+        NomeConexao: inst.NomeConexao,
+        Telefone: inst.Telefone,
+        FotoPerfil: inst.FotoPerfil,
+        Apikey: inst.Apikey,
+        status: inst.status === 'open' ? 'open' : 'close',
+        crmAtivo: inst.crmAtivo
       }));
       
       setConnections(conns);
-      
-      // Check status for each connection
-      for (const conn of conns) {
-        checkConnectionStatus(conn);
-      }
     } catch (error) {
       console.error('Error fetching connections:', error);
       toast({
@@ -96,9 +103,9 @@ const ConexoesPage = () => {
     }
   }, [user?.id, toast]);
 
+  // Manual status check for a single connection
   const checkConnectionStatus = async (connection: Connection) => {
-    // Se não tem instanceName ou Apikey, marcar como desconectado
-    if (!connection.instanceName || !connection.Apikey) {
+    if (!connection.instanceName) {
       setConnections(prev => prev.map(c => 
         c.id === connection.id ? { ...c, status: 'close' } : c
       ));
@@ -108,21 +115,17 @@ const ConexoesPage = () => {
     setCheckingStatus(prev => ({ ...prev, [connection.id]: true }));
     
     try {
-      // Check connection status
+      // Use list-user-instances to get updated status
       const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { 
-          action: 'status', 
-          instanceName: connection.instanceName,
-          apikey: connection.Apikey
-        }
+        body: { action: 'list-user-instances', userId: user?.id }
       });
 
       if (error) throw error;
       
-      const status = data?.state === 'open' ? 'open' : 'close';
+      const instances = data?.instances || [];
+      const instance = instances.find((inst: any) => inst.id === connection.id);
+      const status = instance?.status === 'open' ? 'open' : 'close';
       
-      // Use crmAtivo from database (already loaded with connection data)
-      // No need to check webhook status from API
       setConnections(prev => prev.map(c => 
         c.id === connection.id ? { ...c, status } : c
       ));
