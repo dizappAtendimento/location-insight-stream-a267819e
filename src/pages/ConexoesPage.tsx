@@ -64,6 +64,8 @@ const ConexoesPage = () => {
   const [checkingConnection, setCheckingConnection] = useState(false);
   const [connectionInstanceName, setConnectionInstanceName] = useState<string | null>(null);
   const [hasPendingDispatches, setHasPendingDispatches] = useState(false);
+  const [qrTimeRemaining, setQrTimeRemaining] = useState(120); // 2 minutes in seconds
+  const [checkCount, setCheckCount] = useState(0);
 
   // Fetch connections using list-user-instances (same as WhatsApp Groups page)
   const fetchConnections = useCallback(async () => {
@@ -201,6 +203,8 @@ const ConexoesPage = () => {
     
     let isCancelled = false;
     setCheckingConnection(true);
+    setQrTimeRemaining(120);
+    setCheckCount(0);
     
     const checkStatus = async () => {
       try {
@@ -212,6 +216,8 @@ const ConexoesPage = () => {
         });
 
         if (error || isCancelled) return;
+        
+        setCheckCount(prev => prev + 1);
         
         // Check all possible status fields from Evolution API
         const state = data?.connectionState || 
@@ -226,6 +232,8 @@ const ConexoesPage = () => {
           setQrCodeData(null);
           setConnectionInstanceName(null);
           setCheckingConnection(false);
+          setQrTimeRemaining(120);
+          setCheckCount(0);
           
           toast({
             title: "Conectado!",
@@ -242,11 +250,33 @@ const ConexoesPage = () => {
     
     // Check immediately and then every 3 seconds
     checkStatus();
-    const interval = setInterval(checkStatus, 3000);
+    const statusInterval = setInterval(checkStatus, 3000);
+    
+    // Countdown timer - update every second
+    const countdownInterval = setInterval(() => {
+      setQrTimeRemaining(prev => {
+        if (prev <= 1) {
+          // Timeout - close modal
+          setShowQrModal(false);
+          setQrCodeData(null);
+          setConnectionInstanceName(null);
+          setCheckingConnection(false);
+          setCheckCount(0);
+          toast({
+            title: "Tempo esgotado",
+            description: "O QR Code expirou. Tente novamente.",
+            variant: "destructive"
+          });
+          return 120;
+        }
+        return prev - 1;
+      });
+    }, 1000);
     
     return () => {
       isCancelled = true;
-      clearInterval(interval);
+      clearInterval(statusInterval);
+      clearInterval(countdownInterval);
       setCheckingConnection(false);
     };
   }, [showQrModal, connectionInstanceName, fetchConnections, toast]);
@@ -985,9 +1015,24 @@ const ConexoesPage = () => {
             )}
             
             {checkingConnection && (
-              <div className="flex items-center gap-2 mt-4 text-sm text-emerald-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Aguardando conexão...
+              <div className="flex flex-col items-center gap-2 mt-4">
+                <div className="flex items-center gap-2 text-sm text-emerald-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Aguardando conexão...
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {Math.floor(qrTimeRemaining / 60)}:{(qrTimeRemaining % 60).toString().padStart(2, '0')}
+                  </span>
+                  <span>•</span>
+                  <span>{checkCount} verificações</span>
+                </div>
+                {qrTimeRemaining <= 30 && (
+                  <div className="text-xs text-amber-400 animate-pulse">
+                    ⚠️ O QR Code expira em breve!
+                  </div>
+                )}
               </div>
             )}
             
@@ -1003,6 +1048,8 @@ const ConexoesPage = () => {
                 setShowQrModal(false);
                 setQrCodeData(null);
                 setConnectionInstanceName(null);
+                setQrTimeRemaining(120);
+                setCheckCount(0);
               }}
               className="w-full"
             >
