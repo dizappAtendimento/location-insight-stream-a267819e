@@ -774,6 +774,7 @@ const ConexoesPage = () => {
             
             <Button
               size="sm"
+              variant={planLimit !== null && connections.length >= planLimit ? "destructive" : "default"}
               onClick={() => {
                 const isLimitReached = planLimit !== null && connections.length >= planLimit;
                 if (isLimitReached) {
@@ -787,8 +788,17 @@ const ConexoesPage = () => {
                 setShowCreateModal(true);
               }}
             >
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Nova Conexão {planLimit !== null && `(${connections.length}/${planLimit})`}
+              {planLimit !== null && connections.length >= planLimit ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
+                  Limite Atingido ({connections.length}/{planLimit})
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Nova Conexão {planLimit !== null && `(${connections.length}/${planLimit})`}
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -933,7 +943,18 @@ const ConexoesPage = () => {
       </div>
 
       {/* Create Connection Modal */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+      <Dialog open={showCreateModal} onOpenChange={(open) => {
+        // Prevent opening if limit reached
+        if (open && planLimit !== null && connections.length >= planLimit) {
+          toast({
+            title: "Limite de conexões atingido",
+            description: `Seu plano permite apenas ${planLimit} conexões. Exclua uma conexão existente ou faça upgrade do seu plano.`,
+            variant: "destructive"
+          });
+          return;
+        }
+        setShowCreateModal(open);
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Conexão</DialogTitle>
