@@ -172,13 +172,10 @@ const ConexoesPage = () => {
   const createConnection = async () => {
     if (!user?.id || !newConnectionName.trim()) return;
     
-    // Check plan limit before creating
+    // Check plan limit before creating - open limit modal instead of toast
     if (planLimit !== null && connections.length >= planLimit) {
-      toast({
-        title: "Limite atingido",
-        description: `Seu plano permite apenas ${planLimit} conexões. Exclua uma conexão existente ou faça upgrade do seu plano.`,
-        variant: "destructive"
-      });
+      setShowCreateModal(false);
+      setShowLimitModal(true);
       return;
     }
     
@@ -188,43 +185,35 @@ const ConexoesPage = () => {
       // Generate unique instance name
       const instanceName = `${newConnectionName.trim()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { 
+      // Use fetch directly to properly handle 400 responses
+      const response = await fetch('https://egxwzmkdbymxooielidc.supabase.co/functions/v1/evolution-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneHd6bWtkYnlteG9vaWVsaWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjgzNjcsImV4cCI6MjA3OTkwNDM2N30.XJB9t5brPcRrAmLQ_AJDsxlKEg8yYtgWZks7jgXFrdk`
+        },
+        body: JSON.stringify({
           action: 'create-instance', 
           instanceName: instanceName,
           userId: user.id,
           data: { displayName: newConnectionName.trim() }
-        }
+        })
       });
-
-      // Check for limit error in response data FIRST (before generic error check)
-      if (data?.code === 'CONNECTION_LIMIT_REACHED' || data?.error?.includes('Limite de conexões')) {
+      
+      const data = await response.json();
+      
+      // Check for limit error in response
+      if (data?.code === 'CONNECTION_LIMIT_REACHED' || data?.error?.includes?.('Limite de conexões')) {
         setShowCreateModal(false);
         setShowLimitModal(true);
-        setCreatingConnection(false);
-        setNewConnectionName("");
         return;
       }
-
-      // Check for FunctionsHttpError or other errors
-      if (error) {
-        // Try to parse error context for limit message
-        const errorMessage = error?.message || '';
-        const errorContext = error?.context;
-        
-        // Check if this is a limit error from the response body
-        if (errorMessage.includes('CONNECTION_LIMIT_REACHED') || 
-            errorMessage.includes('Limite de conexões') ||
-            (errorContext && JSON.stringify(errorContext).includes('CONNECTION_LIMIT_REACHED'))) {
-          setShowCreateModal(false);
-          setShowLimitModal(true);
-          setCreatingConnection(false);
-          setNewConnectionName("");
-          return;
-        }
-        
-        console.error('Create connection error:', error);
-        throw new Error('Não foi possível criar a conexão');
+      
+      // Check for other errors
+      if (!response.ok || data?.error) {
+        console.error('Create connection error:', data);
+        throw new Error(data?.error || 'Não foi possível criar a conexão');
       }
       
       // Save instance name for polling
@@ -249,7 +238,6 @@ const ConexoesPage = () => {
           description: "Conexão criada! Escaneie o QR Code para conectar.",
         });
       } else {
-        // No QR code or pairing code - might be an error
         toast({
           title: "Aviso",
           description: "Conexão criada, mas não foi possível obter o QR Code.",
@@ -260,7 +248,7 @@ const ConexoesPage = () => {
       console.error('Error creating connection:', error);
       
       // Final check for limit error in catch
-      const errorStr = JSON.stringify(error);
+      const errorStr = error?.message || '';
       if (errorStr.includes('CONNECTION_LIMIT_REACHED') || errorStr.includes('Limite de conexões')) {
         setShowCreateModal(false);
         setShowLimitModal(true);
