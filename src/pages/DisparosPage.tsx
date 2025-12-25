@@ -152,7 +152,7 @@ export default function DisparosPage() {
 
       // Processar listas
       if (listRes.error) throw listRes.error;
-      const rawLists: any[] = listRes.data?.data || [];
+      const rawLists: any[] = listRes.data?.listas || [];
       const contactsLists = rawLists.filter((l: any) => l.tipo === 'contacts');
       setLists(contactsLists);
 
