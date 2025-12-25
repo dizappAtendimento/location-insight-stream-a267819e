@@ -249,6 +249,8 @@ const ConexoesPage = () => {
     if (!connection.instanceName || !connection.Apikey) return;
     
     setSelectedConnection(connection);
+    // Save instance name for polling to detect connection
+    setConnectionInstanceName(connection.instanceName);
     
     try {
       const { data, error } = await supabase.functions.invoke('evolution-api', {
@@ -268,6 +270,7 @@ const ConexoesPage = () => {
         setQrCodeData({ pairingCode: data.pairingCode });
         setShowQrModal(true);
       } else {
+        setConnectionInstanceName(null);
         toast({
           title: "Aviso",
           description: "Não foi possível obter o QR Code. A conexão pode já estar ativa.",
@@ -275,6 +278,7 @@ const ConexoesPage = () => {
       }
     } catch (error) {
       console.error('Error getting QR code:', error);
+      setConnectionInstanceName(null);
       toast({
         title: "Erro",
         description: "Não foi possível obter o QR Code",
