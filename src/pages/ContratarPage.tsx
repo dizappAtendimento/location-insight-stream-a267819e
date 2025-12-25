@@ -152,7 +152,7 @@ export default function ContratarPage() {
 
   const handleLogout = () => {
     logout();
-    navigate('/auth');
+    navigate('/login');
   };
 
   const handleSelectPlan = (plan: Plan) => {
@@ -289,7 +289,7 @@ export default function ContratarPage() {
       localStorage.removeItem('saas_user');
       
       setTimeout(() => {
-        window.location.href = '/auth';
+        window.location.href = '/login';
       }, 1500);
 
     } catch (err: any) {

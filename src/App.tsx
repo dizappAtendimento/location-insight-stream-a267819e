@@ -39,7 +39,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/login" element={<AuthPage />} />
               <Route path="/contratar" element={<ProtectedRoute requirePlan={false}><ContratarPage /></ProtectedRoute>} />
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/conexoes" element={<ProtectedRoute><ConexoesPage /></ProtectedRoute>} />
