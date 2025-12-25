@@ -197,17 +197,34 @@ const ConexoesPage = () => {
         }
       });
 
-      // Check for FunctionsHttpError or error in response data
-      if (error) {
-        console.error('Create connection error:', error);
-        throw new Error('Não foi possível criar a conexão');
-      }
-      
-      // Check for limit error in response
-      if (data?.error || data?.code === 'CONNECTION_LIMIT_REACHED') {
+      // Check for limit error in response data FIRST (before generic error check)
+      if (data?.code === 'CONNECTION_LIMIT_REACHED' || data?.error?.includes('Limite de conexões')) {
         setShowCreateModal(false);
         setShowLimitModal(true);
+        setCreatingConnection(false);
+        setNewConnectionName("");
         return;
+      }
+
+      // Check for FunctionsHttpError or other errors
+      if (error) {
+        // Try to parse error context for limit message
+        const errorMessage = error?.message || '';
+        const errorContext = error?.context;
+        
+        // Check if this is a limit error from the response body
+        if (errorMessage.includes('CONNECTION_LIMIT_REACHED') || 
+            errorMessage.includes('Limite de conexões') ||
+            (errorContext && JSON.stringify(errorContext).includes('CONNECTION_LIMIT_REACHED'))) {
+          setShowCreateModal(false);
+          setShowLimitModal(true);
+          setCreatingConnection(false);
+          setNewConnectionName("");
+          return;
+        }
+        
+        console.error('Create connection error:', error);
+        throw new Error('Não foi possível criar a conexão');
       }
       
       // Save instance name for polling
@@ -241,12 +258,20 @@ const ConexoesPage = () => {
       
     } catch (error: any) {
       console.error('Error creating connection:', error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível criar a conexão",
-        variant: "destructive"
-      });
-      setShowCreateModal(false);
+      
+      // Final check for limit error in catch
+      const errorStr = JSON.stringify(error);
+      if (errorStr.includes('CONNECTION_LIMIT_REACHED') || errorStr.includes('Limite de conexões')) {
+        setShowCreateModal(false);
+        setShowLimitModal(true);
+      } else {
+        toast({
+          title: "Erro",
+          description: error.message || "Não foi possível criar a conexão",
+          variant: "destructive"
+        });
+        setShowCreateModal(false);
+      }
     } finally {
       setCreatingConnection(false);
       setNewConnectionName("");
