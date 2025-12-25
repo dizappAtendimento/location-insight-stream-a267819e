@@ -1029,12 +1029,12 @@ const ConexoesPage = () => {
             <Button
               onClick={() => {
                 setShowLimitModal(false);
-                navigate('/contratar');
+                navigate('/configuracoes?tab=planos');
               }}
               className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
             >
               <Crown className="w-4 h-4 mr-2" />
-              Fazer Upgrade
+              Ver Planos
             </Button>
           </DialogFooter>
         </DialogContent>
