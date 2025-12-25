@@ -774,9 +774,18 @@ const ConexoesPage = () => {
             
             <Button
               size="sm"
-              onClick={() => setShowCreateModal(true)}
-              disabled={planLimit !== null && connections.length >= planLimit}
-              title={planLimit !== null && connections.length >= planLimit ? `Limite de ${planLimit} conexões atingido` : undefined}
+              onClick={() => {
+                const isLimitReached = planLimit !== null && connections.length >= planLimit;
+                if (isLimitReached) {
+                  toast({
+                    title: "Limite de conexões atingido",
+                    description: `Seu plano permite apenas ${planLimit} conexões. Exclua uma conexão existente ou faça upgrade do seu plano.`,
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                setShowCreateModal(true);
+              }}
             >
               <Plus className="w-3.5 h-3.5 mr-1.5" />
               Nova Conexão {planLimit !== null && `(${connections.length}/${planLimit})`}
