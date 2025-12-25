@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,8 @@ import {
   WifiOff,
   Settings,
   ChevronDown,
-  Clock
+  Clock,
+  Crown
 } from "lucide-react";
 
 interface Connection {
@@ -37,6 +39,7 @@ interface Connection {
 const ConexoesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +51,7 @@ const ConexoesPage = () => {
   const [showQrModal, setShowQrModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showChatGptModal, setShowChatGptModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   
   // Form states
@@ -201,12 +205,8 @@ const ConexoesPage = () => {
       
       // Check for limit error in response
       if (data?.error || data?.code === 'CONNECTION_LIMIT_REACHED') {
-        toast({
-          title: "Limite de conexões atingido",
-          description: data?.error || `Seu plano permite apenas ${planLimit} conexões. Exclua uma conexão ou faça upgrade.`,
-          variant: "destructive"
-        });
         setShowCreateModal(false);
+        setShowLimitModal(true);
         return;
       }
       
@@ -805,11 +805,7 @@ const ConexoesPage = () => {
               onClick={() => {
                 const isLimitReached = planLimit !== null && connections.length >= planLimit;
                 if (isLimitReached) {
-                  toast({
-                    title: "Limite de conexões atingido",
-                    description: `Seu plano permite apenas ${planLimit} conexões. Exclua uma conexão existente ou faça upgrade do seu plano.`,
-                    variant: "destructive"
-                  });
+                  setShowLimitModal(true);
                   return;
                 }
                 setShowCreateModal(true);
@@ -969,15 +965,61 @@ const ConexoesPage = () => {
         )}
       </div>
 
+      {/* Limit Reached Modal */}
+      <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-destructive" />
+              </div>
+              <DialogTitle className="text-xl">Limite de Conexões Atingido</DialogTitle>
+            </div>
+            <DialogDescription className="text-base pt-2">
+              Você já possui <span className="font-semibold text-foreground">{connections.length}</span> conexões ativas e seu plano permite apenas <span className="font-semibold text-foreground">{planLimit}</span> conexões.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-muted/50 rounded-lg p-4 my-4">
+            <h4 className="font-medium text-sm mb-2">O que você pode fazer:</h4>
+            <ul className="text-sm text-muted-foreground space-y-2">
+              <li className="flex items-start gap-2">
+                <Trash2 className="w-4 h-4 mt-0.5 text-destructive shrink-0" />
+                <span>Excluir uma conexão existente para liberar espaço</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Crown className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+                <span>Fazer upgrade do seu plano para ter mais conexões</span>
+              </li>
+            </ul>
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowLimitModal(false)}
+            >
+              Fechar
+            </Button>
+            <Button
+              onClick={() => {
+                setShowLimitModal(false);
+                navigate('/contratar');
+              }}
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Fazer Upgrade
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create Connection Modal */}
       <Dialog open={showCreateModal} onOpenChange={(open) => {
         // Prevent opening if limit reached
         if (open && planLimit !== null && connections.length >= planLimit) {
-          toast({
-            title: "Limite de conexões atingido",
-            description: `Seu plano permite apenas ${planLimit} conexões. Exclua uma conexão existente ou faça upgrade do seu plano.`,
-            variant: "destructive"
-          });
+          setShowLimitModal(true);
           return;
         }
         setShowCreateModal(open);
