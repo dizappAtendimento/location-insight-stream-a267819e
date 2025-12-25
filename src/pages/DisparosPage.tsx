@@ -846,8 +846,29 @@ export default function DisparosPage() {
                           <div key={i} className="flex justify-end">
                             <div className="bg-[#dcf8c6] p-2 px-3 rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
                               {m.media && (
-                                <div className="bg-black/10 p-2 rounded mb-2 text-xs flex items-center gap-1">
-                                  <FileText className="w-3 h-3" /> Mídia Anexada
+                                <div className="mb-2 rounded overflow-hidden">
+                                  {m.media.type === 'image' ? (
+                                    <div className="relative">
+                                      <img src={m.media.link} alt="Preview" className="w-full max-h-32 object-cover rounded" />
+                                    </div>
+                                  ) : m.media.type === 'video' ? (
+                                    <div className="relative bg-black/20 rounded p-4 flex flex-col items-center gap-1">
+                                      <Video className="w-8 h-8 text-[#075e54]" />
+                                      <span className="text-[10px] text-black/70">Vídeo anexado</span>
+                                    </div>
+                                  ) : m.media.type === 'audio' ? (
+                                    <div className="bg-[#c7e8bd] rounded p-2 flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-full bg-[#075e54] flex items-center justify-center">
+                                        <FileAudio className="w-4 h-4 text-white" />
+                                      </div>
+                                      <div className="flex-1 h-1 bg-black/20 rounded" />
+                                    </div>
+                                  ) : (
+                                    <div className="bg-black/10 p-2 rounded flex items-center gap-2">
+                                      <FileText className="w-5 h-5 text-[#075e54]" />
+                                      <span className="text-xs text-black/70 truncate">{m.media.filename || 'Documento'}</span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               {m.text && <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{substituirVariaveis(m.text)}</p>}
