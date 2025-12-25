@@ -156,6 +156,48 @@ serve(async (req) => {
         );
 
       case "create-instance":
+        // Check connection limit before creating
+        if (userId) {
+          // Get user's plan limit
+          const { data: userData, error: userError } = await supabase
+            .from("vw_Usuarios_Com_Plano")
+            .select("plano_qntConexoes")
+            .eq("id", userId)
+            .maybeSingle();
+          
+          if (userError) {
+            console.error("[Evolution API] Error fetching user plan:", userError);
+          }
+          
+          const planLimit = userData?.plano_qntConexoes ?? null;
+          
+          if (planLimit !== null) {
+            // Count current connections
+            const { count: currentConnections, error: countError } = await supabase
+              .from("SAAS_Conexões")
+              .select("id", { count: 'exact', head: true })
+              .eq("idUsuario", userId);
+            
+            if (countError) {
+              console.error("[Evolution API] Error counting connections:", countError);
+            }
+            
+            const connCount = currentConnections || 0;
+            console.log(`[Evolution API] User ${userId} has ${connCount}/${planLimit} connections`);
+            
+            if (connCount >= planLimit) {
+              console.log(`[Evolution API] Connection limit reached for user ${userId}`);
+              return new Response(
+                JSON.stringify({ 
+                  error: `Limite de conexões atingido. Seu plano permite apenas ${planLimit} conexões.`,
+                  code: "CONNECTION_LIMIT_REACHED"
+                }),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          }
+        }
+        
         // Configura webhook do CRM automaticamente
         const crmWebhookUrl = `${SUPABASE_URL}/functions/v1/crm-webhook`;
         
