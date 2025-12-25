@@ -193,7 +193,22 @@ const ConexoesPage = () => {
         }
       });
 
-      if (error) throw error;
+      // Check for FunctionsHttpError or error in response data
+      if (error) {
+        console.error('Create connection error:', error);
+        throw new Error('Não foi possível criar a conexão');
+      }
+      
+      // Check for limit error in response
+      if (data?.error || data?.code === 'CONNECTION_LIMIT_REACHED') {
+        toast({
+          title: "Limite de conexões atingido",
+          description: data?.error || `Seu plano permite apenas ${planLimit} conexões. Exclua uma conexão ou faça upgrade.`,
+          variant: "destructive"
+        });
+        setShowCreateModal(false);
+        return;
+      }
       
       // Save instance name for polling
       setConnectionInstanceName(instanceName);
@@ -202,16 +217,27 @@ const ConexoesPage = () => {
         setQrCodeData({ base64: data.qrcode.base64 });
         setShowCreateModal(false);
         setShowQrModal(true);
+        
+        toast({
+          title: "Sucesso",
+          description: "Conexão criada! Escaneie o QR Code para conectar.",
+        });
       } else if (data?.pairingCode) {
         setQrCodeData({ pairingCode: data.pairingCode });
         setShowCreateModal(false);
         setShowQrModal(true);
+        
+        toast({
+          title: "Sucesso",
+          description: "Conexão criada! Escaneie o QR Code para conectar.",
+        });
+      } else {
+        // No QR code or pairing code - might be an error
+        toast({
+          title: "Aviso",
+          description: "Conexão criada, mas não foi possível obter o QR Code.",
+        });
       }
-      
-      toast({
-        title: "Sucesso",
-        description: "Conexão criada! Escaneie o QR Code para conectar.",
-      });
       
     } catch (error: any) {
       console.error('Error creating connection:', error);
@@ -220,6 +246,7 @@ const ConexoesPage = () => {
         description: error.message || "Não foi possível criar a conexão",
         variant: "destructive"
       });
+      setShowCreateModal(false);
     } finally {
       setCreatingConnection(false);
       setNewConnectionName("");
