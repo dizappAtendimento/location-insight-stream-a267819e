@@ -310,7 +310,7 @@ const ConexoesPage = () => {
       }
       
       // Delete from database using edge function (bypasses RLS)
-      const { error } = await supabase.functions.invoke('disparos-api', {
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
         body: {
           action: 'delete-connection',
           userId: user.id,
@@ -319,6 +319,16 @@ const ConexoesPage = () => {
       });
 
       if (error) throw error;
+      
+      // Check for specific error in response
+      if (data?.error) {
+        toast({
+          title: "Atenção",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
+      }
       
       toast({
         title: "Sucesso",
@@ -329,11 +339,14 @@ const ConexoesPage = () => {
       setShowDeleteModal(false);
       setSelectedConnection(null);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting connection:', error);
+      const errorMessage = error?.message?.includes('disparos pendentes') 
+        ? 'Há disparos pendentes vinculados. Aguarde a finalização ou cancele os disparos primeiro.'
+        : 'Não foi possível excluir a conexão';
       toast({
         title: "Erro",
-        description: "Não foi possível excluir a conexão",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
