@@ -852,9 +852,13 @@ export default function DisparosPage() {
                                       <img src={m.media.link} alt="Preview" className="w-full max-h-32 object-cover rounded" />
                                     </div>
                                   ) : m.media.type === 'video' ? (
-                                    <div className="relative bg-black/20 rounded p-4 flex flex-col items-center gap-1">
-                                      <Video className="w-8 h-8 text-[#075e54]" />
-                                      <span className="text-[10px] text-black/70">Vídeo anexado</span>
+                                    <div className="relative rounded overflow-hidden">
+                                      <video 
+                                        src={m.media.link} 
+                                        controls
+                                        className="w-full max-h-32 object-cover rounded"
+                                        preload="metadata"
+                                      />
                                     </div>
                                   ) : m.media.type === 'audio' ? (
                                     <div className="bg-[#c7e8bd] rounded p-2 flex items-center gap-2">
