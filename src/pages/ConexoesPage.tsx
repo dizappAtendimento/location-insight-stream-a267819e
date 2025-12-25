@@ -284,14 +284,19 @@ const ConexoesPage = () => {
       setDeletingConnection(true);
       
       // Delete from Evolution API first
-      if (selectedConnection.instanceName && selectedConnection.Apikey) {
-        await supabase.functions.invoke('evolution-api', {
+      if (selectedConnection.instanceName) {
+        const { error: evolutionError } = await supabase.functions.invoke('evolution-api', {
           body: { 
             action: 'delete-instance', 
             instanceName: selectedConnection.instanceName,
-            apikey: selectedConnection.Apikey
+            apikey: selectedConnection.Apikey,
+            userId: user.id
           }
         });
+        
+        if (evolutionError) {
+          console.error('Error deleting from Evolution API:', evolutionError);
+        }
       }
       
       // Delete from database using edge function (bypasses RLS)

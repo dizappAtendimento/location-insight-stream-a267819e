@@ -207,12 +207,17 @@ serve(async (req) => {
         );
 
       case "delete-instance":
+        // Usa apikey da conexão ou a global
+        const deleteHeaders = {
+          "Content-Type": "application/json",
+          "apikey": apikey || EVOLUTION_API_KEY,
+        };
         response = await fetch(`${baseUrl}/instance/delete/${instanceName}`, {
           method: "DELETE",
-          headers,
+          headers: deleteHeaders,
         });
         result = await response.json();
-        console.log(`[Evolution API] Deleted: ${instanceName}`);
+        console.log(`[Evolution API] Deleted from Evolution API: ${instanceName}`, result);
 
         // Remove do banco
         if (userId) {
@@ -223,7 +228,9 @@ serve(async (req) => {
             .eq("idUsuario", userId);
 
           if (deleteError) {
-            console.error("[Evolution API] Error deleting connection:", deleteError);
+            console.error("[Evolution API] Error deleting connection from DB:", deleteError);
+          } else {
+            console.log(`[Evolution API] Deleted from DB: ${instanceName}`);
           }
         }
 
