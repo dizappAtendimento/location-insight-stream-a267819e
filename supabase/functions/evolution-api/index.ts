@@ -147,8 +147,9 @@ serve(async (req) => {
         });
         result = await response.json();
         const instanceData = Array.isArray(result) ? result[0] : result;
-        const connectionState = instanceData?.instance?.state || instanceData?.state || instanceData?.instance?.status || 'unknown';
-        console.log(`[Evolution API] Instance ${instanceName} state: ${connectionState}`, JSON.stringify(instanceData));
+        // Evolution API uses connectionStatus field
+        const connectionState = instanceData?.connectionStatus || instanceData?.instance?.state || instanceData?.state || 'unknown';
+        console.log(`[Evolution API] Instance ${instanceName} connectionState: ${connectionState}`, JSON.stringify(instanceData));
         return new Response(
           JSON.stringify({ instance: instanceData, connectionState }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -213,8 +213,12 @@ const ConexoesPage = () => {
 
         if (error || isCancelled) return;
         
-        const state = data?.connectionState || data?.instance?.state;
-        console.log('[Connection] Status check:', connectionInstanceName, state);
+        // Check all possible status fields from Evolution API
+        const state = data?.connectionState || 
+                      data?.instance?.connectionStatus || 
+                      data?.instance?.state || 
+                      data?.instance?.status;
+        console.log('[Connection] Status check:', connectionInstanceName, 'state:', state, 'data:', JSON.stringify(data));
         
         if (state === 'open') {
           // Connection successful!
