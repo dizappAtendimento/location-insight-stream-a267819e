@@ -96,11 +96,40 @@ serve(async (req) => {
               // Evolution API uses connectionStatus field
               const connStatus = instanceData?.connectionStatus || instanceData?.instance?.state || instanceData?.state;
               console.log(`[Evolution API] Instance ${conn.instanceName} status:`, connStatus);
+              
+              // Extrai dados do perfil da Evolution API
+              const profilePicUrl = instanceData?.profilePicUrl || null;
+              const profileName = instanceData?.profileName || null;
+              const ownerJid = instanceData?.ownerJid || null;
+              const telefone = ownerJid ? ownerJid.split('@')[0] : null;
+              
+              // Atualiza o banco se houver dados novos
+              const updates: any = {};
+              if (profilePicUrl && profilePicUrl !== conn.FotoPerfil) {
+                updates.FotoPerfil = profilePicUrl;
+              }
+              if (telefone && telefone !== conn.Telefone) {
+                updates.Telefone = telefone;
+              }
+              if (instanceData?.token && !conn.Apikey) {
+                updates.Apikey = instanceData.token;
+              }
+              
+              if (Object.keys(updates).length > 0) {
+                console.log(`[Evolution API] Updating ${conn.instanceName} with:`, updates);
+                await supabase
+                  .from("SAAS_Conexões")
+                  .update(updates)
+                  .eq("id", conn.id);
+              }
+              
               return {
                 ...conn,
+                ...updates,
                 status: connStatus === "open" ? "open" : "close",
               };
-            } catch {
+            } catch (err) {
+              console.error(`[Evolution API] Error fetching status for ${conn.instanceName}:`, err);
               return { ...conn, status: "close" };
             }
           })
