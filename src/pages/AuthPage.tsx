@@ -40,7 +40,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Handle OAuth errors from URL
+  // Handle OAuth callback and errors from URL
   useEffect(() => {
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
@@ -53,8 +53,85 @@ export default function AuthPage() {
       
       // Clear the error from URL
       window.history.replaceState({}, '', '/login');
+      return;
     }
-  }, [searchParams]);
+
+    // Handle OAuth callback - check for session after Google login
+    const handleOAuthCallback = async () => {
+      // Check if we have a hash fragment (OAuth callback)
+      if (window.location.hash || window.location.pathname === '/auth') {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // User logged in via OAuth, sync with SAAS_Usuarios
+          const { data: userData } = await supabase
+            .from('SAAS_Usuarios')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (userData) {
+            // Store user in localStorage for AuthContext
+            const user = {
+              id: userData.id,
+              nome: userData.nome,
+              Email: userData.Email,
+              telefone: userData.telefone,
+              statusDisparador: userData.status || false,
+              statusExtrator: userData['Status Ex'] || false,
+              avatar_url: userData.avatar_url,
+              dataValidade: userData.dataValidade,
+              dataValidadeExtrator: userData.dataValidade_extrator,
+              planoId: userData.plano,
+              planoExtratorId: userData.plano_extrator,
+              planoNome: null,
+              planoExtratorNome: null,
+            };
+            
+            localStorage.setItem('saas_user', JSON.stringify(user));
+            toast.success('Login realizado com sucesso!');
+            navigate('/');
+          } else {
+            // Wait a moment for trigger to create user, then retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            const { data: retryData } = await supabase
+              .from('SAAS_Usuarios')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (retryData) {
+              const user = {
+                id: retryData.id,
+                nome: retryData.nome,
+                Email: retryData.Email,
+                telefone: retryData.telefone,
+                statusDisparador: retryData.status || false,
+                statusExtrator: retryData['Status Ex'] || false,
+                avatar_url: retryData.avatar_url,
+                dataValidade: retryData.dataValidade,
+                dataValidadeExtrator: retryData.dataValidade_extrator,
+                planoId: retryData.plano,
+                planoExtratorId: retryData.plano_extrator,
+                planoNome: null,
+                planoExtratorNome: null,
+              };
+              
+              localStorage.setItem('saas_user', JSON.stringify(user));
+              toast.success('Login realizado com sucesso!');
+              navigate('/');
+            } else {
+              toast.error('Erro ao sincronizar usuário. Tente novamente.');
+              await supabase.auth.signOut();
+            }
+          }
+        }
+      }
+    };
+    
+    handleOAuthCallback();
+  }, [searchParams, navigate]);
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
