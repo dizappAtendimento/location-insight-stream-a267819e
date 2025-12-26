@@ -272,6 +272,96 @@ export type Database = {
           },
         ]
       }
+      saas_cupons: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          desconto: number
+          descricao: string | null
+          id: number
+          planos_ids: number[] | null
+          quantidade_usada: number
+          quantidade_uso: number | null
+          tipo_desconto: string
+          updated_at: string
+          uso_unico: boolean
+          validade: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          desconto?: number
+          descricao?: string | null
+          id?: never
+          planos_ids?: number[] | null
+          quantidade_usada?: number
+          quantidade_uso?: number | null
+          tipo_desconto?: string
+          updated_at?: string
+          uso_unico?: boolean
+          validade?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          desconto?: number
+          descricao?: string | null
+          id?: never
+          planos_ids?: number[] | null
+          quantidade_usada?: number
+          quantidade_uso?: number | null
+          tipo_desconto?: string
+          updated_at?: string
+          uso_unico?: boolean
+          validade?: string | null
+        }
+        Relationships: []
+      }
+      saas_cupons_uso: {
+        Row: {
+          created_at: string
+          cupom_id: number
+          id: number
+          pagamento_id: number | null
+          user_id: string
+          valor_desconto: number
+        }
+        Insert: {
+          created_at?: string
+          cupom_id: number
+          id?: never
+          pagamento_id?: number | null
+          user_id: string
+          valor_desconto: number
+        }
+        Update: {
+          created_at?: string
+          cupom_id?: number
+          id?: never
+          pagamento_id?: number | null
+          user_id?: string
+          valor_desconto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_cupons_uso_cupom_id_fkey"
+            columns: ["cupom_id"]
+            isOneToOne: false
+            referencedRelation: "saas_cupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_cupons_uso_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "saas_pagamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       SAAS_Detalhes_Disparos: {
         Row: {
           dataEnvio: string | null
