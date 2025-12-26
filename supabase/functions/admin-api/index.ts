@@ -76,6 +76,8 @@ serve(async (req) => {
       }
 
       case 'get-stats': {
+        const { startDate, endDate } = body;
+        
         // Get total users
         const { count: totalUsers } = await supabase
           .from('SAAS_Usuarios')
@@ -123,7 +125,7 @@ serve(async (req) => {
           .from('SAAS_Contatos')
           .select('*', { count: 'exact', head: true });
 
-        // Get users with paid plans (plano is not null and status is true)
+        // Get users with paid plans
         const { data: usersData } = await supabase
           .from('SAAS_Usuarios')
           .select('id, plano, dataValidade, status');
@@ -134,6 +136,8 @@ serve(async (req) => {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
         const in7Days = new Date(today);
         in7Days.setDate(in7Days.getDate() + 7);
         const in30Days = new Date(today);
@@ -152,7 +156,7 @@ serve(async (req) => {
           }
         });
 
-        // Expired users (dataValidade < today)
+        // Expired users
         const expiredUsers = usersData?.filter(u => {
           if (!u.dataValidade) return false;
           const expDate = new Date(u.dataValidade);
@@ -173,6 +177,45 @@ serve(async (req) => {
           return expDate >= today && expDate <= in30Days;
         }) || [];
 
+        // Revenue today from payments
+        const { data: paymentsToday } = await supabase
+          .from('saas_pagamentos')
+          .select('valor')
+          .eq('status', 'paid')
+          .gte('pago_em', today.toISOString())
+          .lt('pago_em', tomorrow.toISOString());
+
+        const revenueToday = paymentsToday?.reduce((sum, p) => sum + (p.valor || 0), 0) || 0;
+        const renewedToday = paymentsToday?.length || 0;
+
+        // Revenue last month
+        const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59);
+        
+        const { data: paymentsLastMonth } = await supabase
+          .from('saas_pagamentos')
+          .select('valor')
+          .eq('status', 'paid')
+          .gte('pago_em', lastMonthStart.toISOString())
+          .lte('pago_em', lastMonthEnd.toISOString());
+
+        const revenueLastMonth = paymentsLastMonth?.reduce((sum, p) => sum + (p.valor || 0), 0) || 0;
+
+        // Revenue for selected period
+        let revenuePeriod = 0;
+        let renewedThisPeriod = 0;
+        if (startDate && endDate) {
+          const { data: paymentsPeriod } = await supabase
+            .from('saas_pagamentos')
+            .select('valor')
+            .eq('status', 'paid')
+            .gte('pago_em', startDate)
+            .lte('pago_em', endDate);
+
+          revenuePeriod = paymentsPeriod?.reduce((sum, p) => sum + (p.valor || 0), 0) || 0;
+          renewedThisPeriod = paymentsPeriod?.length || 0;
+        }
+
         console.log(`[Admin API] Stats fetched successfully`);
 
         return new Response(
@@ -190,7 +233,61 @@ serve(async (req) => {
             expiredUsers: expiredUsers.length,
             expiringIn7Days: expiringIn7Days.length,
             expiringIn30Days: expiringIn30Days.length,
+            renewedToday,
+            revenueToday,
+            revenueLastMonth,
+            renewedThisPeriod,
+            revenuePeriod,
           }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'get-renewed-users': {
+        const { startDate, endDate } = body;
+        
+        const { data: payments, error } = await supabase
+          .from('saas_pagamentos')
+          .select('user_id, valor, pago_em, plano_id')
+          .eq('status', 'paid')
+          .gte('pago_em', startDate || new Date().toISOString().split('T')[0])
+          .lte('pago_em', endDate || new Date().toISOString())
+          .order('pago_em', { ascending: false })
+          .limit(50);
+
+        if (error) {
+          return new Response(JSON.stringify({ users: [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        // Get user and plan details
+        const userIds = [...new Set(payments?.map(p => p.user_id) || [])];
+        const planIds = [...new Set(payments?.map(p => p.plano_id).filter(Boolean) || [])];
+
+        const { data: users } = await supabase
+          .from('SAAS_Usuarios')
+          .select('id, nome, Email')
+          .in('id', userIds);
+
+        const { data: plans } = await supabase
+          .from('SAAS_Planos')
+          .select('id, nome')
+          .in('id', planIds);
+
+        const renewedUsers = payments?.map(p => {
+          const user = users?.find(u => u.id === p.user_id);
+          const plan = plans?.find(pl => pl.id === p.plano_id);
+          return {
+            id: p.user_id,
+            nome: user?.nome || null,
+            Email: user?.Email || null,
+            plano_nome: plan?.nome || null,
+            valor: p.valor,
+            pago_em: p.pago_em,
+          };
+        }) || [];
+
+        return new Response(
+          JSON.stringify({ users: renewedUsers }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
