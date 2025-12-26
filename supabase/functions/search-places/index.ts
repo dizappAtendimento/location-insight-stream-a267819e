@@ -8,12 +8,13 @@ const corsHeaders = {
 };
 
 interface SearchRequest {
-  query: string;
+  action?: string; // 'get-history' | 'get-results' | undefined (default search)
+  query?: string;
   location?: string;
   maxResults?: number;
   sessionId?: string;
   userId?: string;
-  jobId?: string; // For checking status
+  jobId?: string; // For checking status or getting results
 }
 
 // Brazilian states with their cities
@@ -403,7 +404,58 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body: SearchRequest = await req.json();
-    const { query, location, maxResults = 1000, sessionId, userId, jobId } = body;
+    const { action, query, location, maxResults = 1000, sessionId, userId, jobId } = body;
+
+    // Handle get-history action - fetch all jobs for a user
+    if (action === 'get-history') {
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'User ID is required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: jobs, error } = await supabase
+        .from('search_jobs')
+        .select('id, query, location, type, status, total_found, created_at, results')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ jobs: jobs || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Handle get-results action - fetch results for a specific job
+    if (action === 'get-results') {
+      if (!jobId) {
+        return new Response(JSON.stringify({ error: 'Job ID is required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: job, error } = await supabase
+        .from('search_jobs')
+        .select('results')
+        .eq('id', jobId)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!job) {
+        return new Response(JSON.stringify({ error: 'Job not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ results: job.results || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // If jobId is provided, return the job status
     if (jobId) {

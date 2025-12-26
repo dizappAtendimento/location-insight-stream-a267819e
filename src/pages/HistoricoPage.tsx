@@ -242,8 +242,13 @@ const HistoricoPage = () => {
     });
   };
 
-  const exportResultsToExcel = (record: ExtractionRecord) => {
-    const results = getResults(record.id);
+  const exportResultsToExcel = async (record: ExtractionRecord) => {
+    toastUI({
+      title: 'Carregando...',
+      description: 'Buscando dados para exportação',
+    });
+    
+    const results = await getResults(record.id);
     if (!results || results.length === 0) {
       toastUI({
         title: 'Sem dados',
