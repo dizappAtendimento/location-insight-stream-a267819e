@@ -39,6 +39,12 @@ export function PlanExpirationAlert() {
   });
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  
+  // Coupon states
+  const [couponCode, setCouponCode] = useState('');
+  const [couponData, setCouponData] = useState<{ desconto: number; tipo: string } | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
 
   if (!user || dismissed) return null;
 
@@ -84,6 +90,9 @@ export function PlanExpirationAlert() {
         setPaymentData(null);
         setShowCustomerForm(true);
         setPaymentStatus('');
+        setCouponCode('');
+        setCouponData(null);
+        setCouponError('');
         setCustomerForm({
           name: user?.nome || '',
           email: user?.Email || '',
@@ -100,6 +109,39 @@ export function PlanExpirationAlert() {
     }
   };
 
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim() || !currentPlan || !user) return;
+    
+    setIsValidatingCoupon(true);
+    setCouponError('');
+    setCouponData(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { 
+          action: 'validate-cupom', 
+          codigo: couponCode.trim().toUpperCase(),
+          userId: user.id,
+          planoId: currentPlan.id
+        }
+      });
+
+      if (error || !data?.valid) {
+        setCouponError(data?.error || 'Cupom inválido');
+        return;
+      }
+
+      setCouponData({
+        desconto: data.cupom.desconto,
+        tipo: data.cupom.tipo_desconto
+      });
+    } catch (err: any) {
+      setCouponError('Erro ao validar cupom');
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
   const handleCreatePayment = async () => {
     if (!currentPlan || !user) return;
     
@@ -110,7 +152,34 @@ export function PlanExpirationAlert() {
 
     setIsProcessingPayment(true);
     
-    const finalPrice = getDiscountedPrice(currentPlan.preco);
+    // Calcular descontos (usuário + cupom)
+    const valorOriginal = currentPlan.preco || 0;
+    let valorFinal = valorOriginal;
+    let descontoTotal = 0;
+    let descricaoDesconto = '';
+
+    // Aplicar desconto do usuário primeiro
+    const userDiscount = user.desconto_renovacao || 0;
+    if (userDiscount > 0) {
+      const descontoUsuario = valorFinal * (userDiscount / 100);
+      valorFinal -= descontoUsuario;
+      descontoTotal += descontoUsuario;
+      descricaoDesconto += `${userDiscount}% renovação`;
+    }
+
+    // Aplicar cupom depois
+    if (couponData) {
+      let descontoCupom = 0;
+      if (couponData.tipo === 'percentual') {
+        descontoCupom = valorFinal * (couponData.desconto / 100);
+        descricaoDesconto += (descricaoDesconto ? ' + ' : '') + `${couponData.desconto}% cupom`;
+      } else {
+        descontoCupom = Math.min(couponData.desconto, valorFinal);
+        descricaoDesconto += (descricaoDesconto ? ' + ' : '') + `R$${couponData.desconto} cupom`;
+      }
+      valorFinal -= descontoCupom;
+      descontoTotal += descontoCupom;
+    }
     
     try {
       // Create or get customer
@@ -131,12 +200,13 @@ export function PlanExpirationAlert() {
         body: {
           action: 'create-pix-payment',
           customerId: customerData.customerId,
-          value: finalPrice,
-          valorOriginal: currentPlan.preco,
-          descontoAplicado: user.desconto_renovacao || 0,
-          description: `Renovação do plano ${currentPlan.nome}${user.desconto_renovacao ? ` (${user.desconto_renovacao}% desconto)` : ''}`,
+          value: Math.max(valorFinal, 1),
+          valorOriginal: valorOriginal,
+          descontoAplicado: descontoTotal,
+          description: `Renovação do plano ${currentPlan.nome}${descricaoDesconto ? ` (${descricaoDesconto})` : ''}`,
           planId: currentPlan.id,
-          userId: user.id
+          userId: user.id,
+          cupomCodigo: couponData ? couponCode.trim().toUpperCase() : null
         }
       });
 
@@ -150,13 +220,13 @@ export function PlanExpirationAlert() {
         pixQrCode: paymentResponse.pixQrCode,
         pixCopyPaste: paymentResponse.pixCopyPaste,
         paymentId: paymentResponse.paymentId,
-        value: finalPrice
+        value: Math.max(valorFinal, 1)
       });
       setShowCustomerForm(false);
       setPaymentStatus('PENDING');
       
       // Start checking payment status
-      startPaymentStatusCheck(paymentResponse.payment.id);
+      startPaymentStatusCheck(paymentResponse.paymentId);
       
       toast.success('PIX gerado com sucesso!');
     } catch (error) {
@@ -370,6 +440,46 @@ export function PlanExpirationAlert() {
                     onChange={(e) => setCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="(00) 00000-0000"
                   />
+                </div>
+                
+                {/* Campo de cupom */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="coupon">Cupom de desconto</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="coupon"
+                      value={couponCode}
+                      onChange={(e) => {
+                        setCouponCode(e.target.value.toUpperCase());
+                        setCouponData(null);
+                        setCouponError('');
+                      }}
+                      placeholder="CODIGO10"
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={handleValidateCoupon}
+                      disabled={isValidatingCoupon || !couponCode.trim()}
+                      className="shrink-0"
+                    >
+                      {isValidatingCoupon ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'Aplicar'
+                      )}
+                    </Button>
+                  </div>
+                  {couponError && (
+                    <p className="text-xs text-destructive">{couponError}</p>
+                  )}
+                  {couponData && (
+                    <p className="text-xs text-emerald-500 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Cupom aplicado! {couponData.tipo === 'percentual' ? `${couponData.desconto}% de desconto` : `R$ ${couponData.desconto.toFixed(2)} de desconto`}
+                    </p>
+                  )}
                 </div>
               </div>
               
