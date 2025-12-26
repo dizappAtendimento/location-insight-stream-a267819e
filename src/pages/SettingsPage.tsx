@@ -321,14 +321,14 @@ const SettingsPage = () => {
         }
       });
 
-      if (error || !data?.success) {
+      if (error || !data?.valid) {
         setCouponError(data?.error || 'Cupom inválido');
         return;
       }
 
       setCouponData({
-        desconto: data.desconto,
-        tipo: data.tipo_desconto
+        desconto: data.cupom.desconto,
+        tipo: data.cupom.tipo_desconto
       });
     } catch (err: any) {
       setCouponError('Erro ao validar cupom');
