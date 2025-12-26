@@ -73,15 +73,17 @@ export default function PerfilPage() {
       reader.onload = async () => {
         const base64 = reader.result as string;
         
-        const { error } = await supabase.functions.invoke('admin-api', {
+        // Upload to Supabase Storage via edge function
+        const { data, error } = await supabase.functions.invoke('upload-avatar', {
           body: {
-            action: 'update-user-avatar',
             userId: user.id,
-            avatar_url: base64,
+            base64Image: base64,
+            fileName: file.name,
           }
         });
 
-        if (error) {
+        if (error || data?.error) {
+          console.error('Upload error:', error || data?.error);
           toast.error('Erro ao atualizar foto');
           setIsUploadingAvatar(false);
           return;
