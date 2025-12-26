@@ -409,33 +409,33 @@ export default function DisparosPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-5 lg:p-6 max-w-7xl mx-auto space-y-5 lg:space-y-6">
+      <div className="p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-          <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Disparos de Mensagens</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">Configure e envie mensagens personalizadas para seus contatos</p>
+          <h1 className="text-2xl sm:text-3xl font-bold title-gradient tracking-tight">Disparos de Mensagens</h1>
+          <p className="text-muted-foreground text-sm sm:text-base mt-1">Configure e envie mensagens personalizadas para seus contatos</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr,350px]">
+        <div className="grid gap-8 lg:grid-cols-[1fr,380px]">
           {/* Formulário */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Conexões */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '50ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-4 px-6 pt-6">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Conexões Disponíveis *</CardTitle>
+                  <CardTitle className="text-xl font-semibold">Conexões Disponíveis *</CardTitle>
                   <Button 
                     variant="outline" 
-                    size="sm" 
+                    size="default" 
                     onClick={selectActiveConnections}
-                    className="text-xs"
+                    className="text-sm"
                   >
-                    <Wifi className="w-3 h-3 mr-1" />
+                    <Wifi className="w-4 h-4 mr-2" />
                     Selecionar Ativas
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2 max-h-[250px] overflow-y-auto">
+              <CardContent className="space-y-3 max-h-[300px] overflow-y-auto px-6 pb-6">
                 {loadingData ? (
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -448,87 +448,87 @@ export default function DisparosPage() {
                     <div
                       key={conn.id}
                       onClick={() => toggleConnection(conn.id)}
-                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
+                      className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
                         selectedConnections.includes(conn.id)
                           ? 'border-primary bg-primary/10 shadow-sm'
                           : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
                       }`}
                       style={{ animationDelay: `${index * 30}ms` }}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         {conn.photo ? (
                           <img 
                             src={conn.photo} 
                             alt={conn.name}
-                            className="w-11 h-11 rounded-full object-cover border-2 border-primary/20"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
                           />
                         ) : (
-                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-primary font-semibold border border-primary/20">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-primary font-semibold text-lg border border-primary/20">
                             {conn.name.charAt(0)}
                           </div>
                         )}
                         <div>
-                          <p className="font-medium text-foreground">{conn.name}</p>
-                          <p className="text-xs text-muted-foreground">{conn.phone || conn.instance}</p>
+                          <p className="font-medium text-base text-foreground">{conn.name}</p>
+                          <p className="text-sm text-muted-foreground">{conn.phone || conn.instance}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
+                      <div className="flex items-center gap-3">
+                        <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
                           conn.isConnected 
                             ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' 
                             : 'bg-destructive/15 text-destructive border border-destructive/30'
                         }`}>
-                          {conn.isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                          {conn.isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
                           {conn.isConnected ? 'ON' : 'OFF'}
                         </div>
                         {selectedConnections.includes(conn.id) && (
-                          <Check className="w-5 h-5 text-primary" />
+                          <Check className="w-6 h-6 text-primary" />
                         )}
                       </div>
                     </div>
                   ))
                 )}
               </CardContent>
-              <div className="px-6 pb-4">
-                <p className="text-xs text-muted-foreground">{selectedConnections.length} conexões selecionadas</p>
+              <div className="px-6 pb-6">
+                <p className="text-sm text-muted-foreground">{selectedConnections.length} conexões selecionadas</p>
               </div>
             </Card>
 
             {/* Listas & CSV */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Destinatários *</CardTitle>
+              <CardHeader className="pb-4 px-6 pt-6">
+                <CardTitle className="text-xl font-semibold">Destinatários *</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5 px-6 pb-6">
                 {/* Listas */}
-                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                <div className="space-y-3 max-h-[250px] overflow-y-auto">
                   {loadingData ? (
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className="flex items-center gap-3 text-muted-foreground text-base py-4">
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       Carregando listas...
                     </div>
                   ) : lists.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">Nenhuma lista de contatos encontrada.</p>
+                    <p className="text-muted-foreground text-base py-4">Nenhuma lista de contatos encontrada.</p>
                   ) : (
                     lists.map((list, index) => (
                       <div
                         key={list.id}
                         onClick={() => toggleList(list.id)}
-                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
+                        className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
                           selectedLists.includes(list.id)
                             ? 'border-primary bg-primary/10 shadow-sm'
                             : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
                         }`}
                         style={{ animationDelay: `${index * 30}ms` }}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                            <FileText className="w-4 h-4 text-primary" />
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-primary" />
                           </div>
-                          <span className="font-medium text-foreground">{list.nome}</span>
+                          <span className="font-medium text-base text-foreground">{list.nome}</span>
                         </div>
                         {selectedLists.includes(list.id) && (
-                          <Check className="w-5 h-5 text-primary" />
+                          <Check className="w-6 h-6 text-primary" />
                         )}
                       </div>
                     ))
@@ -536,15 +536,15 @@ export default function DisparosPage() {
                 </div>
 
                 {/* CSV Upload */}
-                <div className="p-4 rounded-lg border border-dashed border-border/50 bg-background/30">
-                  <div className="flex items-center gap-3">
-                    <Upload className="w-5 h-5 text-muted-foreground" />
+                <div className="p-5 rounded-xl border border-dashed border-border/50 bg-background/30">
+                  <div className="flex items-center gap-4">
+                    <Upload className="w-6 h-6 text-muted-foreground" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Ou envie um arquivo CSV</p>
-                      <p className="text-xs text-muted-foreground">Primeira coluna deve conter os telefones</p>
+                      <p className="text-base font-medium">Ou envie um arquivo CSV</p>
+                      <p className="text-sm text-muted-foreground">Primeira coluna deve conter os telefones</p>
                     </div>
                     <label className="cursor-pointer">
-                      <div className="px-3 py-1.5 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
+                      <div className="px-4 py-2 text-sm rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors font-medium">
                         Escolher arquivo
                       </div>
                       <input
@@ -556,7 +556,7 @@ export default function DisparosPage() {
                     </label>
                   </div>
                   {csvContacts.length > 0 && (
-                    <p className="text-xs text-emerald-500 mt-2">✓ {csvContacts.length} contatos encontrados no CSV</p>
+                    <p className="text-sm text-emerald-500 mt-3">✓ {csvContacts.length} contatos encontrados no CSV</p>
                   )}
                 </div>
               </CardContent>
@@ -564,14 +564,14 @@ export default function DisparosPage() {
 
             {/* Mensagens */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '150ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Mensagens *</CardTitle>
+              <CardHeader className="pb-4 px-6 pt-6">
+                <CardTitle className="text-xl font-semibold">Mensagens *</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5 px-6 pb-6">
                 {messages.map((msg, idx) => (
-                  <div key={msg.id} className="p-4 rounded-lg border border-border/50 bg-background/50 space-y-3 transition-all duration-200 hover:border-primary/30">
+                  <div key={msg.id} className="p-5 rounded-xl border border-border/50 bg-background/50 space-y-4 transition-all duration-200 hover:border-primary/30">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Mensagem {idx + 1}</Label>
+                      <Label className="text-base font-medium">Mensagem {idx + 1}</Label>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -579,20 +579,20 @@ export default function DisparosPage() {
                         className="text-destructive hover:text-destructive"
                         disabled={messages.length <= 1}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </Button>
                     </div>
 
                     {/* Variáveis disponíveis */}
                     <div>
-                      <p className="text-xs text-muted-foreground mb-2">Variáveis disponíveis:</p>
+                      <p className="text-sm text-muted-foreground mb-3">Variáveis disponíveis:</p>
                       <div className="flex flex-wrap gap-2">
                         {['nome', 'saudacao', 'hora', 'data'].map(key => (
                           <button
                             key={key}
                             type="button"
                             onClick={() => insertVariable(msg.id, key)}
-                            className="px-2 py-1 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                            className="px-3 py-1.5 text-sm rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
                           >
                             {key}
                           </button>
@@ -604,24 +604,24 @@ export default function DisparosPage() {
                       placeholder="Digite sua mensagem... Use variáveis como <nome>, <saudacao>, <data>"
                       value={msg.text}
                       onChange={(e) => updateMessageText(msg.id, e.target.value)}
-                      className="min-h-[100px] resize-none font-mono text-sm"
+                      className="min-h-[120px] resize-none font-mono text-base"
                     />
 
                     {msg.media && (
-                      <div className="flex items-center justify-between p-2 rounded bg-primary/10 border border-primary/20">
-                        <span className="text-sm text-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> {msg.media.filename} ({msg.media.type})</span>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
+                        <span className="text-base text-foreground flex items-center gap-2"><FileText className="w-4 h-4" /> {msg.media.filename} ({msg.media.type})</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => removeMedia(msg.id)}
-                          className="text-destructive hover:text-destructive h-6 w-6 p-0"
+                          className="text-destructive hover:text-destructive h-8 w-8 p-0"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     )}
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                       {[
                         { type: 'image', icon: Image, label: 'Imagem' },
                         { type: 'video', icon: Video, label: 'Vídeo' },
@@ -629,8 +629,8 @@ export default function DisparosPage() {
                         { type: 'document', icon: FileText, label: 'Documento' },
                       ].map(({ type, icon: Icon, label }) => (
                         <label key={type} className="cursor-pointer">
-                          <div className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-muted hover:bg-muted/80 transition-colors">
-                            <Icon className="w-3 h-3" />
+                          <div className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-muted hover:bg-muted/80 transition-colors">
+                            <Icon className="w-4 h-4" />
                             {label}
                           </div>
                           <input
@@ -648,18 +648,18 @@ export default function DisparosPage() {
                 <Button
                   variant="outline"
                   onClick={addMessage}
-                  className="w-full border-dashed border-primary text-primary hover:bg-primary/10"
+                  className="w-full h-12 border-dashed border-primary text-primary hover:bg-primary/10 text-base"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-5 h-5 mr-2" />
                   Nova Variação
                 </Button>
 
                 {/* IA */}
-                <div className="p-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+                <div className="p-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-emerald-500" />
-                      <span className="text-sm font-medium">🤖 Gerar com IA</span>
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="w-5 h-5 text-emerald-500" />
+                      <span className="text-base font-medium">🤖 Gerar com IA</span>
                     </div>
                     <Switch
                       checked={aiEnabled}
@@ -667,12 +667,12 @@ export default function DisparosPage() {
                     />
                   </div>
                   {aiEnabled && (
-                    <div className="flex flex-wrap gap-2 items-center">
+                    <div className="flex flex-wrap gap-3 items-center">
                       <Input
                         type="number"
                         value={aiCount}
                         onChange={e => setAiCount(Number(e.target.value))}
-                        className="w-16"
+                        className="w-20 h-11"
                         min={1}
                         max={10}
                       />
@@ -681,15 +681,15 @@ export default function DisparosPage() {
                         placeholder="Instruções (ex: seja persuasivo)"
                         value={aiInstructions}
                         onChange={e => setAiInstructions(e.target.value)}
-                        className="flex-1 min-w-[200px]"
+                        className="flex-1 min-w-[200px] h-11"
                       />
                       <Button
                         onClick={generateAI}
                         disabled={isGeneratingAI}
-                        className="bg-emerald-500 hover:bg-emerald-600"
+                        className="bg-emerald-500 hover:bg-emerald-600 h-11 px-6"
                       >
                         {isGeneratingAI ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
                           'Gerar'
                         )}
@@ -702,16 +702,16 @@ export default function DisparosPage() {
 
             {/* Configurações */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Configurações de Envio</CardTitle>
+              <CardHeader className="pb-4 px-6 pt-6">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-6 h-6 text-primary" />
+                  <CardTitle className="text-xl font-semibold">Configurações de Envio</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5 px-6 pb-6">
                 {/* Agendamento */}
-                <div className="flex items-center gap-3">
-                  <Label className="text-sm">Agendar Envio?</Label>
+                <div className="flex flex-wrap items-center gap-4">
+                  <Label className="text-base">Agendar Envio?</Label>
                   <Switch
                     checked={scheduleEnabled}
                     onCheckedChange={setScheduleEnabled}
@@ -721,79 +721,79 @@ export default function DisparosPage() {
                       type="datetime-local"
                       value={scheduleDateTime}
                       onChange={e => setScheduleDateTime(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 h-11"
                     />
                   )}
                 </div>
 
                 {/* Intervalo */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Label className="text-sm">Intervalo:</Label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Label className="text-base">Intervalo:</Label>
                   <Input
                     type="number"
                     value={intervalMin}
                     onChange={e => setIntervalMin(Number(e.target.value))}
-                    className="w-16"
+                    className="w-20 h-11"
                   />
-                  <span className="text-sm text-muted-foreground">a</span>
+                  <span className="text-base text-muted-foreground">a</span>
                   <Input
                     type="number"
                     value={intervalMax}
                     onChange={e => setIntervalMax(Number(e.target.value))}
-                    className="w-16"
+                    className="w-20 h-11"
                   />
-                  <span className="text-sm text-muted-foreground">segundos</span>
+                  <span className="text-base text-muted-foreground">segundos</span>
                 </div>
 
                 {/* Pausa */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Label className="text-sm">Pausar após</Label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Label className="text-base">Pausar após</Label>
                   <Input
                     type="number"
                     value={pauseAfter}
                     onChange={e => setPauseAfter(Number(e.target.value))}
-                    className="w-16"
+                    className="w-20 h-11"
                   />
-                  <span className="text-sm text-muted-foreground">msgs, por</span>
+                  <span className="text-base text-muted-foreground">msgs, por</span>
                   <Input
                     type="number"
                     value={pauseMinutes}
                     onChange={e => setPauseMinutes(Number(e.target.value))}
-                    className="w-16"
+                    className="w-20 h-11"
                   />
-                  <span className="text-sm text-muted-foreground">minutos</span>
+                  <span className="text-base text-muted-foreground">minutos</span>
                 </div>
 
                 {/* Horário */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Label className="text-sm">Horário:</Label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Label className="text-base">Horário:</Label>
                   <Input
                     type="time"
                     value={startTime}
                     onChange={e => setStartTime(e.target.value)}
-                    className="w-28"
+                    className="w-32 h-11"
                   />
-                  <span className="text-sm text-muted-foreground">até</span>
+                  <span className="text-base text-muted-foreground">até</span>
                   <Input
                     type="time"
                     value={endTime}
                     onChange={e => setEndTime(e.target.value)}
-                    className="w-28"
+                    className="w-32 h-11"
                   />
                 </div>
 
                 {/* Dias */}
-                <div className="space-y-2">
-                  <Label className="text-sm">Dias da Semana:</Label>
-                  <div className="flex flex-wrap gap-2">
+                <div className="space-y-3">
+                  <Label className="text-base">Dias da Semana:</Label>
+                  <div className="flex flex-wrap gap-3">
                     {DAYS.map((d, i) => (
                       <Button
                         key={d}
                         type="button"
                         variant={selectedDays.includes(i) ? 'default' : 'outline'}
-                        size="sm"
+                        size="default"
                         onClick={() => toggleDay(i)}
-                        className={`transition-all duration-200 hover:scale-105 active:scale-95 ${selectedDays.includes(i) ? '' : 'border-border/50'}`}
+                        className={`transition-all duration-200 hover:scale-105 active:scale-95 px-4 ${selectedDays.includes(i) ? '' : 'border-border/50'}`}
                       >
                         {d}
                       </Button>
@@ -807,7 +807,7 @@ export default function DisparosPage() {
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full h-12 text-lg bg-violet-600 hover:bg-violet-700 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] opacity-0 animate-fade-in"
+              className="w-full h-14 text-lg font-semibold bg-violet-600 hover:bg-violet-700 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] opacity-0 animate-fade-in"
               style={{ animationDelay: '250ms', animationFillMode: 'forwards' }}
               size="lg"
             >
@@ -822,11 +822,11 @@ export default function DisparosPage() {
 
           {/* iPhone Preview */}
           <div className="hidden lg:block">
-            <div className="sticky top-6">
+            <div className="sticky top-8">
               {/* iPhone Frame */}
-              <div className="relative bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 rounded-[50px] p-2 shadow-2xl shadow-black/60 border border-zinc-700/50 max-w-[280px]">
+              <div className="relative bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 rounded-[50px] p-2 shadow-2xl shadow-black/60 border border-zinc-700/50 max-w-[320px] mx-auto">
                 {/* Screen */}
-                <div className="bg-[#e8ded3] rounded-[42px] overflow-hidden h-[520px] flex flex-col">
+                <div className="bg-[#e8ded3] rounded-[42px] overflow-hidden h-[560px] flex flex-col">
                   {/* WhatsApp Header */}
                   <div className="bg-[#075e54] pt-8 pb-3 px-3 flex items-center gap-2">
                     <div className="w-9 h-9 rounded-full bg-[#ddd] flex items-center justify-center">
