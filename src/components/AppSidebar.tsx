@@ -18,6 +18,7 @@ import {
   Bell,
   Settings,
   LogOut,
+  User,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -285,6 +286,12 @@ export function AppSidebar() {
             >
               <Bell className="w-4 h-4 mr-2" />
               Notificações
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer">
+              <Link to="/perfil">
+                <User className="w-4 h-4 mr-2" />
+                Meu Perfil
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="text-slate-300 hover:text-white focus:text-white focus:bg-slate-700/50 cursor-pointer">
               <Link to="/configuracoes">

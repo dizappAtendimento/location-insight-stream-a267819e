@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface User {
@@ -22,7 +22,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +33,34 @@ const AUTH_STORAGE_KEY = 'saas_user';
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Function to refresh user data from the server
+  const refreshUser = useCallback(async () => {
+    const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!storedUser) return;
+
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      if (!parsedUser?.id) return;
+
+      // Fetch fresh user data using the sync-oauth-user function (works for all users)
+      const { data, error } = await supabase.functions.invoke('sync-oauth-user', {
+        body: {
+          userId: parsedUser.id,
+          email: parsedUser.Email,
+          nome: parsedUser.nome,
+          avatar_url: parsedUser.avatar_url,
+        }
+      });
+
+      if (!error && data?.user) {
+        setUser(data.user);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+      }
+    } catch (err) {
+      console.error('Error refreshing user:', err);
+    }
+  }, []);
 
   useEffect(() => {
     // Check for existing session
@@ -46,6 +75,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(false);
   }, []);
+
+  // Auto-refresh user data when window gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.id) {
+        refreshUser();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user?.id) {
+        refreshUser();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.id, refreshUser]);
 
   const login = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
@@ -84,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

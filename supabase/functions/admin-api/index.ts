@@ -483,6 +483,59 @@ serve(async (req) => {
         );
       }
 
+      case 'update-user-profile': {
+        // Update user's own profile (nome, telefone)
+        const { nome, telefone } = body;
+        
+        const { error } = await supabase
+          .from('SAAS_Usuarios')
+          .update({
+            nome: nome,
+            telefone: telefone,
+          })
+          .eq('id', userId);
+
+        if (error) {
+          console.error('[Admin API] Error updating user profile:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao atualizar perfil' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] User profile ${userId} updated successfully`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'update-user-avatar': {
+        // Update user's avatar
+        const { avatar_url } = body;
+        
+        const { error } = await supabase
+          .from('SAAS_Usuarios')
+          .update({ avatar_url })
+          .eq('id', userId);
+
+        if (error) {
+          console.error('[Admin API] Error updating avatar:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao atualizar foto' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] User avatar ${userId} updated successfully`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'create-plan': {
         const { error } = await supabase
           .from('SAAS_Planos')
