@@ -391,7 +391,7 @@ const SettingsPage = () => {
         toast({ title: 'Plano ativado!', description: 'Seu plano foi ativado com sucesso. Redirecionando...' });
         
         setTimeout(() => {
-          window.location.href = '/dashboard';
+          window.location.href = '/';
         }, 1500);
       } catch (error: any) {
         console.error('Error activating plan:', error);
@@ -524,7 +524,7 @@ const SettingsPage = () => {
       toast({ title: 'Pagamento confirmado!', description: 'Redirecionando...' });
       
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/';
       }, 1500);
 
     } catch (err: any) {
