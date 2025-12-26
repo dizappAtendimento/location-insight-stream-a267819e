@@ -30,14 +30,53 @@ serve(async (req) => {
 
     console.log('Syncing OAuth user:', { userId, email, nome });
 
-    // Check if user already exists
-    const { data: existingUser, error: selectError } = await supabase
+    // Check if user already exists by ID
+    let { data: existingUser, error: selectError } = await supabase
       .from('SAAS_Usuarios')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (selectError && selectError.code !== 'PGRST116') {
+    // If not found by ID, check by email
+    if (!existingUser && email) {
+      const { data: userByEmail, error: emailError } = await supabase
+        .from('SAAS_Usuarios')
+        .select('*')
+        .eq('Email', email)
+        .single();
+      
+      if (userByEmail) {
+        console.log('Found user by email, updating ID from', userByEmail.id, 'to', userId);
+        
+        // Update the user ID to match the new OAuth ID
+        const { error: updateError } = await supabase
+          .from('SAAS_Usuarios')
+          .update({ id: userId })
+          .eq('Email', email);
+        
+        if (updateError) {
+          console.error('Error updating user ID:', updateError);
+          // If update fails (e.g., ID already exists elsewhere), just return the existing user
+        } else {
+          // Update related tables to use the new ID
+          await supabase.from('SAAS_Listas').update({ idUsuario: userId }).eq('idUsuario', userByEmail.id);
+          await supabase.from('SAAS_Conexões').update({ idUsuario: userId }).eq('idUsuario', userByEmail.id);
+          await supabase.from('SAAS_Contatos').update({ idUsuario: userId }).eq('idUsuario', userByEmail.id);
+          await supabase.from('SAAS_Grupos').update({ idUsuario: userId }).eq('idUsuario', userByEmail.id);
+          await supabase.from('SAAS_Disparos').update({ userId: userId }).eq('userId', userByEmail.id);
+          await supabase.from('SAAS_CRM_Colunas').update({ idUsuario: userId }).eq('idUsuario', userByEmail.id);
+          await supabase.from('SAAS_CRM_Leads').update({ idUsuario: userId }).eq('idUsuario', userByEmail.id);
+          await supabase.from('SAAS_Chat_Labels').update({ idUsuario: userId }).eq('idUsuario', userByEmail.id);
+          await supabase.from('SAAS_Maturador').update({ userId: userId }).eq('userId', userByEmail.id);
+          await supabase.from('search_jobs').update({ user_id: userId }).eq('user_id', userByEmail.id);
+          await supabase.from('user_roles').update({ user_id: userId }).eq('user_id', userByEmail.id);
+        }
+        
+        existingUser = { ...userByEmail, id: userId };
+      }
+    }
+
+    if (selectError && selectError.code !== 'PGRST116' && !existingUser) {
       console.error('Error checking user:', selectError);
       return new Response(
         JSON.stringify({ error: 'Erro ao verificar usuário', details: selectError }),
@@ -46,7 +85,7 @@ serve(async (req) => {
     }
 
     if (existingUser) {
-      console.log('User already exists:', existingUser.id);
+      console.log('User found:', existingUser.id);
       
       // Fetch plan info
       let planoNome = null;
