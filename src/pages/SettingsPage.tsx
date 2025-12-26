@@ -174,6 +174,10 @@ const SettingsPage = () => {
     cpfCnpj: '',
     phone: ''
   });
+  const [couponCode, setCouponCode] = useState('');
+  const [couponData, setCouponData] = useState<{ desconto: number; tipo: string } | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
   const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -295,6 +299,42 @@ const SettingsPage = () => {
     setPaymentData(null);
     setPaymentStatus('');
     setShowCustomerForm(true);
+    setCouponCode('');
+    setCouponData(null);
+    setCouponError('');
+  };
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim() || !selectedPlan || !user) return;
+    
+    setIsValidatingCoupon(true);
+    setCouponError('');
+    setCouponData(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { 
+          action: 'validate-cupom', 
+          codigo: couponCode.trim().toUpperCase(),
+          userId: user.id,
+          planoId: selectedPlan.id
+        }
+      });
+
+      if (error || !data?.success) {
+        setCouponError(data?.error || 'Cupom inválido');
+        return;
+      }
+
+      setCouponData({
+        desconto: data.desconto,
+        tipo: data.tipo_desconto
+      });
+    } catch (err: any) {
+      setCouponError('Erro ao validar cupom');
+    } finally {
+      setIsValidatingCoupon(false);
+    }
   };
 
   const handleCreatePayment = async () => {
@@ -323,22 +363,46 @@ const SettingsPage = () => {
         throw new Error(customerData?.error || 'Erro ao criar cliente');
       }
 
-      // Aplicar desconto do usuário
-      const discount = user.desconto_renovacao || 0;
+      // Calcular descontos (usuário + cupom)
       const valorOriginal = selectedPlan.preco || 0;
-      const descontoAplicado = valorOriginal * (discount / 100);
-      const valorFinal = valorOriginal - descontoAplicado;
+      let valorFinal = valorOriginal;
+      let descontoTotal = 0;
+      let descricaoDesconto = '';
+
+      // Aplicar desconto do usuário primeiro
+      const userDiscount = user.desconto_renovacao || 0;
+      if (userDiscount > 0) {
+        const descontoUsuario = valorFinal * (userDiscount / 100);
+        valorFinal -= descontoUsuario;
+        descontoTotal += descontoUsuario;
+        descricaoDesconto += `${userDiscount}% renovação`;
+      }
+
+      // Aplicar cupom depois
+      if (couponData) {
+        let descontoCupom = 0;
+        if (couponData.tipo === 'percentual') {
+          descontoCupom = valorFinal * (couponData.desconto / 100);
+          descricaoDesconto += (descricaoDesconto ? ' + ' : '') + `${couponData.desconto}% cupom`;
+        } else {
+          descontoCupom = Math.min(couponData.desconto, valorFinal);
+          descricaoDesconto += (descricaoDesconto ? ' + ' : '') + `R$${couponData.desconto} cupom`;
+        }
+        valorFinal -= descontoCupom;
+        descontoTotal += descontoCupom;
+      }
 
       const { data: paymentResult, error: paymentError } = await supabase.functions.invoke('asaas-api', {
         body: {
           action: 'create-pix-payment',
           customerId: customerData.customerId,
-          value: valorFinal,
+          value: Math.max(valorFinal, 1),
           valorOriginal: valorOriginal,
-          descontoAplicado: descontoAplicado,
-          description: `Plano ${selectedPlan.nome} - DizApp${discount > 0 ? ` (${discount}% desconto)` : ''}`,
+          descontoAplicado: descontoTotal,
+          description: `Plano ${selectedPlan.nome} - DizApp${descricaoDesconto ? ` (${descricaoDesconto})` : ''}`,
           planId: selectedPlan.id,
-          userId: user.id
+          userId: user.id,
+          cupomCodigo: couponData ? couponCode.trim().toUpperCase() : null
         }
       });
 
@@ -1534,6 +1598,47 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                   placeholder="(11) 99999-9999"
                 />
               </div>
+              
+              {/* Campo de cupom */}
+              <div className="space-y-2">
+                <Label htmlFor="coupon">Cupom de desconto</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="coupon"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      setCouponData(null);
+                      setCouponError('');
+                    }}
+                    placeholder="CODIGO10"
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={handleValidateCoupon}
+                    disabled={isValidatingCoupon || !couponCode.trim()}
+                    className="shrink-0"
+                  >
+                    {isValidatingCoupon ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      'Aplicar'
+                    )}
+                  </Button>
+                </div>
+                {couponError && (
+                  <p className="text-xs text-destructive">{couponError}</p>
+                )}
+                {couponData && (
+                  <p className="text-xs text-emerald-500 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Cupom aplicado! {couponData.tipo === 'percentual' ? `${couponData.desconto}% de desconto` : `R$ ${couponData.desconto.toFixed(2)} de desconto`}
+                  </p>
+                )}
+              </div>
+
               <Button 
                 onClick={handleCreatePayment} 
                 disabled={isProcessingPayment}
