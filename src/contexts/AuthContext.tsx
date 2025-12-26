@@ -36,21 +36,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Function to refresh user data from the server
   const refreshUser = useCallback(async () => {
-    const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!storedUser) return;
-
     try {
-      const parsedUser = JSON.parse(storedUser);
-      if (!parsedUser?.id) return;
+      // First, check if there's an active Supabase Auth session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      let userId: string | null = null;
+      let email: string | null = null;
+      let nome: string | null = null;
+      let avatar_url: string | null = null;
 
-      // Fetch fresh user data using the sync-oauth-user function (works for all users)
+      if (session?.user) {
+        // Use the Supabase Auth session (for Google OAuth users)
+        userId = session.user.id;
+        email = session.user.email || null;
+        nome = session.user.user_metadata?.full_name || session.user.user_metadata?.name || null;
+        avatar_url = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
+      } else {
+        // Fall back to localStorage for password-based users
+        const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (!storedUser) return;
+        
+        const parsedUser = JSON.parse(storedUser);
+        if (!parsedUser?.id) return;
+        
+        userId = parsedUser.id;
+        email = parsedUser.Email;
+        nome = parsedUser.nome;
+        avatar_url = parsedUser.avatar_url;
+      }
+
+      if (!userId) return;
+
+      // Fetch fresh user data using the sync-oauth-user function
       const { data, error } = await supabase.functions.invoke('sync-oauth-user', {
-        body: {
-          userId: parsedUser.id,
-          email: parsedUser.Email,
-          nome: parsedUser.nome,
-          avatar_url: parsedUser.avatar_url,
-        }
+        body: { userId, email, nome, avatar_url }
       });
 
       if (!error && data?.user) {
@@ -74,6 +93,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setIsLoading(false);
+  }, []);
+
+  // Listen for Supabase Auth state changes (for Google OAuth)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Sync user with our SAAS_Usuarios table using the correct OAuth ID
+        const { data, error } = await supabase.functions.invoke('sync-oauth-user', {
+          body: {
+            userId: session.user.id,
+            email: session.user.email,
+            nome: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+            avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+          }
+        });
+
+        if (!error && data?.user) {
+          setUser(data.user);
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Auto-refresh user data when window gains focus
