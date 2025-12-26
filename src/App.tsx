@@ -27,6 +27,7 @@ import CrmPage from "./pages/CrmPage";
 import MaturadorPage from "./pages/MaturadorPage";
 import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
 import ContratarPage from "./pages/ContratarPage";
+import PerfilPage from "./pages/PerfilPage";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="/grupos" element={<ProtectedRoute><WhatsAppGroupsExtractor /></ProtectedRoute>} />
               <Route path="/whatsapp-config" element={<ProtectedRoute><WhatsAppConfigPage /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/perfil" element={<ProtectedRoute><PerfilPage /></ProtectedRoute>} />
               <Route path="/api-docs" element={<ProtectedRoute><ApiDocsPage /></ProtectedRoute>} />
               <Route path="/crm" element={<ProtectedRoute><CrmPage /></ProtectedRoute>} />
               <Route path="/maturador" element={<ProtectedRoute><MaturadorPage /></ProtectedRoute>} />
