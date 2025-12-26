@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 // Generic result type to store any extraction data
 export interface ExtractedResult {
@@ -28,115 +29,121 @@ export interface ExtractionRecord {
   emailsFound: number;
   phonesFound: number;
   createdAt: string;
+  status?: string;
   results?: ExtractedResult[]; // Store the actual extracted data
 }
 
-const STORAGE_KEY_PREFIX = 'extraction_history_';
-const RESULTS_KEY_PREFIX = 'extraction_results_';
-
 export const useExtractionHistory = () => {
   const [history, setHistory] = useState<ExtractionRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
-  
-  const getStorageKey = () => {
-    return user?.id ? `${STORAGE_KEY_PREFIX}${user.id}` : null;
-  };
 
-  const getResultsKey = (recordId: string) => {
-    return user?.id ? `${RESULTS_KEY_PREFIX}${user.id}_${recordId}` : null;
-  };
-
-  useEffect(() => {
-    const key = getStorageKey();
-    if (!key) {
+  // Fetch history from database
+  const fetchHistory = useCallback(async () => {
+    if (!user?.id) {
       setHistory([]);
       return;
     }
-    
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      setHistory(JSON.parse(stored));
-    } else {
+
+    setIsLoading(true);
+    try {
+      // Fetch from search_jobs table using edge function to bypass RLS
+      const { data, error } = await supabase.functions.invoke('search-places', {
+        body: { 
+          action: 'get-history',
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        console.error('Error fetching extraction history:', error);
+        setHistory([]);
+        return;
+      }
+
+      if (data?.jobs && Array.isArray(data.jobs)) {
+        const records: ExtractionRecord[] = data.jobs.map((job: any) => {
+          // Parse results to count emails and phones
+          const results = Array.isArray(job.results) ? job.results : [];
+          const emailsFound = results.filter((r: any) => r.email || r.emails?.length > 0).length;
+          const phonesFound = results.filter((r: any) => r.phone || r.phones?.length > 0 || r.telefone).length;
+
+          return {
+            id: job.id,
+            type: job.type || 'places',
+            segment: job.query,
+            location: job.location,
+            totalResults: job.total_found || results.length,
+            emailsFound,
+            phonesFound,
+            createdAt: job.created_at,
+            status: job.status,
+            results: undefined, // Don't load results initially
+          };
+        });
+
+        setHistory(records);
+      } else {
+        setHistory([]);
+      }
+    } catch (error) {
+      console.error('Error fetching extraction history:', error);
       setHistory([]);
+    } finally {
+      setIsLoading(false);
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
   const addRecord = (record: Omit<ExtractionRecord, 'id' | 'createdAt'>) => {
-    const key = getStorageKey();
-    if (!key) return null;
-    
-    const recordId = crypto.randomUUID();
-    
-    // Store results separately to avoid localStorage limits
-    if (record.results && record.results.length > 0) {
-      const resultsKey = getResultsKey(recordId);
-      if (resultsKey) {
-        try {
-          localStorage.setItem(resultsKey, JSON.stringify(record.results));
-        } catch (e) {
-          console.warn('Failed to store results, might exceed localStorage limit');
-        }
-      }
-    }
-    
-    // Store record metadata without results to save space
+    // For database records, this is handled by the extraction edge functions
+    // This is just for local state update after an extraction
     const newRecord: ExtractionRecord = {
       ...record,
-      id: recordId,
+      id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
-      results: undefined, // Don't store in main history
     };
     
-    const updated = [newRecord, ...history].slice(0, 100); // Keep last 100
-    setHistory(updated);
-    localStorage.setItem(key, JSON.stringify(updated));
+    setHistory(prev => [newRecord, ...prev]);
     return newRecord;
   };
 
-  const getResults = (recordId: string): ExtractedResult[] | null => {
-    const resultsKey = getResultsKey(recordId);
-    if (!resultsKey) return null;
+  const getResults = async (recordId: string): Promise<ExtractedResult[] | null> => {
+    if (!user?.id) return null;
     
-    const stored = localStorage.getItem(resultsKey);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
+    try {
+      const { data, error } = await supabase.functions.invoke('search-places', {
+        body: { 
+          action: 'get-results',
+          jobId: recordId,
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        console.error('Error fetching results:', error);
         return null;
       }
+
+      return data?.results || null;
+    } catch (error) {
+      console.error('Error fetching results:', error);
+      return null;
     }
-    return null;
   };
 
-  const clearHistory = () => {
-    const key = getStorageKey();
-    if (!key) return;
-    
-    // Also clear all results
-    history.forEach(record => {
-      const resultsKey = getResultsKey(record.id);
-      if (resultsKey) {
-        localStorage.removeItem(resultsKey);
-      }
-    });
-    
+  const clearHistory = async () => {
+    // For database records, we don't actually delete - just clear local state
+    // If you want to delete from database, implement a delete endpoint
     setHistory([]);
-    localStorage.removeItem(key);
   };
 
   const deleteRecord = (recordId: string) => {
-    const key = getStorageKey();
-    if (!key) return;
-    
-    // Delete results
-    const resultsKey = getResultsKey(recordId);
-    if (resultsKey) {
-      localStorage.removeItem(resultsKey);
-    }
-    
-    const updated = history.filter(r => r.id !== recordId);
-    setHistory(updated);
-    localStorage.setItem(key, JSON.stringify(updated));
+    // For database records, just remove from local state
+    setHistory(prev => prev.filter(r => r.id !== recordId));
   };
 
   const getStats = () => {
@@ -161,5 +168,14 @@ export const useExtractionHistory = () => {
     };
   };
 
-  return { history, addRecord, clearHistory, deleteRecord, getResults, getStats };
+  return { 
+    history, 
+    addRecord, 
+    clearHistory, 
+    deleteRecord, 
+    getResults, 
+    getStats, 
+    isLoading,
+    refetch: fetchHistory 
+  };
 };
