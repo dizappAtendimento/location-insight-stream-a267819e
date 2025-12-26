@@ -30,7 +30,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit2, RefreshCw, UserPlus, Send, Eye, Copy, Users, Sparkles, Ban, UserCheck, Percent } from 'lucide-react';
+import { Search, Edit2, RefreshCw, UserPlus, Send, Eye, Copy, Users, Sparkles, Ban, UserCheck, Percent, History, CreditCard } from 'lucide-react';
 import { format, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -68,6 +68,19 @@ interface Plan {
   tipo: string;
 }
 
+interface Payment {
+  id: number;
+  created_at: string;
+  valor: number;
+  valor_original: number | null;
+  desconto_aplicado: number;
+  status: string;
+  tipo: string;
+  descricao: string | null;
+  pago_em: string | null;
+  plano_nome?: string;
+}
+
 export function AdminUsers() {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
@@ -82,6 +95,10 @@ export function AdminUsers() {
   const [renewingUser, setRenewingUser] = useState<User | null>(null);
   const [renewDays, setRenewDays] = useState(30);
   const [renewType, setRenewType] = useState<'disparador' | 'extrator'>('disparador');
+  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  const [paymentHistoryUser, setPaymentHistoryUser] = useState<User | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   
   const [editForm, setEditForm] = useState({
     nome: '',
@@ -371,7 +388,43 @@ export function AdminUsers() {
     }
   };
 
-  // Get badge color based on plan name
+  const handleViewPaymentHistory = async (user: User) => {
+    setPaymentHistoryUser(user);
+    setIsPaymentHistoryOpen(true);
+    setIsLoadingPayments(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-api', {
+        body: { action: 'get-user-payments', userId: user.id }
+      });
+      
+      if (!error && data?.payments) {
+        setPaymentHistory(data.payments);
+      } else {
+        setPaymentHistory([]);
+      }
+    } catch (err) {
+      console.error('Error fetching payment history:', err);
+      setPaymentHistory([]);
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  };
+
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case 'CONFIRMED':
+      case 'RECEIVED':
+        return <Badge className="bg-emerald-500 text-white text-[10px]">Pago</Badge>;
+      case 'PENDING':
+        return <Badge className="bg-amber-500 text-white text-[10px]">Pendente</Badge>;
+      case 'OVERDUE':
+        return <Badge className="bg-red-500 text-white text-[10px]">Vencido</Badge>;
+      default:
+        return <Badge className="bg-muted text-muted-foreground text-[10px]">{status}</Badge>;
+    }
+  };
+
   const getPlanBadgeStyle = (planName: string | null, isActive: boolean) => {
     if (!planName) return '';
     const name = planName.toLowerCase();
@@ -535,8 +588,9 @@ export function AdminUsers() {
               <TableRow className="hover:bg-transparent border-border/30 bg-muted/30">
                 <TableHead className="w-[280px] text-xs font-semibold uppercase tracking-wider">Usuário</TableHead>
                 <TableHead className="w-[200px] text-center text-xs font-semibold uppercase tracking-wider">Plano</TableHead>
-                <TableHead className="w-[120px] text-center text-xs font-semibold uppercase tracking-wider">Consultas</TableHead>
-                <TableHead className="w-[100px] text-right text-xs font-semibold uppercase tracking-wider">Ações</TableHead>
+                <TableHead className="w-[80px] text-center text-xs font-semibold uppercase tracking-wider">Desconto</TableHead>
+                <TableHead className="w-[100px] text-center text-xs font-semibold uppercase tracking-wider">Consultas</TableHead>
+                <TableHead className="w-[120px] text-right text-xs font-semibold uppercase tracking-wider">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -586,6 +640,17 @@ export function AdminUsers() {
                     </div>
                   </TableCell>
                   
+                  {/* Desconto */}
+                  <TableCell className="py-3 text-center">
+                    {user.desconto_renovacao && user.desconto_renovacao > 0 ? (
+                      <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] font-semibold">
+                        {user.desconto_renovacao}%
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  
                   {/* Consultas */}
                   <TableCell className="py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
@@ -607,6 +672,15 @@ export function AdminUsers() {
                         title={user.banido ? 'Desbanir usuário' : 'Banir usuário'}
                       >
                         {user.banido ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 hover:bg-amber-500/10 hover:text-amber-500" 
+                        onClick={() => handleViewPaymentHistory(user)} 
+                        title="Histórico de Pagamentos"
+                      >
+                        <History className="w-4 h-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -772,6 +846,85 @@ export function AdminUsers() {
             <Button onClick={handleConfirmRenew} className="w-full bg-gradient-to-r from-primary to-primary/80">
               Confirmar Renovação
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment History Dialog */}
+      <Dialog open={isPaymentHistoryOpen} onOpenChange={setIsPaymentHistoryOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              Histórico de Pagamentos - {paymentHistoryUser?.nome || paymentHistoryUser?.Email}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {isLoadingPayments ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+              </div>
+            ) : paymentHistory.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="p-4 rounded-full bg-muted/50 mb-4">
+                  <CreditCard className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Nenhum pagamento registrado</h3>
+                <p className="text-sm text-muted-foreground">
+                  Este usuário ainda não realizou pagamentos.
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead className="text-center">Valor</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentHistory.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {format(new Date(payment.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(payment.created_at), 'HH:mm')}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-sm">{payment.descricao || payment.tipo}</span>
+                          {payment.plano_nome && (
+                            <span className="text-xs text-muted-foreground">{payment.plano_nome}</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex flex-col items-center">
+                          <span className="text-sm font-semibold text-emerald-500">
+                            R$ {payment.valor.toFixed(2)}
+                          </span>
+                          {payment.desconto_aplicado > 0 && (
+                            <span className="text-[10px] text-amber-500">
+                              -{payment.desconto_aplicado}% desconto
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {getPaymentStatusBadge(payment.status)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </DialogContent>
       </Dialog>

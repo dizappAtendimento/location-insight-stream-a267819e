@@ -1200,6 +1200,42 @@ serve(async (req) => {
         );
       }
 
+      case 'get-user-payments': {
+        const { data: payments, error } = await supabase
+          .from('SAAS_Pagamentos')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('[Admin API] Error fetching user payments:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao buscar pagamentos' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Get plan names for payments
+        const { data: plans } = await supabase
+          .from('SAAS_Planos')
+          .select('id, nome');
+
+        const paymentsWithPlanNames = payments?.map(payment => {
+          const plan = plans?.find(p => p.id === payment.plano_id);
+          return {
+            ...payment,
+            plano_nome: plan?.nome || null
+          };
+        }) || [];
+
+        console.log(`[Admin API] Fetched ${payments?.length || 0} payments for user ${userId}`);
+
+        return new Response(
+          JSON.stringify({ payments: paymentsWithPlanNames }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Ação inválida' }),

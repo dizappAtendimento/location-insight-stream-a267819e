@@ -132,6 +132,8 @@ export function PlanExpirationAlert() {
           action: 'create-pix-payment',
           customerId: customerData.customerId,
           value: finalPrice,
+          valorOriginal: currentPlan.preco,
+          descontoAplicado: user.desconto_renovacao || 0,
           description: `Renovação do plano ${currentPlan.nome}${user.desconto_renovacao ? ` (${user.desconto_renovacao}% desconto)` : ''}`,
           planId: currentPlan.id,
           userId: user.id
