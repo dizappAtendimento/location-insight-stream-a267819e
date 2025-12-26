@@ -103,15 +103,15 @@ export default function PerfilPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto p-6 space-y-6">
+      <div className="w-full max-w-4xl mx-auto p-6 lg:p-8 space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Meu Perfil</h1>
-          <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Meu Perfil</h1>
+          <p className="text-muted-foreground mt-1">Gerencie suas informações pessoais</p>
         </div>
 
         <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <User className="w-5 h-5" />
               Informações Pessoais
             </CardTitle>
@@ -119,7 +119,7 @@ export default function PerfilPage() {
               Atualize seu nome, telefone e foto de perfil
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-8">
             {/* Avatar */}
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
@@ -154,14 +154,14 @@ export default function PerfilPage() {
             </div>
 
             {/* Form Fields */}
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <Input
                   id="email"
                   value={user?.Email || ''}
                   disabled
-                  className="bg-muted"
+                  className="bg-muted h-11"
                 />
                 <p className="text-xs text-muted-foreground">
                   O email não pode ser alterado
@@ -169,77 +169,90 @@ export default function PerfilPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome</Label>
+                <Label htmlFor="nome" className="text-sm font-medium">Nome</Label>
                 <Input
                   id="nome"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   placeholder="Seu nome"
+                  className="h-11"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="telefone" className="text-sm font-medium">Telefone</Label>
                 <Input
                   id="telefone"
                   value={telefone}
                   onChange={(e) => setTelefone(e.target.value)}
                   placeholder="(00) 00000-0000"
+                  className="h-11 max-w-md"
                 />
               </div>
             </div>
 
-            <Button
-              onClick={handleSave}
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Alterações
-                </>
-              )}
-            </Button>
+            <div className="pt-4">
+              <Button
+                onClick={handleSave}
+                disabled={isLoading}
+                size="lg"
+                className="w-full md:w-auto px-8"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar Alterações
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         {/* Plan Info */}
         <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle>Informações do Plano</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Informações do Plano</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Plano Disparador:</span>
-              <span className="font-medium">{user?.planoNome || 'Nenhum'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Validade Disparador:</span>
-              <span className="font-medium">
-                {user?.dataValidade 
-                  ? new Date(user.dataValidade).toLocaleDateString('pt-BR')
-                  : 'N/A'
-                }
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Plano Extrator:</span>
-              <span className="font-medium">{user?.planoExtratorNome || 'Nenhum'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Validade Extrator:</span>
-              <span className="font-medium">
-                {user?.dataValidadeExtrator 
-                  ? new Date(user.dataValidadeExtrator).toLocaleDateString('pt-BR')
-                  : 'N/A'
-                }
-              </span>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4 p-4 rounded-lg bg-muted/30">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Disparador</h4>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Plano:</span>
+                  <span className="font-semibold text-foreground">{user?.planoNome || 'Nenhum'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Validade:</span>
+                  <span className="font-medium">
+                    {user?.dataValidade 
+                      ? new Date(user.dataValidade).toLocaleDateString('pt-BR')
+                      : 'N/A'
+                    }
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-4 p-4 rounded-lg bg-muted/30">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Extrator</h4>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Plano:</span>
+                  <span className="font-semibold text-foreground">{user?.planoExtratorNome || 'Nenhum'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Validade:</span>
+                  <span className="font-medium">
+                    {user?.dataValidadeExtrator 
+                      ? new Date(user.dataValidadeExtrator).toLocaleDateString('pt-BR')
+                      : 'N/A'
+                    }
+                  </span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

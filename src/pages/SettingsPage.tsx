@@ -616,10 +616,10 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
 
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-6 max-w-5xl mx-auto animate-fade-in">
-        <div className="mb-6">
-          <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Configurações</h1>
-          <p className="text-xs text-muted-foreground mt-1">Gerencie seu perfil, preferências e integrações</p>
+      <div className="p-4 sm:p-6 lg:p-8 w-full max-w-6xl mx-auto animate-fade-in">
+        <div className="mb-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl title-gradient tracking-tight">Configurações</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gerencie seu perfil, preferências e integrações</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => {
@@ -628,55 +628,55 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
             fetchPlanUsage();
           }
         }} className="w-full">
-          <TabsList className="w-full flex mb-6 p-1 bg-muted/50 rounded-xl border border-border/30">
-            <TabsTrigger value="perfil" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
-              <User className="w-3.5 h-3.5" />
+          <TabsList className="w-full flex mb-8 p-1.5 bg-muted/50 rounded-xl border border-border/30">
+            <TabsTrigger value="perfil" className="flex-1 gap-2 text-sm py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
+              <User className="w-4 h-4" />
               <span className="hidden sm:inline">Perfil</span>
             </TabsTrigger>
-            <TabsTrigger value="planos" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
-              <CreditCard className="w-3.5 h-3.5" />
+            <TabsTrigger value="planos" className="flex-1 gap-2 text-sm py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
+              <CreditCard className="w-4 h-4" />
               <span className="hidden sm:inline">Planos</span>
             </TabsTrigger>
-            <TabsTrigger value="api" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
-              <Code className="w-3.5 h-3.5" />
+            <TabsTrigger value="api" className="flex-1 gap-2 text-sm py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
+              <Code className="w-4 h-4" />
               <span className="hidden sm:inline">API</span>
             </TabsTrigger>
-            <TabsTrigger value="webhook" className="flex-1 gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
-              <Webhook className="w-3.5 h-3.5" />
+            <TabsTrigger value="webhook" className="flex-1 gap-2 text-sm py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
+              <Webhook className="w-4 h-4" />
               <span className="hidden sm:inline">Webhook</span>
             </TabsTrigger>
           </TabsList>
 
           {/* PERFIL TAB */}
-          <TabsContent value="perfil" className="space-y-5 animate-fade-in">
+          <TabsContent value="perfil" className="space-y-6 animate-fade-in">
             {/* Profile Card */}
             <div className="rounded-xl border border-border/30 bg-card overflow-hidden transition-all hover:border-border/50">
-              <div className="p-4 sm:p-5 border-b border-border/30">
+              <div className="p-5 sm:p-6 border-b border-border/30">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-foreground">Informações Pessoais</h2>
+                  <h2 className="text-base font-semibold text-foreground">Informações Pessoais</h2>
                   {!isEditingProfile ? (
-                    <Button variant="ghost" size="sm" onClick={() => setIsEditingProfile(true)} className="h-7 text-xs text-muted-foreground hover:text-foreground">
-                      <Pencil className="w-3 h-3 mr-1" /> Editar
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditingProfile(true)} className="h-8 text-sm text-muted-foreground hover:text-foreground">
+                      <Pencil className="w-4 h-4 mr-1.5" /> Editar
                     </Button>
                   ) : (
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" className="h-7" onClick={() => { setIsEditingProfile(false); setProfileData({ nome: user?.nome || '', telefone: user?.telefone || '' }); }}>
-                        <X className="w-3 h-3" />
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" className="h-8" onClick={() => { setIsEditingProfile(false); setProfileData({ nome: user?.nome || '', telefone: user?.telefone || '' }); }}>
+                        <X className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" className="h-7 text-xs" onClick={handleSaveProfile} disabled={isSavingProfile}>
-                        {isSavingProfile ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3 mr-1" />} Salvar
+                      <Button size="sm" className="h-8 text-sm" onClick={handleSaveProfile} disabled={isSavingProfile}>
+                        {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-1.5" />} Salvar
                       </Button>
                     </div>
                   )}
                 </div>
               </div>
               
-              <div className="p-4 sm:p-5">
-                <div className="flex items-start gap-4">
+              <div className="p-5 sm:p-6">
+                <div className="flex items-start gap-6">
                   {/* Avatar */}
                   <div className="relative group shrink-0">
                     <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
-                    <div className="w-16 h-16 rounded-full overflow-hidden bg-muted cursor-pointer transition-all hover:ring-2 hover:ring-primary/30">
+                    <div className="w-20 h-20 rounded-full overflow-hidden bg-muted cursor-pointer transition-all hover:ring-2 hover:ring-primary/30">
                       {avatarUrl ? (
                         <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
@@ -732,14 +732,14 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                   {/* User Info */}
                   <div className="flex-1 min-w-0">
                     {isEditingProfile ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-xs text-muted-foreground">Nome</Label>
-                          <Input value={profileData.nome} onChange={(e) => setProfileData(prev => ({ ...prev, nome: e.target.value }))} placeholder="Seu nome" className="h-8 mt-1 text-sm" />
+                          <Label className="text-sm text-muted-foreground">Nome</Label>
+                          <Input value={profileData.nome} onChange={(e) => setProfileData(prev => ({ ...prev, nome: e.target.value }))} placeholder="Seu nome" className="h-10 mt-1.5 text-sm" />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Telefone</Label>
-                          <Input value={profileData.telefone} onChange={(e) => setProfileData(prev => ({ ...prev, telefone: e.target.value }))} placeholder="Seu telefone" className="h-8 mt-1 text-sm" />
+                          <Label className="text-sm text-muted-foreground">Telefone</Label>
+                          <Input value={profileData.telefone} onChange={(e) => setProfileData(prev => ({ ...prev, telefone: e.target.value }))} placeholder="Seu telefone" className="h-10 mt-1.5 text-sm" />
                         </div>
                       </div>
                     ) : (
