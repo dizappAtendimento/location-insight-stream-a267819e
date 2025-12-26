@@ -125,6 +125,7 @@ serve(async (req) => {
             planoExtratorId: existingUser.plano_extrator,
             planoNome,
             planoExtratorNome,
+            desconto_renovacao: existingUser.desconto_renovacao || 0,
           }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -191,6 +192,7 @@ serve(async (req) => {
           planoExtratorId: newUser.plano_extrator,
           planoNome: trialPlanNome,
           planoExtratorNome: trialPlanNome,
+          desconto_renovacao: 0,
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -30,7 +30,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit2, RefreshCw, UserPlus, Send, Eye, Copy, Users, Sparkles, Ban, UserCheck } from 'lucide-react';
+import { Search, Edit2, RefreshCw, UserPlus, Send, Eye, Copy, Users, Sparkles, Ban, UserCheck, Percent } from 'lucide-react';
 import { format, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -59,6 +59,7 @@ interface User {
   total_contatos: number | null;
   total_disparos: number | null;
   total_listas: number | null;
+  desconto_renovacao: number | null;
 }
 
 interface Plan {
@@ -90,6 +91,7 @@ export function AdminUsers() {
     dataValidade: '',
     plano_extrator: '',
     dataValidade_extrator: '',
+    desconto_renovacao: '0',
   });
 
   const [addForm, setAddForm] = useState({
@@ -213,6 +215,7 @@ export function AdminUsers() {
       dataValidade: user.dataValidade || '',
       plano_extrator: user.plano_extrator_id?.toString() || '',
       dataValidade_extrator: user.dataValidade_extrator || '',
+      desconto_renovacao: (user.desconto_renovacao || 0).toString(),
     });
     setIsEditDialogOpen(true);
   };
@@ -233,6 +236,7 @@ export function AdminUsers() {
             dataValidade: editForm.dataValidade || null,
             plano_extrator: editForm.plano_extrator ? parseInt(editForm.plano_extrator) : null,
             'dataValidade_extrator': editForm.dataValidade_extrator || null,
+            desconto_renovacao: parseFloat(editForm.desconto_renovacao) || 0,
           }
         }
       });
@@ -690,6 +694,25 @@ export function AdminUsers() {
                   onChange={(e) => setEditForm({ ...editForm, dataValidade: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <Label className="flex items-center gap-2 text-amber-400">
+                <Percent className="w-4 h-4" />
+                Desconto na Renovação (%)
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={editForm.desconto_renovacao}
+                onChange={(e) => setEditForm({ ...editForm, desconto_renovacao: e.target.value })}
+                placeholder="0"
+                className="border-amber-500/30 focus:border-amber-500"
+              />
+              <p className="text-xs text-muted-foreground">
+                Este desconto será aplicado automaticamente na próxima renovação do usuário.
+              </p>
             </div>
 
             <Button onClick={handleSaveUser} className="w-full bg-gradient-to-r from-primary to-primary/80">

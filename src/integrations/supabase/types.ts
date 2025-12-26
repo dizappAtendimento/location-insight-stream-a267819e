@@ -681,6 +681,7 @@ export type Database = {
           created_at: string
           dataValidade: string | null
           dataValidade_extrator: string | null
+          desconto_renovacao: number | null
           Email: string | null
           id: string
           nome: string | null
@@ -698,6 +699,7 @@ export type Database = {
           created_at?: string
           dataValidade?: string | null
           dataValidade_extrator?: string | null
+          desconto_renovacao?: number | null
           Email?: string | null
           id?: string
           nome?: string | null
@@ -715,6 +717,7 @@ export type Database = {
           created_at?: string
           dataValidade?: string | null
           dataValidade_extrator?: string | null
+          desconto_renovacao?: number | null
           Email?: string | null
           id?: string
           nome?: string | null

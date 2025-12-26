@@ -56,6 +56,15 @@ export function PlanExpirationAlert() {
 
   if (!disparadorExpiring && !extratorExpiring) return null;
 
+  // Calculate the final price with discount
+  const getDiscountedPrice = (originalPrice: number) => {
+    const discount = user.desconto_renovacao || 0;
+    if (discount > 0 && discount <= 100) {
+      return originalPrice * (1 - discount / 100);
+    }
+    return originalPrice;
+  };
+
   const handleRenewClick = async (planType: 'disparador' | 'extrator') => {
     // Fetch available plans to get the current user's plan info
     try {
@@ -101,6 +110,8 @@ export function PlanExpirationAlert() {
 
     setIsProcessingPayment(true);
     
+    const finalPrice = getDiscountedPrice(currentPlan.preco);
+    
     try {
       // Create or get customer
       const { data: customerData, error: customerError } = await supabase.functions.invoke('asaas-api', {
@@ -115,13 +126,13 @@ export function PlanExpirationAlert() {
 
       if (customerError) throw customerError;
 
-      // Create PIX payment
+      // Create PIX payment with discounted price
       const { data: paymentResponse, error: paymentError } = await supabase.functions.invoke('asaas-api', {
         body: {
           action: 'create-pix-payment',
           customerId: customerData.customerId,
-          value: currentPlan.preco,
-          description: `Renovação do plano ${currentPlan.nome}`,
+          value: finalPrice,
+          description: `Renovação do plano ${currentPlan.nome}${user.desconto_renovacao ? ` (${user.desconto_renovacao}% desconto)` : ''}`,
           planId: currentPlan.id,
           userId: user.id
         }
@@ -137,7 +148,7 @@ export function PlanExpirationAlert() {
         pixQrCode: paymentResponse.pixQrCode,
         pixCopyPaste: paymentResponse.pixCopyPaste,
         paymentId: paymentResponse.paymentId,
-        value: currentPlan.preco
+        value: finalPrice
       });
       setShowCustomerForm(false);
       setPaymentStatus('PENDING');
@@ -301,10 +312,22 @@ export function PlanExpirationAlert() {
 
           {showCustomerForm ? (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Preencha seus dados para gerar o PIX de R$ {currentPlan?.preco?.toFixed(2)}
-              </p>
-              
+              <div className="text-sm text-muted-foreground">
+                {user.desconto_renovacao && user.desconto_renovacao > 0 ? (
+                  <div className="space-y-1">
+                    <p className="line-through text-muted-foreground/70">
+                      Valor original: R$ {currentPlan?.preco?.toFixed(2)}
+                    </p>
+                    <p className="text-lg font-bold text-green-500">
+                      Com seu desconto de {user.desconto_renovacao}%: R$ {currentPlan ? getDiscountedPrice(currentPlan.preco).toFixed(2) : '0.00'}
+                    </p>
+                  </div>
+                ) : (
+                  <p>
+                    Preencha seus dados para gerar o PIX de R$ {currentPlan?.preco?.toFixed(2)}
+                  </p>
+                )}
+              </div>
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Nome Completo *</Label>
