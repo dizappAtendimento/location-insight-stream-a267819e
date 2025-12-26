@@ -76,7 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Sign out from Supabase Auth (for Google OAuth users)
+    await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
   };
