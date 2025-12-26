@@ -552,32 +552,7 @@ export function AdminUsers() {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{user.Email}</p>
-                        {user.senha && (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <button className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 mt-1">
-                                <Eye className="w-3 h-3" />
-                                Ver senha
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-3" align="start">
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{user.senha}</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-7 w-7"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(user.senha || '');
-                                    toast({ title: 'Copiado!', description: 'Senha copiada para a área de transferência' });
-                                  }}
-                                >
-                                  <Copy className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        )}
+                        {/* Password visibility removed for security - passwords should not be viewable in admin panel */}
                       </div>
                     </div>
                   </TableCell>
