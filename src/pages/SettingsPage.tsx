@@ -323,12 +323,20 @@ const SettingsPage = () => {
         throw new Error(customerData?.error || 'Erro ao criar cliente');
       }
 
+      // Aplicar desconto do usuário
+      const discount = user.desconto_renovacao || 0;
+      const valorOriginal = selectedPlan.preco || 0;
+      const descontoAplicado = valorOriginal * (discount / 100);
+      const valorFinal = valorOriginal - descontoAplicado;
+
       const { data: paymentResult, error: paymentError } = await supabase.functions.invoke('asaas-api', {
         body: {
           action: 'create-pix-payment',
           customerId: customerData.customerId,
-          value: selectedPlan.preco,
-          description: `Plano ${selectedPlan.nome} - DizApp`,
+          value: valorFinal,
+          valorOriginal: valorOriginal,
+          descontoAplicado: descontoAplicado,
+          description: `Plano ${selectedPlan.nome} - DizApp${discount > 0 ? ` (${discount}% desconto)` : ''}`,
           planId: selectedPlan.id,
           userId: user.id
         }
@@ -358,6 +366,17 @@ const SettingsPage = () => {
     } finally {
       setIsProcessingPayment(false);
     }
+  };
+
+  // Função para calcular preço com desconto
+  const getDiscountedPrice = (originalPrice: number | null): { finalPrice: number; hasDiscount: boolean } => {
+    if (!originalPrice) return { finalPrice: 0, hasDiscount: false };
+    const discount = user?.desconto_renovacao || 0;
+    if (discount > 0) {
+      const discountAmount = originalPrice * (discount / 100);
+      return { finalPrice: originalPrice - discountAmount, hasDiscount: true };
+    }
+    return { finalPrice: originalPrice, hasDiscount: false };
   };
 
   const startPaymentStatusCheck = (paymentId: string) => {
@@ -1036,10 +1055,38 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
                         <CardHeader className="relative pb-3 text-center">
                           <CardTitle className="text-xl font-bold">{plan.nome}</CardTitle>
                           <div className="mt-2">
-                            <span className={`text-3xl font-bold ${colors.text}`}>
-                              R$ {plan.preco?.toFixed(2).replace('.', ',')}
-                            </span>
-                            <span className="text-xs text-muted-foreground">/mês</span>
+                            {(() => {
+                              const { finalPrice, hasDiscount } = getDiscountedPrice(plan.preco);
+                              const discountPercent = user?.desconto_renovacao || 0;
+                              
+                              if (hasDiscount) {
+                                return (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-center gap-2">
+                                      <span className="text-sm text-muted-foreground line-through">
+                                        R$ {plan.preco?.toFixed(2).replace('.', ',')}
+                                      </span>
+                                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">
+                                        -{discountPercent}%
+                                      </Badge>
+                                    </div>
+                                    <span className={`text-3xl font-bold ${colors.text}`}>
+                                      R$ {finalPrice.toFixed(2).replace('.', ',')}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">/mês</span>
+                                  </div>
+                                );
+                              }
+                              
+                              return (
+                                <>
+                                  <span className={`text-3xl font-bold ${colors.text}`}>
+                                    R$ {plan.preco?.toFixed(2).replace('.', ',')}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">/mês</span>
+                                </>
+                              );
+                            })()}
                           </div>
                         </CardHeader>
                         
@@ -1419,13 +1466,32 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QrCode className="w-5 h-5 text-primary" />
-              {showCustomerForm ? 'Dados para Pagamento' : 'Pagar com PIX'}
+              {showCustomerForm ? `Renovar Plano - ${selectedPlan?.nome}` : 'Pagar com PIX'}
             </DialogTitle>
-            <DialogDescription>
-              {showCustomerForm 
-                ? `Plano ${selectedPlan?.nome} - R$ ${selectedPlan?.preco?.toFixed(2).replace('.', ',')}`
-                : 'Escaneie o QR Code ou copie o código PIX'
-              }
+            <DialogDescription asChild>
+              <div>
+                {showCustomerForm 
+                  ? (() => {
+                      const discount = user?.desconto_renovacao || 0;
+                      const originalPrice = selectedPlan?.preco || 0;
+                      const finalPrice = originalPrice - (originalPrice * discount / 100);
+                      if (discount > 0) {
+                        return (
+                          <div className="space-y-1">
+                            <p className="text-muted-foreground line-through text-sm">
+                              Valor original: R$ {originalPrice.toFixed(2).replace('.', ',')}
+                            </p>
+                            <p className="text-emerald-500 font-medium">
+                              Com seu desconto de {discount}%: R$ {finalPrice.toFixed(2).replace('.', ',')}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return `Plano ${selectedPlan?.nome} - R$ ${originalPrice.toFixed(2).replace('.', ',')}`;
+                    })()
+                  : 'Escaneie o QR Code ou copie o código PIX'
+                }
+              </div>
             </DialogDescription>
           </DialogHeader>
 
