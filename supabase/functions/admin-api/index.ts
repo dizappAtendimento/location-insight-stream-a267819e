@@ -1236,6 +1236,186 @@ serve(async (req) => {
         );
       }
 
+      case 'get-cupons': {
+        const { data: cupons, error } = await supabase
+          .from('saas_cupons')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('[Admin API] Error fetching cupons:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao buscar cupons' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Fetched ${cupons?.length || 0} cupons`);
+
+        return new Response(
+          JSON.stringify({ cupons }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'create-cupom': {
+        const { cupom } = body;
+        
+        const { error } = await supabase
+          .from('saas_cupons')
+          .insert(cupom);
+
+        if (error) {
+          console.error('[Admin API] Error creating cupom:', error);
+          return new Response(
+            JSON.stringify({ error: error.message || 'Erro ao criar cupom' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Cupom created: ${cupom.codigo}`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'update-cupom': {
+        const { cupomId, cupom } = body;
+        
+        const { error } = await supabase
+          .from('saas_cupons')
+          .update(cupom)
+          .eq('id', cupomId);
+
+        if (error) {
+          console.error('[Admin API] Error updating cupom:', error);
+          return new Response(
+            JSON.stringify({ error: error.message || 'Erro ao atualizar cupom' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Cupom ${cupomId} updated`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'delete-cupom': {
+        const { cupomId } = body;
+        
+        const { error } = await supabase
+          .from('saas_cupons')
+          .delete()
+          .eq('id', cupomId);
+
+        if (error) {
+          console.error('[Admin API] Error deleting cupom:', error);
+          return new Response(
+            JSON.stringify({ error: error.message || 'Erro ao excluir cupom' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] Cupom ${cupomId} deleted`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'validate-cupom': {
+        const { codigo, planId, userId: validatingUserId } = body;
+        
+        // Find the cupom
+        const { data: cupom, error: cupomError } = await supabase
+          .from('saas_cupons')
+          .select('*')
+          .eq('codigo', codigo.toUpperCase())
+          .single();
+
+        if (cupomError || !cupom) {
+          return new Response(
+            JSON.stringify({ valid: false, error: 'Cupom não encontrado' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if active
+        if (!cupom.ativo) {
+          return new Response(
+            JSON.stringify({ valid: false, error: 'Cupom inativo' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check expiration
+        if (cupom.validade) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const expDate = new Date(cupom.validade);
+          if (expDate < today) {
+            return new Response(
+              JSON.stringify({ valid: false, error: 'Cupom expirado' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+
+        // Check usage limit
+        if (cupom.quantidade_uso && cupom.quantidade_usada >= cupom.quantidade_uso) {
+          return new Response(
+            JSON.stringify({ valid: false, error: 'Cupom esgotado' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if plan is valid for this cupom
+        if (cupom.planos_ids && cupom.planos_ids.length > 0 && !cupom.planos_ids.includes(planId)) {
+          return new Response(
+            JSON.stringify({ valid: false, error: 'Cupom não válido para este plano' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if uso_unico and user already used it
+        if (cupom.uso_unico && validatingUserId) {
+          const { data: existingUse } = await supabase
+            .from('saas_cupons_uso')
+            .select('id')
+            .eq('cupom_id', cupom.id)
+            .eq('user_id', validatingUserId)
+            .single();
+
+          if (existingUse) {
+            return new Response(
+              JSON.stringify({ valid: false, error: 'Você já utilizou este cupom' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+
+        console.log(`[Admin API] Cupom ${codigo} validated successfully`);
+
+        return new Response(
+          JSON.stringify({ 
+            valid: true, 
+            cupom: {
+              id: cupom.id,
+              codigo: cupom.codigo,
+              desconto: cupom.desconto,
+              tipo_desconto: cupom.tipo_desconto
+            }
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Ação inválida' }),
