@@ -201,7 +201,7 @@ serve(async (req) => {
           .from('SAAS_Usuarios')
           .select(`
             id, nome, Email, telefone, status, "Status Ex", banido, dataValidade, "dataValidade_extrator", 
-            plano, plano_extrator, created_at
+            plano, plano_extrator, created_at, desconto_renovacao
           `)
           .order('created_at', { ascending: false });
 
@@ -241,6 +241,7 @@ serve(async (req) => {
             total_contatos: usage?.total_contatos || 0,
             total_disparos: usage?.total_disparos || 0,
             total_listas: usage?.total_listas || 0,
+            desconto_renovacao: user.desconto_renovacao || 0,
           };
         });
 

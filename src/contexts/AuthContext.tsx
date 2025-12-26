@@ -16,6 +16,8 @@ interface User {
   planoExtratorId: number | null;
   planoNome: string | null;
   planoExtratorNome: string | null;
+  // Discount
+  desconto_renovacao: number | null;
 }
 
 interface AuthContextType {
