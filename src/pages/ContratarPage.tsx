@@ -193,13 +193,20 @@ export default function ContratarPage() {
 
       console.log('Customer created/found:', customerData.customerId);
 
-      // 2. Criar cobrança PIX
+      // 2. Criar cobrança PIX com desconto aplicado
+      const discount = user.desconto_renovacao || 0;
+      const valorOriginal = selectedPlan.preco || 0;
+      const descontoAplicado = valorOriginal * (discount / 100);
+      const valorFinal = valorOriginal - descontoAplicado;
+
       const { data: paymentResult, error: paymentError } = await supabase.functions.invoke('asaas-api', {
         body: {
           action: 'create-pix-payment',
           customerId: customerData.customerId,
-          value: selectedPlan.preco,
-          description: `Plano ${selectedPlan.nome} - DizApp`,
+          value: valorFinal,
+          valorOriginal: valorOriginal,
+          descontoAplicado: descontoAplicado,
+          description: `Plano ${selectedPlan.nome} - DizApp${discount > 0 ? ` (${discount}% desconto)` : ''}`,
           planId: selectedPlan.id,
           userId: user.id
         }
@@ -310,9 +317,21 @@ export default function ContratarPage() {
     return COLOR_MAP[cor] || COLOR_MAP.violet;
   };
 
+  const getDiscountedPrice = (originalPrice: number | null): { finalPrice: number; hasDiscount: boolean } => {
+    if (!originalPrice) return { finalPrice: 0, hasDiscount: false };
+    const discount = user?.desconto_renovacao || 0;
+    if (discount > 0) {
+      const discountAmount = originalPrice * (discount / 100);
+      return { finalPrice: originalPrice - discountAmount, hasDiscount: true };
+    }
+    return { finalPrice: originalPrice, hasDiscount: false };
+  };
+
   const renderPlanCard = (plan: Plan) => {
     const colors = getPlanColors(plan);
     const isPopular = plan.destaque === true;
+    const { finalPrice, hasDiscount } = getDiscountedPrice(plan.preco);
+    const discountPercent = user?.desconto_renovacao || 0;
     
     // Lista de benefícios padrão
     const defaultBenefits = [
@@ -339,10 +358,29 @@ export default function ContratarPage() {
         <CardHeader className="relative pb-4 text-center">
           <CardTitle className="text-2xl font-bold text-white">{plan.nome}</CardTitle>
           <div className="mt-4">
-            <span className={`text-4xl font-bold ${colors.text}`}>
-              R$ {plan.preco?.toFixed(2).replace('.', ',')}
-            </span>
-            <span className="text-sm text-zinc-400">/mês</span>
+            {hasDiscount ? (
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-lg text-zinc-500 line-through">
+                    R$ {plan.preco?.toFixed(2).replace('.', ',')}
+                  </span>
+                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                    -{discountPercent}%
+                  </Badge>
+                </div>
+                <span className={`text-4xl font-bold ${colors.text}`}>
+                  R$ {finalPrice.toFixed(2).replace('.', ',')}
+                </span>
+                <span className="text-sm text-zinc-400">/mês</span>
+              </div>
+            ) : (
+              <>
+                <span className={`text-4xl font-bold ${colors.text}`}>
+                  R$ {plan.preco?.toFixed(2).replace('.', ',')}
+                </span>
+                <span className="text-sm text-zinc-400">/mês</span>
+              </>
+            )}
           </div>
         </CardHeader>
         
@@ -468,7 +506,21 @@ export default function ContratarPage() {
             </DialogTitle>
             <DialogDescription>
               {showCustomerForm 
-                ? `Plano ${selectedPlan?.nome} - R$ ${selectedPlan?.preco?.toFixed(2).replace('.', ',')}`
+                ? (() => {
+                    const discount = user?.desconto_renovacao || 0;
+                    const originalPrice = selectedPlan?.preco || 0;
+                    const finalPrice = originalPrice - (originalPrice * discount / 100);
+                    if (discount > 0) {
+                      return (
+                        <span>
+                          Plano {selectedPlan?.nome} - <span className="line-through text-muted-foreground">R$ {originalPrice.toFixed(2).replace('.', ',')}</span>{' '}
+                          <span className="text-emerald-500 font-medium">R$ {finalPrice.toFixed(2).replace('.', ',')}</span>{' '}
+                          <span className="text-emerald-500">(-{discount}%)</span>
+                        </span>
+                      );
+                    }
+                    return `Plano ${selectedPlan?.nome} - R$ ${originalPrice.toFixed(2).replace('.', ',')}`;
+                  })()
                 : 'Escaneie o QR Code ou copie o código PIX'
               }
             </DialogDescription>
