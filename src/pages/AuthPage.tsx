@@ -63,68 +63,30 @@ export default function AuthPage() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // User logged in via OAuth, sync with SAAS_Usuarios
-          const { data: userData } = await supabase
-            .from('SAAS_Usuarios')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (userData) {
-            // Store user in localStorage for AuthContext
-            const user = {
-              id: userData.id,
-              nome: userData.nome,
-              Email: userData.Email,
-              telefone: userData.telefone,
-              statusDisparador: userData.status || false,
-              statusExtrator: userData['Status Ex'] || false,
-              avatar_url: userData.avatar_url,
-              dataValidade: userData.dataValidade,
-              dataValidadeExtrator: userData.dataValidade_extrator,
-              planoId: userData.plano,
-              planoExtratorId: userData.plano_extrator,
-              planoNome: null,
-              planoExtratorNome: null,
-            };
-            
-            localStorage.setItem('saas_user', JSON.stringify(user));
+          // Use edge function to sync user with service_role (bypasses RLS)
+          const { data, error } = await supabase.functions.invoke('sync-oauth-user', {
+            body: {
+              userId: session.user.id,
+              email: session.user.email,
+              nome: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+              avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+            }
+          });
+
+          if (error || data?.error) {
+            console.error('Error syncing OAuth user:', error || data?.error);
+            toast.error('Erro ao sincronizar usuário. Tente novamente.');
+            await supabase.auth.signOut();
+            return;
+          }
+
+          if (data?.user) {
+            localStorage.setItem('saas_user', JSON.stringify(data.user));
             toast.success('Login realizado com sucesso!');
             navigate('/');
           } else {
-            // Wait a moment for trigger to create user, then retry
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const { data: retryData } = await supabase
-              .from('SAAS_Usuarios')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (retryData) {
-              const user = {
-                id: retryData.id,
-                nome: retryData.nome,
-                Email: retryData.Email,
-                telefone: retryData.telefone,
-                statusDisparador: retryData.status || false,
-                statusExtrator: retryData['Status Ex'] || false,
-                avatar_url: retryData.avatar_url,
-                dataValidade: retryData.dataValidade,
-                dataValidadeExtrator: retryData.dataValidade_extrator,
-                planoId: retryData.plano,
-                planoExtratorId: retryData.plano_extrator,
-                planoNome: null,
-                planoExtratorNome: null,
-              };
-              
-              localStorage.setItem('saas_user', JSON.stringify(user));
-              toast.success('Login realizado com sucesso!');
-              navigate('/');
-            } else {
-              toast.error('Erro ao sincronizar usuário. Tente novamente.');
-              await supabase.auth.signOut();
-            }
+            toast.error('Erro ao sincronizar usuário. Tente novamente.');
+            await supabase.auth.signOut();
           }
         }
       }
