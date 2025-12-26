@@ -340,6 +340,68 @@ const SettingsPage = () => {
   const handleCreatePayment = async () => {
     if (!selectedPlan || !user) return;
 
+    // Calcular descontos (usuário + cupom)
+    const valorOriginal = selectedPlan.preco || 0;
+    let valorFinal = valorOriginal;
+    let descontoTotal = 0;
+    let descricaoDesconto = '';
+
+    // Aplicar desconto do usuário primeiro
+    const userDiscount = user.desconto_renovacao || 0;
+    if (userDiscount > 0) {
+      const descontoUsuario = valorFinal * (userDiscount / 100);
+      valorFinal -= descontoUsuario;
+      descontoTotal += descontoUsuario;
+      descricaoDesconto += `${userDiscount}% renovação`;
+    }
+
+    // Aplicar cupom depois
+    if (couponData) {
+      let descontoCupom = 0;
+      if (couponData.tipo === 'percentual') {
+        descontoCupom = valorFinal * (couponData.desconto / 100);
+        descricaoDesconto += (descricaoDesconto ? ' + ' : '') + `${couponData.desconto}% cupom`;
+      } else {
+        descontoCupom = Math.min(couponData.desconto, valorFinal);
+        descricaoDesconto += (descricaoDesconto ? ' + ' : '') + `R$${couponData.desconto} cupom`;
+      }
+      valorFinal -= descontoCupom;
+      descontoTotal += descontoCupom;
+    }
+
+    // Se valor final < R$5, ativar plano diretamente
+    if (valorFinal < 5) {
+      setIsProcessingPayment(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('asaas-api', {
+          body: {
+            action: 'activate-plan',
+            userId: user.id,
+            planId: selectedPlan.id,
+            paymentId: null,
+            freeActivation: true,
+            cupomCodigo: couponData ? couponCode.trim().toUpperCase() : null
+          }
+        });
+
+        if (error || !data?.success) {
+          throw new Error(data?.error || 'Erro ao ativar plano');
+        }
+
+        toast({ title: 'Plano ativado!', description: 'Seu plano foi ativado com sucesso. Redirecionando...' });
+        
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1500);
+      } catch (error: any) {
+        console.error('Error activating plan:', error);
+        toast({ title: 'Erro', description: error.message || 'Erro ao ativar plano', variant: 'destructive' });
+      } finally {
+        setIsProcessingPayment(false);
+      }
+      return;
+    }
+
     if (!customerForm.name || !customerForm.email || !customerForm.cpfCnpj) {
       toast({ title: 'Campos obrigatórios', description: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
@@ -361,35 +423,6 @@ const SettingsPage = () => {
 
       if (customerError || !customerData?.success) {
         throw new Error(customerData?.error || 'Erro ao criar cliente');
-      }
-
-      // Calcular descontos (usuário + cupom)
-      const valorOriginal = selectedPlan.preco || 0;
-      let valorFinal = valorOriginal;
-      let descontoTotal = 0;
-      let descricaoDesconto = '';
-
-      // Aplicar desconto do usuário primeiro
-      const userDiscount = user.desconto_renovacao || 0;
-      if (userDiscount > 0) {
-        const descontoUsuario = valorFinal * (userDiscount / 100);
-        valorFinal -= descontoUsuario;
-        descontoTotal += descontoUsuario;
-        descricaoDesconto += `${userDiscount}% renovação`;
-      }
-
-      // Aplicar cupom depois
-      if (couponData) {
-        let descontoCupom = 0;
-        if (couponData.tipo === 'percentual') {
-          descontoCupom = valorFinal * (couponData.desconto / 100);
-          descricaoDesconto += (descricaoDesconto ? ' + ' : '') + `${couponData.desconto}% cupom`;
-        } else {
-          descontoCupom = Math.min(couponData.desconto, valorFinal);
-          descricaoDesconto += (descricaoDesconto ? ' + ' : '') + `R$${couponData.desconto} cupom`;
-        }
-        valorFinal -= descontoCupom;
-        descontoTotal += descontoCupom;
       }
 
       const { data: paymentResult, error: paymentError } = await supabase.functions.invoke('asaas-api', {
@@ -1536,18 +1569,43 @@ const webhookUrl = 'https://egxwzmkdbymxooielidc.supabase.co/functions/v1/crm-we
               <div>
                 {showCustomerForm 
                   ? (() => {
-                      const discount = user?.desconto_renovacao || 0;
+                      const userDiscount = user?.desconto_renovacao || 0;
                       const originalPrice = selectedPlan?.preco || 0;
-                      const finalPrice = originalPrice - (originalPrice * discount / 100);
-                      if (discount > 0) {
+                      let priceAfterUserDiscount = originalPrice - (originalPrice * userDiscount / 100);
+                      let finalPriceWithCoupon = priceAfterUserDiscount;
+                      
+                      // Apply coupon if valid
+                      if (couponData) {
+                        if (couponData.tipo === 'percentual') {
+                          finalPriceWithCoupon = priceAfterUserDiscount - (priceAfterUserDiscount * couponData.desconto / 100);
+                        } else {
+                          finalPriceWithCoupon = Math.max(priceAfterUserDiscount - couponData.desconto, 0);
+                        }
+                      }
+                      
+                      const hasAnyDiscount = userDiscount > 0 || couponData;
+                      
+                      if (hasAnyDiscount) {
                         return (
                           <div className="space-y-1">
                             <p className="text-muted-foreground line-through text-sm">
                               Valor original: R$ {originalPrice.toFixed(2).replace('.', ',')}
                             </p>
-                            <p className="text-emerald-500 font-medium">
-                              Com seu desconto de {discount}%: R$ {finalPrice.toFixed(2).replace('.', ',')}
-                            </p>
+                            {userDiscount > 0 && !couponData && (
+                              <p className="text-emerald-500 font-medium">
+                                Com seu desconto de {userDiscount}%: R$ {priceAfterUserDiscount.toFixed(2).replace('.', ',')}
+                              </p>
+                            )}
+                            {couponData && (
+                              <p className="text-emerald-500 font-medium">
+                                Valor final: R$ {finalPriceWithCoupon.toFixed(2).replace('.', ',')}
+                                {finalPriceWithCoupon < 5 && (
+                                  <span className="block text-xs text-amber-500 mt-1">
+                                    Valor menor que R$5 - Plano será ativado automaticamente!
+                                  </span>
+                                )}
+                              </p>
+                            )}
                           </div>
                         );
                       }

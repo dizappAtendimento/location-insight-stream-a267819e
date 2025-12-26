@@ -232,7 +232,7 @@ serve(async (req) => {
       }
 
       case 'activate-plan': {
-        const { userId, planId, paymentId } = params;
+        const { userId, planId, paymentId, freeActivation, cupomCodigo } = params;
 
         // Buscar plano
         const { data: planData, error: planError } = await supabase
@@ -264,10 +264,10 @@ serve(async (req) => {
           throw new Error('Erro ao ativar plano: ' + updateError.message);
         }
 
-        // Atualizar status do pagamento na tabela SAAS_Pagamentos
+        // Atualizar status do pagamento na tabela saas_pagamentos
         if (paymentId) {
           await supabase
-            .from('SAAS_Pagamentos')
+            .from('saas_pagamentos')
             .update({
               status: 'CONFIRMED',
               pago_em: new Date().toISOString()
@@ -275,7 +275,34 @@ serve(async (req) => {
             .eq('gateway_payment_id', paymentId);
         }
 
-        console.log('[asaas-api] Plan activated for user:', userId);
+        // Se ativação gratuita (valor < R$5), registrar uso do cupom
+        if (freeActivation && cupomCodigo) {
+          // Buscar cupom
+          const { data: cupomData } = await supabase
+            .from('saas_cupons')
+            .select('id')
+            .eq('codigo', cupomCodigo)
+            .single();
+
+          if (cupomData) {
+            // Registrar uso do cupom
+            await supabase
+              .from('saas_cupons_uso')
+              .insert({
+                cupom_id: cupomData.id,
+                user_id: userId,
+                valor_desconto: planData.preco || 0
+              });
+
+            // Incrementar quantidade usada
+            await supabase
+              .from('saas_cupons')
+              .update({ quantidade_usada: supabase.rpc('increment', { x: 1 }) })
+              .eq('id', cupomData.id);
+          }
+        }
+
+        console.log('[asaas-api] Plan activated for user:', userId, freeActivation ? '(free activation)' : '');
 
         return new Response(JSON.stringify({ 
           success: true,

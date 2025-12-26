@@ -145,13 +145,6 @@ export function PlanExpirationAlert() {
   const handleCreatePayment = async () => {
     if (!currentPlan || !user) return;
     
-    if (!customerForm.name || !customerForm.email || !customerForm.cpfCnpj) {
-      toast.error('Preencha todos os campos obrigatórios');
-      return;
-    }
-
-    setIsProcessingPayment(true);
-    
     // Calcular descontos (usuário + cupom)
     const valorOriginal = currentPlan.preco || 0;
     let valorFinal = valorOriginal;
@@ -180,6 +173,46 @@ export function PlanExpirationAlert() {
       valorFinal -= descontoCupom;
       descontoTotal += descontoCupom;
     }
+
+    // Se valor final < R$5, ativar plano diretamente
+    if (valorFinal < 5) {
+      setIsProcessingPayment(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('asaas-api', {
+          body: {
+            action: 'activate-plan',
+            userId: user.id,
+            planId: currentPlan.id,
+            paymentId: null,
+            freeActivation: true,
+            cupomCodigo: couponData ? couponCode.trim().toUpperCase() : null
+          }
+        });
+
+        if (error || !data?.success) {
+          throw new Error(data?.error || 'Erro ao ativar plano');
+        }
+
+        toast.success('Plano ativado com sucesso! Redirecionando...');
+        
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1500);
+      } catch (error: any) {
+        console.error('Error activating plan:', error);
+        toast.error(error.message || 'Erro ao ativar plano');
+      } finally {
+        setIsProcessingPayment(false);
+      }
+      return;
+    }
+
+    if (!customerForm.name || !customerForm.email || !customerForm.cpfCnpj) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setIsProcessingPayment(true);
     
     try {
       // Create or get customer
@@ -385,20 +418,53 @@ export function PlanExpirationAlert() {
           {showCustomerForm ? (
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground">
-                {user.desconto_renovacao && user.desconto_renovacao > 0 ? (
-                  <div className="space-y-1">
-                    <p className="line-through text-muted-foreground/70">
-                      Valor original: R$ {currentPlan?.preco?.toFixed(2)}
+                {(() => {
+                  const userDiscount = user.desconto_renovacao || 0;
+                  const originalPrice = currentPlan?.preco || 0;
+                  let priceAfterUserDiscount = originalPrice - (originalPrice * userDiscount / 100);
+                  let finalPriceWithCoupon = priceAfterUserDiscount;
+                  
+                  // Apply coupon if valid
+                  if (couponData) {
+                    if (couponData.tipo === 'percentual') {
+                      finalPriceWithCoupon = priceAfterUserDiscount - (priceAfterUserDiscount * couponData.desconto / 100);
+                    } else {
+                      finalPriceWithCoupon = Math.max(priceAfterUserDiscount - couponData.desconto, 0);
+                    }
+                  }
+                  
+                  const hasAnyDiscount = userDiscount > 0 || couponData;
+                  
+                  if (hasAnyDiscount) {
+                    return (
+                      <div className="space-y-1">
+                        <p className="line-through text-muted-foreground/70">
+                          Valor original: R$ {originalPrice.toFixed(2)}
+                        </p>
+                        {userDiscount > 0 && !couponData && (
+                          <p className="text-lg font-bold text-green-500">
+                            Com seu desconto de {userDiscount}%: R$ {priceAfterUserDiscount.toFixed(2)}
+                          </p>
+                        )}
+                        {couponData && (
+                          <p className="text-lg font-bold text-green-500">
+                            Valor final: R$ {finalPriceWithCoupon.toFixed(2)}
+                            {finalPriceWithCoupon < 5 && (
+                              <span className="block text-xs text-amber-500 mt-1">
+                                Valor menor que R$5 - Plano será ativado automaticamente!
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <p>
+                      Preencha seus dados para gerar o PIX de R$ {originalPrice.toFixed(2)}
                     </p>
-                    <p className="text-lg font-bold text-green-500">
-                      Com seu desconto de {user.desconto_renovacao}%: R$ {currentPlan ? getDiscountedPrice(currentPlan.preco).toFixed(2) : '0.00'}
-                    </p>
-                  </div>
-                ) : (
-                  <p>
-                    Preencha seus dados para gerar o PIX de R$ {currentPlan?.preco?.toFixed(2)}
-                  </p>
-                )}
+                  );
+                })()}
               </div>
               <div className="space-y-3">
                 <div className="space-y-1.5">
