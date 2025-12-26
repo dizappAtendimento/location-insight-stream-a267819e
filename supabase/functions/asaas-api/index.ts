@@ -131,7 +131,7 @@ serve(async (req) => {
       }
 
       case 'create-pix-payment': {
-        const { customerId, value, description, planId, userId, dueDate } = params;
+        const { customerId, value, description, planId, userId, dueDate, valorOriginal, descontoAplicado } = params;
 
         // Asaas requer valor mínimo de R$ 5,00 para PIX
         if (value < 5) {
@@ -164,6 +164,23 @@ serve(async (req) => {
           throw new Error(paymentData.errors[0]?.description || 'Erro ao criar cobrança');
         }
 
+        // Registrar pagamento na tabela SAAS_Pagamentos
+        await supabase
+          .from('SAAS_Pagamentos')
+          .insert({
+            user_id: userId,
+            plano_id: planId,
+            valor: value,
+            valor_original: valorOriginal || value,
+            desconto_aplicado: descontoAplicado || 0,
+            status: 'PENDING',
+            gateway: 'asaas',
+            gateway_payment_id: paymentData.id,
+            gateway_customer_id: customerId,
+            tipo: 'renovacao',
+            descricao: description
+          });
+
         // Buscar QR Code do PIX
         const pixResponse = await fetch(`${ASAAS_API_URL}/payments/${paymentData.id}/pixQrCode`, {
           method: 'GET',
@@ -178,6 +195,7 @@ serve(async (req) => {
 
         return new Response(JSON.stringify({ 
           success: true,
+          payment: paymentData,
           paymentId: paymentData.id,
           invoiceUrl: paymentData.invoiceUrl,
           pixQrCode: pixData.encodedImage,
@@ -244,6 +262,17 @@ serve(async (req) => {
 
         if (updateError) {
           throw new Error('Erro ao ativar plano: ' + updateError.message);
+        }
+
+        // Atualizar status do pagamento na tabela SAAS_Pagamentos
+        if (paymentId) {
+          await supabase
+            .from('SAAS_Pagamentos')
+            .update({
+              status: 'CONFIRMED',
+              pago_em: new Date().toISOString()
+            })
+            .eq('gateway_payment_id', paymentId);
         }
 
         console.log('[asaas-api] Plan activated for user:', userId);

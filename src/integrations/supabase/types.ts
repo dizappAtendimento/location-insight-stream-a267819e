@@ -607,6 +607,57 @@ export type Database = {
         }
         Relationships: []
       }
+      saas_pagamentos: {
+        Row: {
+          created_at: string
+          desconto_aplicado: number | null
+          descricao: string | null
+          gateway: string | null
+          gateway_customer_id: string | null
+          gateway_payment_id: string | null
+          id: number
+          pago_em: string | null
+          plano_id: number | null
+          status: string | null
+          tipo: string | null
+          user_id: string
+          valor: number
+          valor_original: number | null
+        }
+        Insert: {
+          created_at?: string
+          desconto_aplicado?: number | null
+          descricao?: string | null
+          gateway?: string | null
+          gateway_customer_id?: string | null
+          gateway_payment_id?: string | null
+          id?: number
+          pago_em?: string | null
+          plano_id?: number | null
+          status?: string | null
+          tipo?: string | null
+          user_id: string
+          valor: number
+          valor_original?: number | null
+        }
+        Update: {
+          created_at?: string
+          desconto_aplicado?: number | null
+          descricao?: string | null
+          gateway?: string | null
+          gateway_customer_id?: string | null
+          gateway_payment_id?: string | null
+          id?: number
+          pago_em?: string | null
+          plano_id?: number | null
+          status?: string | null
+          tipo?: string | null
+          user_id?: string
+          valor?: number
+          valor_original?: number | null
+        }
+        Relationships: []
+      }
       SAAS_Planos: {
         Row: {
           beneficios_extras: string[] | null
