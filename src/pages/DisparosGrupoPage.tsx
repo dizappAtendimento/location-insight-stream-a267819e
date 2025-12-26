@@ -373,85 +373,85 @@ export default function DisparosGrupoPage() {
   // --- Render ---
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-5 lg:p-6 max-w-7xl mx-auto space-y-5 lg:space-y-6">
+      <div className="p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-          <h1 className="text-xl sm:text-2xl title-gradient tracking-tight">Disparos em Grupos</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">Envie mensagens para múltiplos grupos</p>
+          <h1 className="text-2xl sm:text-3xl font-bold title-gradient tracking-tight">Disparos em Grupos</h1>
+          <p className="text-muted-foreground text-sm sm:text-base mt-1">Envie mensagens para múltiplos grupos</p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Form Area */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             
             {/* Conexões */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '50ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-4 px-6 pt-6">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Selecione uma conexão *</CardTitle>
+                  <CardTitle className="text-xl font-semibold">Selecione uma conexão *</CardTitle>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={loadConnections}
                     disabled={isLoadingData}
                   >
-                    <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-5 h-5 ${isLoadingData ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-6 pb-6">
                 {isLoadingData ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 ) : connections.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl text-base">
                     Nenhuma conexão encontrada
                   </div>
                 ) : (
-                  <div className="grid gap-3 max-h-[200px] overflow-y-auto pr-2">
+                  <div className="grid gap-4 max-h-[280px] overflow-y-auto pr-2">
                     {connections.map((conn, index) => (
                       <div
                         key={conn.id}
                         onClick={() => handleSelectConnection(conn)}
-                        className={`relative p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between ${
+                        className={`relative p-5 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between ${
                           selectedConnection?.id === conn.id
                             ? 'border-primary bg-primary/10 shadow-sm'
                             : 'border-border/50 bg-muted/20 hover:border-primary/40'
                         }`}
                         style={{ animationDelay: `${index * 30}ms` }}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                           {conn.photo ? (
                             <img 
                               src={conn.photo} 
                               alt={conn.name}
-                              className="w-11 h-11 rounded-full object-cover border-2 border-primary/20"
+                              className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
                             />
                           ) : (
-                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20">
-                              <span className="text-primary font-bold">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20">
+                              <span className="text-primary font-bold text-lg">
                                 {conn.name?.charAt(0).toUpperCase() || 'W'}
                               </span>
                             </div>
                           )}
                           <div>
-                            <p className="font-medium text-sm">{conn.name}</p>
-                            <p className="text-xs text-muted-foreground">{conn.phone || conn.instance}</p>
+                            <p className="font-medium text-base">{conn.name}</p>
+                            <p className="text-sm text-muted-foreground">{conn.phone || conn.instance}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
+                        <div className="flex items-center gap-3">
+                          <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
                             conn.isConnected 
                               ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' 
                               : 'bg-destructive/15 text-destructive border border-destructive/30'
                           }`}>
-                            {conn.isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                            {conn.isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
                             {conn.isConnected ? 'ON' : 'OFF'}
                           </div>
                           {selectedConnection?.id === conn.id && (
-                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-primary-foreground" />
+                            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                              <CheckCircle className="w-5 h-5 text-primary-foreground" />
                             </div>
                           )}
                         </div>
@@ -464,39 +464,39 @@ export default function DisparosGrupoPage() {
 
             {/* Listas de Grupos */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Listas de grupos *</CardTitle>
+              <CardHeader className="pb-4 px-6 pt-6">
+                <div className="flex items-center gap-3">
+                  <Users className="w-6 h-6 text-primary" />
+                  <CardTitle className="text-xl font-semibold">Listas de grupos *</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-6 pb-6">
                 {lists.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>Nenhuma lista de grupos encontrada.</p>
+                  <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
+                    <Users className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                    <p className="text-base">Nenhuma lista de grupos encontrada.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-3 max-h-[200px] overflow-y-auto pr-2">
+                  <div className="grid gap-4 max-h-[280px] overflow-y-auto pr-2">
                     {lists.map((list, index) => (
                       <div
                         key={list.id}
                         onClick={() => toggleList(list.id)}
-                        className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between ${
+                        className={`p-5 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between ${
                           selectedLists.includes(list.id)
                             ? 'border-primary bg-primary/10 shadow-sm'
                             : 'border-border/50 bg-muted/20 hover:border-primary/40'
                         }`}
                         style={{ animationDelay: `${index * 30}ms` }}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Users className="w-4 h-4 text-primary" />
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-primary" />
                           </div>
-                          <span className="font-medium text-sm">{list.nome}</span>
+                          <span className="font-medium text-base">{list.nome}</span>
                         </div>
                         {selectedLists.includes(list.id) && (
-                          <CheckCircle className="w-5 h-5 text-primary" />
+                          <CheckCircle className="w-6 h-6 text-primary" />
                         )}
                       </div>
                     ))}
@@ -505,9 +505,9 @@ export default function DisparosGrupoPage() {
 
                 {/* Aviso do WhatsApp */}
                 {selectedConnection && selectedLists.length > 0 && (
-                  <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 flex items-start gap-2">
-                    <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-yellow-500">
+                  <div className="mt-5 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-start gap-3">
+                    <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-base text-yellow-500">
                       Certifique-se que o WhatsApp selecionado está em todos os grupos da lista.
                     </p>
                   </div>
@@ -517,14 +517,14 @@ export default function DisparosGrupoPage() {
 
             {/* Mensagens */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '150ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Mensagens *</CardTitle>
+              <CardHeader className="pb-4 px-6 pt-6">
+                <CardTitle className="text-xl font-semibold">Mensagens *</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5 px-6 pb-6">
                 {messages.map((msg, idx) => (
-                  <div key={msg.id} className="p-4 rounded-lg border border-border/50 bg-muted/20 space-y-3">
+                  <div key={msg.id} className="p-5 rounded-xl border border-border/50 bg-muted/20 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Mensagem {idx + 1}</span>
+                      <span className="text-base font-medium">Mensagem {idx + 1}</span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -532,20 +532,20 @@ export default function DisparosGrupoPage() {
                         className="text-destructive hover:text-destructive"
                         disabled={messages.length <= 1}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </Button>
                     </div>
 
                     {/* Variáveis */}
                     <div>
-                      <p className="text-xs text-muted-foreground mb-2">Variáveis disponíveis:</p>
+                      <p className="text-sm text-muted-foreground mb-3">Variáveis disponíveis:</p>
                       <div className="flex flex-wrap gap-2">
                         {timeVariables.map(v => (
                           <button
                             key={v}
                             type="button"
                             onClick={() => insertVariable(msg.id, v)}
-                            className="px-2 py-1 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                            className="px-3 py-1.5 text-sm rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
                           >
                             {v}
                           </button>
@@ -557,26 +557,26 @@ export default function DisparosGrupoPage() {
                       placeholder="Digite sua mensagem... Use variáveis como <saudacao>, <data>"
                       value={msg.text}
                       onChange={(e) => updateMessageText(msg.id, e.target.value)}
-                      className="min-h-[100px] resize-none font-mono text-sm"
+                      className="min-h-[120px] resize-none font-mono text-base"
                     />
 
                     {/* Media preview */}
                     {msg.media && (
-                      <div className="flex items-center justify-between p-2 rounded bg-primary/10 border border-primary/20">
-                        <span className="text-sm flex items-center gap-1"><FileText className="w-3 h-3" /> {msg.media.filename} ({msg.media.type})</span>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
+                        <span className="text-base flex items-center gap-2"><FileText className="w-4 h-4" /> {msg.media.filename} ({msg.media.type})</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => removeMedia(msg.id)}
-                          className="text-destructive hover:text-destructive h-6 w-6 p-0"
+                          className="text-destructive hover:text-destructive h-8 w-8 p-0"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
                     )}
 
                     {/* Media buttons */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                       {[
                         { type: 'image', icon: Image, label: 'Imagem' },
                         { type: 'video', icon: Video, label: 'Vídeo' },
@@ -584,8 +584,8 @@ export default function DisparosGrupoPage() {
                         { type: 'document', icon: FileText, label: 'Documento' },
                       ].map(({ type, icon: Icon, label }) => (
                         <label key={type} className="cursor-pointer">
-                          <div className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-muted hover:bg-muted/80 transition-colors">
-                            <Icon className="w-3 h-3" />
+                          <div className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-muted hover:bg-muted/80 transition-colors">
+                            <Icon className="w-4 h-4" />
                             {label}
                           </div>
                           <input
@@ -603,9 +603,9 @@ export default function DisparosGrupoPage() {
                 <Button
                   variant="outline"
                   onClick={addMessage}
-                  className="w-full border-dashed border-primary text-primary hover:bg-primary/10"
+                  className="w-full h-12 border-dashed border-primary text-primary hover:bg-primary/10 text-base"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-5 h-5 mr-2" />
                   Nova Variação
                 </Button>
               </CardContent>
@@ -613,11 +613,11 @@ export default function DisparosGrupoPage() {
 
             {/* IA */}
             <Card className="border-emerald-500/30 bg-emerald-500/5 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-4 px-6 pt-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-emerald-500" />
-                    <CardTitle className="text-lg">🤖 Gerar com IA</CardTitle>
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-6 h-6 text-emerald-500" />
+                    <CardTitle className="text-xl font-semibold">🤖 Gerar com IA</CardTitle>
                   </div>
                   <Switch
                     checked={aiEnabled}
@@ -626,13 +626,13 @@ export default function DisparosGrupoPage() {
                 </div>
               </CardHeader>
               {aiEnabled && (
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap gap-2 items-center">
+                <CardContent className="space-y-5 px-6 pb-6">
+                  <div className="flex flex-wrap gap-3 items-center">
                     <Input
                       type="number"
                       value={aiCount}
                       onChange={e => setAiCount(Number(e.target.value))}
-                      className="w-16"
+                      className="w-20 h-11"
                       min={1}
                       max={10}
                     />
@@ -641,22 +641,22 @@ export default function DisparosGrupoPage() {
                       placeholder="Instruções (ex: seja persuasivo)"
                       value={aiInstructions}
                       onChange={e => setAiInstructions(e.target.value)}
-                      className="flex-1 min-w-[200px]"
+                      className="flex-1 min-w-[200px] h-11"
                     />
                   </div>
                   <Button
                     onClick={generateAI}
                     disabled={isGeneratingAI}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700"
+                    className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-base font-medium"
                   >
                     {isGeneratingAI ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                         Gerando...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4 mr-2" />
+                        <Sparkles className="w-5 h-5 mr-2" />
                         Gerar Mensagens
                       </>
                     )}
@@ -667,37 +667,37 @@ export default function DisparosGrupoPage() {
 
             {/* Configurações Finais */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '250ms', animationFillMode: 'forwards' }}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Configurações</CardTitle>
+              <CardHeader className="pb-4 px-6 pt-6">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-6 h-6 text-primary" />
+                  <CardTitle className="text-xl font-semibold">Configurações</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
+              <CardContent className="space-y-5 px-6 pb-6">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2 text-base">
+                      <Calendar className="w-5 h-5" />
                       Data para envio *
                     </Label>
                     <Input
                       type="datetime-local"
                       value={sendDate}
                       onChange={(e) => setSendDate(e.target.value)}
-                      className="bg-background/50"
+                      className="bg-background/50 h-11"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Marcar todos (@todos)</Label>
+                  <div className="space-y-3">
+                    <Label className="text-base">Marcar todos (@todos)</Label>
                     <div
                       onClick={() => setMarkAll(!markAll)}
-                      className={`w-14 h-8 rounded-full cursor-pointer transition-all flex items-center px-1 ${
+                      className={`w-16 h-9 rounded-full cursor-pointer transition-all flex items-center px-1 ${
                         markAll ? 'bg-primary' : 'bg-muted'
                       }`}
                     >
                       <div
-                        className={`w-6 h-6 rounded-full bg-white flex items-center justify-center text-xs transition-transform ${
-                          markAll ? 'translate-x-6' : 'translate-x-0'
+                        className={`w-7 h-7 rounded-full bg-white flex items-center justify-center text-sm transition-transform ${
+                          markAll ? 'translate-x-7' : 'translate-x-0'
                         }`}
                       >
                         {markAll ? '✓' : '✗'}
@@ -732,11 +732,11 @@ export default function DisparosGrupoPage() {
 
           {/* iPhone Preview */}
           <div className="hidden lg:block">
-            <div className="sticky top-24">
+            <div className="sticky top-8">
               {/* iPhone Frame */}
-              <div className="relative bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 rounded-[50px] p-2 shadow-2xl shadow-black/60 border border-zinc-700/50 max-w-[280px] mx-auto">
+              <div className="relative bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 rounded-[50px] p-2 shadow-2xl shadow-black/60 border border-zinc-700/50 max-w-[320px] mx-auto">
                 {/* Screen */}
-                <div className="bg-[#e8ded3] rounded-[42px] overflow-hidden h-[520px] flex flex-col">
+                <div className="bg-[#e8ded3] rounded-[42px] overflow-hidden h-[560px] flex flex-col">
                   {/* WhatsApp Header */}
                   <div className="bg-[#075e54] pt-8 pb-3 px-3 flex items-center gap-2">
                     <div className="w-9 h-9 rounded-full bg-[#ddd] flex items-center justify-center">
