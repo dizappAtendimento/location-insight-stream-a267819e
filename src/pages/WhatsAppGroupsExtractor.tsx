@@ -166,11 +166,15 @@ const WhatsAppGroupsExtractor = () => {
   const [groupFilter, setGroupFilter] = useState('');
   const [groupTypeFilter, setGroupTypeFilter] = useState<'all' | 'group' | 'community'>('all');
 
+  // Load instances only once on mount
+  const [instancesLoaded, setInstancesLoaded] = useState(false);
+  
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !instancesLoaded) {
       loadUserInstances();
+      setInstancesLoaded(true);
     }
-  }, [user?.id]);
+  }, [user?.id, instancesLoaded]);
 
   // Polling para verificar status da conexão
   useEffect(() => {
@@ -182,10 +186,7 @@ const WhatsAppGroupsExtractor = () => {
           body: { action: 'get-instance', instanceName: pollingInstance }
         });
         
-        console.log('Polling response:', data);
-        // Evolution API returns connectionStatus for connection state
         const state = data?.instance?.connectionStatus || data?.connectionState || data?.instance?.state;
-        console.log('Connection state:', state);
         
         if (state === 'open') {
           toast({ title: "Conectado!", description: "WhatsApp conectado com sucesso" });
