@@ -83,47 +83,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Initialize: set up auth listener FIRST, then check for existing session
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-      }
-    }
-    setIsLoading(false);
-  }, []);
+    let isMounted = true;
 
-  // Listen for Supabase Auth state changes (for Google OAuth)
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Set up auth state listener FIRST (prevents missing auth events)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        // Sync user with our SAAS_Usuarios table using the correct OAuth ID
-        const { data, error } = await supabase.functions.invoke('sync-oauth-user', {
-          body: {
-            userId: session.user.id,
-            email: session.user.email,
-            nome: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-            avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
-          }
-        });
+        // CRITICAL: Use setTimeout to avoid deadlock - never call Supabase inside callback directly
+        setTimeout(async () => {
+          if (!isMounted) return;
+          
+          try {
+            const { data, error } = await supabase.functions.invoke('sync-oauth-user', {
+              body: {
+                userId: session.user.id,
+                email: session.user.email,
+                nome: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+                avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+              }
+            });
 
-        if (!error && data?.user) {
-          setUser(data.user);
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
-        }
+            if (!error && data?.user && isMounted) {
+              setUser(data.user);
+              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+            }
+          } catch (err) {
+            console.error('Error syncing user:', err);
+          }
+        }, 0);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         localStorage.removeItem(AUTH_STORAGE_KEY);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // THEN check for existing session
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user && isMounted) {
+        // User has active Google session - sync their data
+        try {
+          const { data, error } = await supabase.functions.invoke('sync-oauth-user', {
+            body: {
+              userId: session.user.id,
+              email: session.user.email,
+              nome: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+              avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+            }
+          });
+
+          if (!error && data?.user && isMounted) {
+            setUser(data.user);
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+          }
+        } catch (err) {
+          console.error('Error syncing session user:', err);
+        }
+      } else {
+        // No Supabase session - check localStorage for password-based login
+        const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (storedUser && isMounted) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+          } catch {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+          }
+        }
+      }
+      
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    };
+
+    initSession();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Auto-refresh user data when window gains focus
