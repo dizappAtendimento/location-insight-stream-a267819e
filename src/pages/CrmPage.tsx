@@ -1281,15 +1281,34 @@ const CrmPage = () => {
                             </p>
                           )}
 
+                          {/* Connection Badge */}
+                          {lead.instanceName && (() => {
+                            const connection = userConnections.find(c => c.instanceName === lead.instanceName);
+                            const connectionIndex = userConnections.findIndex(c => c.instanceName === lead.instanceName);
+                            const badgeColors = [
+                              'bg-blue-500/20 text-blue-400 border-blue-500/30',
+                              'bg-purple-500/20 text-purple-400 border-purple-500/30',
+                              'bg-green-500/20 text-green-400 border-green-500/30',
+                              'bg-orange-500/20 text-orange-400 border-orange-500/30',
+                              'bg-pink-500/20 text-pink-400 border-pink-500/30',
+                              'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+                              'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                              'bg-red-500/20 text-red-400 border-red-500/30',
+                            ];
+                            const colorClass = badgeColors[connectionIndex % badgeColors.length];
+                            return (
+                              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 border", colorClass)}>
+                                {connection?.nomeConexao || lead.instanceName.split('-')[0]}
+                              </Badge>
+                            );
+                          })()}
+
                           {/* Footer minimalista */}
                           <div className="flex items-center justify-between text-[10px] text-muted-foreground/70 pt-1">
                             <span>{formatDate(lead.created_at)}</span>
                             <div className="flex items-center gap-2">
-                              {lead.instanceName && (
-                                <span className="text-primary/70 truncate max-w-[50px]">{lead.instanceName.split('-')[0]}</span>
-                              )}
                               {lead.nomeLista && (
-                                <span className="truncate max-w-[50px]">{lead.nomeLista}</span>
+                                <span className="truncate max-w-[60px]">{lead.nomeLista}</span>
                               )}
                               <Button
                                 variant="ghost"
@@ -1397,7 +1416,26 @@ const CrmPage = () => {
                             <span className="text-xs text-muted-foreground">{lead.nomeLista || '-'}</span>
                           </td>
                           <td className="p-3">
-                            <span className="text-xs text-primary/70">{lead.instanceName?.split('-')[0] || '-'}</span>
+                            {lead.instanceName ? (() => {
+                              const connection = userConnections.find(c => c.instanceName === lead.instanceName);
+                              const connectionIndex = userConnections.findIndex(c => c.instanceName === lead.instanceName);
+                              const badgeColors = [
+                                'bg-blue-500/20 text-blue-400 border-blue-500/30',
+                                'bg-purple-500/20 text-purple-400 border-purple-500/30',
+                                'bg-green-500/20 text-green-400 border-green-500/30',
+                                'bg-orange-500/20 text-orange-400 border-orange-500/30',
+                                'bg-pink-500/20 text-pink-400 border-pink-500/30',
+                                'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+                                'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                                'bg-red-500/20 text-red-400 border-red-500/30',
+                              ];
+                              const colorClass = badgeColors[connectionIndex % badgeColors.length];
+                              return (
+                                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 border", colorClass)}>
+                                  {connection?.nomeConexao || lead.instanceName.split('-')[0]}
+                                </Badge>
+                              );
+                            })() : <span className="text-xs text-muted-foreground">-</span>}
                           </td>
                           <td className="p-3">
                             <span className="text-xs text-muted-foreground">{formatDate(lead.created_at)}</span>
