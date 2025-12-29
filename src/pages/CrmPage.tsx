@@ -381,19 +381,19 @@ const CrmPage = () => {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      // Buscar conexões do usuário primeiro para filtrar leads
-      const { data: conexoesData } = await supabase
-        .from('SAAS_Conexões')
-        .select('instanceName, NomeConexao')
-        .eq('idUsuario', user.id);
+      // Buscar conexões do usuário usando edge function (funciona com login por senha)
+      const { data: conexoesResponse } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'list-user-instances', userId: user.id }
+      });
       
-      const connections = conexoesData?.filter(c => c.instanceName).map(c => ({
+      const instances = conexoesResponse?.instances || [];
+      const connections = instances.filter((c: any) => c.instanceName).map((c: any) => ({
         instanceName: c.instanceName!,
         nomeConexao: c.NomeConexao || c.instanceName!
-      })) || [];
+      }));
       
       setUserConnections(connections);
-      const userInstanceNames = connections.map(c => c.instanceName);
+      const userInstanceNames = connections.map((c: { instanceName: string }) => c.instanceName);
 
       // Buscar colunas
       const { data: colunasData, error: colunasError } = await supabase
