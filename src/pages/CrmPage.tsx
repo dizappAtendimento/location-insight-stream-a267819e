@@ -286,6 +286,8 @@ const CrmPage = () => {
     return (saved as 'kanban' | 'list') || 'kanban';
   });
   const [selectedColumnFilter, setSelectedColumnFilter] = useState<number | null>(null);
+  const [userConnections, setUserConnections] = useState<{ instanceName: string; nomeConexao: string }[]>([]);
+  const [selectedConnectionFilter, setSelectedConnectionFilter] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
 
   // Solicitar permissão de notificação ao ativar
@@ -382,10 +384,16 @@ const CrmPage = () => {
       // Buscar conexões do usuário primeiro para filtrar leads
       const { data: conexoesData } = await supabase
         .from('SAAS_Conexões')
-        .select('instanceName')
+        .select('instanceName, NomeConexao')
         .eq('idUsuario', user.id);
       
-      const userInstanceNames = conexoesData?.map(c => c.instanceName).filter(Boolean) || [];
+      const connections = conexoesData?.filter(c => c.instanceName).map(c => ({
+        instanceName: c.instanceName!,
+        nomeConexao: c.NomeConexao || c.instanceName!
+      })) || [];
+      
+      setUserConnections(connections);
+      const userInstanceNames = connections.map(c => c.instanceName);
 
       // Buscar colunas
       const { data: colunasData, error: colunasError } = await supabase
@@ -734,8 +742,11 @@ const CrmPage = () => {
     setColumnTitle(currentTitle);
   };
 
-  // Filtrar leads pela busca e lista
+  // Filtrar leads pela busca, lista e conexão
   const filteredLeads = leads.filter(lead => {
+    // Filtro por conexão
+    if (selectedConnectionFilter && lead.instanceName !== selectedConnectionFilter) return false;
+    
     // Filtro por lista
     if (selectedListaFilter && lead.idLista !== selectedListaFilter) return false;
     
@@ -919,6 +930,40 @@ const CrmPage = () => {
                 className="pl-9 w-[220px]"
               />
             </div>
+            {/* Filtro por conexão */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant={selectedConnectionFilter ? "default" : "outline"} size="sm" className="gap-2">
+                  <Phone className="w-4 h-4" />
+                  {selectedConnectionFilter 
+                    ? userConnections.find(c => c.instanceName === selectedConnectionFilter)?.nomeConexao || 'Conexão' 
+                    : 'Todas Conexões'
+                  }
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover border-border">
+                <DropdownMenuItem onClick={() => setSelectedConnectionFilter(null)}>
+                  <Phone className="w-4 h-4 mr-2" />
+                  Todas as Conexões
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {userConnections.map(conn => (
+                  <DropdownMenuItem 
+                    key={conn.instanceName} 
+                    onClick={() => setSelectedConnectionFilter(conn.instanceName)}
+                    className={cn(selectedConnectionFilter === conn.instanceName && "bg-primary/10")}
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    {conn.nomeConexao}
+                  </DropdownMenuItem>
+                ))}
+                {userConnections.length === 0 && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                    Nenhuma conexão disponível
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {/* Filtro por lista */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -930,7 +975,7 @@ const CrmPage = () => {
                   }
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-popover border-border">
                 <DropdownMenuItem onClick={() => setSelectedListaFilter(null)}>
                   <List className="w-4 h-4 mr-2" />
                   Todas as Listas
