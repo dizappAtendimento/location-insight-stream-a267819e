@@ -409,20 +409,12 @@ const CrmPage = () => {
         setColumns(colunasData);
       }
 
-      // Buscar leads - apenas os que pertencem às conexões do usuário
-      // Se o usuário não tiver conexões, não mostrar nenhum lead
-      if (userInstanceNames.length === 0) {
-        setLeads([]);
-        initialLoadDone.current = true;
-        setIsLoading(false);
-        return;
-      }
-
+      // Buscar leads do usuário - filtra por idUsuario que já garante isolamento por conta
+      // instanceName é apenas para referência de qual conexão recebeu a mensagem
       const { data: leadsData, error: leadsError } = await supabase
         .from('SAAS_CRM_Leads')
         .select('*')
         .eq('idUsuario', user.id)
-        .in('instanceName', userInstanceNames)
         .order('created_at', { ascending: false });
 
       if (leadsError) throw leadsError;
