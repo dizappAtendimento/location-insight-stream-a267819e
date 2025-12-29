@@ -409,20 +409,21 @@ const CrmPage = () => {
         setColumns(colunasData);
       }
 
-      // Buscar leads - apenas os que vieram de alguma lista E pertencem às conexões do usuário
-      let query = supabase
+      // Buscar leads - apenas os que pertencem às conexões do usuário
+      // Se o usuário não tiver conexões, não mostrar nenhum lead
+      if (userInstanceNames.length === 0) {
+        setLeads([]);
+        initialLoadDone.current = true;
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: leadsData, error: leadsError } = await supabase
         .from('SAAS_CRM_Leads')
         .select('*')
         .eq('idUsuario', user.id)
-        .not('idLista', 'is', null)
+        .in('instanceName', userInstanceNames)
         .order('created_at', { ascending: false });
-
-      // Filtrar por instanceName das conexões do usuário
-      if (userInstanceNames.length > 0) {
-        query = query.in('instanceName', userInstanceNames);
-      }
-
-      const { data: leadsData, error: leadsError } = await query;
 
       if (leadsError) throw leadsError;
       setLeads(leadsData?.map(l => ({
