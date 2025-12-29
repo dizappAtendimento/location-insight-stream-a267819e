@@ -409,16 +409,38 @@ const CrmPage = () => {
         setColumns(colunasData);
       }
 
-      // Buscar leads do usuário - filtra por idUsuario que já garante isolamento por conta
-      // instanceName é apenas para referência de qual conexão recebeu a mensagem
-      const { data: leadsData, error: leadsError } = await supabase
+      // Buscar leads apenas das conexões do usuário
+      // Se não tiver conexões, mostrar apenas leads sem instanceName (manuais)
+      let leadsData: any[] = [];
+      
+      if (userInstanceNames.length > 0) {
+        const { data, error } = await supabase
+          .from('SAAS_CRM_Leads')
+          .select('*')
+          .eq('idUsuario', user.id)
+          .in('instanceName', userInstanceNames)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        leadsData = data || [];
+      }
+
+      // Também buscar leads sem instanceName (criados manualmente)
+      const { data: manualLeads, error: manualError } = await supabase
         .from('SAAS_CRM_Leads')
         .select('*')
         .eq('idUsuario', user.id)
+        .is('instanceName', null)
         .order('created_at', { ascending: false });
 
-      if (leadsError) throw leadsError;
-      setLeads(leadsData?.map(l => ({
+      if (manualError) throw manualError;
+      
+      // Combinar e ordenar por data
+      const allLeads = [...leadsData, ...(manualLeads || [])].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setLeads(allLeads.map(l => ({
         id: l.id,
         idColuna: l.idColuna,
         nome: l.nome,
@@ -426,10 +448,10 @@ const CrmPage = () => {
         mensagem: l.mensagem,
         valor: Number(l.valor) || 0,
         created_at: l.created_at,
-        instanceName: (l as any).instanceName || null,
-        idLista: (l as any).idLista || null,
-        nomeLista: (l as any).nomeLista || null,
-      })) || []);
+        instanceName: l.instanceName || null,
+        idLista: l.idLista || null,
+        nomeLista: l.nomeLista || null,
+      })));
       
       initialLoadDone.current = true;
     } catch (error: any) {
