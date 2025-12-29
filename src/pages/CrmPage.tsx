@@ -379,6 +379,14 @@ const CrmPage = () => {
     if (!user?.id) return;
     setIsLoading(true);
     try {
+      // Buscar conexões do usuário primeiro para filtrar leads
+      const { data: conexoesData } = await supabase
+        .from('SAAS_Conexões')
+        .select('instanceName')
+        .eq('idUsuario', user.id);
+      
+      const userInstanceNames = conexoesData?.map(c => c.instanceName).filter(Boolean) || [];
+
       // Buscar colunas
       const { data: colunasData, error: colunasError } = await supabase
         .from('SAAS_CRM_Colunas')
@@ -401,13 +409,20 @@ const CrmPage = () => {
         setColumns(colunasData);
       }
 
-      // Buscar leads - apenas os que vieram de alguma lista
-      const { data: leadsData, error: leadsError } = await supabase
+      // Buscar leads - apenas os que vieram de alguma lista E pertencem às conexões do usuário
+      let query = supabase
         .from('SAAS_CRM_Leads')
         .select('*')
         .eq('idUsuario', user.id)
         .not('idLista', 'is', null)
         .order('created_at', { ascending: false });
+
+      // Filtrar por instanceName das conexões do usuário
+      if (userInstanceNames.length > 0) {
+        query = query.in('instanceName', userInstanceNames);
+      }
+
+      const { data: leadsData, error: leadsError } = await query;
 
       if (leadsError) throw leadsError;
       setLeads(leadsData?.map(l => ({
