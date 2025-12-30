@@ -392,22 +392,29 @@ export default function DisparosPage() {
       setSendingStatus('Enviando para o servidor...');
       
       // Usar edge function ao invés de API externa
+      // IMPORTANTE: A RPC create_disparo espera o payload em formato específico
       const { data: result, error } = await supabase.functions.invoke('disparos-api', {
         body: {
           action: 'create-disparo',
           userId: user.id,
           disparoData: {
-            idConexoes: selConnsData.map(c => c.id),
-            idListas: selectedLists,
-            Mensagens: messagesData,
-            intervaloMin: parseInt(String(intervalMin)),
-            intervaloMax: parseInt(String(intervalMax)),
-            PausaAposMensagens: parseInt(String(pauseAfter)),
-            PausaMinutos: parseInt(String(pauseMinutes)),
-            StartTime: startTime,
-            EndTime: endTime,
-            DiasSelecionados: selectedDays,
-            DataAgendamento: scheduleEnabled && scheduleDateTime ? new Date(scheduleDateTime).toISOString() : null,
+            // connections deve ser array de objetos com id
+            connections: selConnsData.map(c => ({ id: c.id })),
+            // idLista é o nome esperado pela RPC
+            idLista: selectedLists,
+            // mensagens em lowercase
+            mensagens: messagesData,
+            // settings como objeto separado
+            settings: {
+              intervalMin: parseInt(String(intervalMin)),
+              intervalMax: parseInt(String(intervalMax)),
+              pauseAfterMessages: parseInt(String(pauseAfter)),
+              pauseMinutes: parseInt(String(pauseMinutes)),
+              startTime: startTime,
+              endTime: endTime,
+              selectedDays: selectedDays,
+              scheduleData: scheduleEnabled && scheduleDateTime ? new Date(scheduleDateTime).toISOString() : null,
+            },
             TipoDisparo: 'individual',
             csvContacts: csvContacts.length > 0 ? csvContacts : null,
           }
