@@ -413,7 +413,10 @@ export default function DisparosPage() {
               startTime: startTime,
               endTime: endTime,
               selectedDays: selectedDays,
-              scheduleData: scheduleEnabled && scheduleDateTime ? new Date(scheduleDateTime).toISOString() : null,
+              // Se não há agendamento, enviar hora atual para iniciar imediatamente
+              scheduleData: scheduleEnabled && scheduleDateTime 
+                ? new Date(scheduleDateTime).toISOString() 
+                : new Date().toISOString(),
             },
             TipoDisparo: 'individual',
             csvContacts: csvContacts.length > 0 ? csvContacts : null,
