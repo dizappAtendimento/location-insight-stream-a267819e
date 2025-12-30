@@ -94,6 +94,7 @@ export default function DisparosPage() {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [csvContacts, setCsvContacts] = useState<string[]>([]);
+  const [sendingStatus, setSendingStatus] = useState<string>('');
   
   // Configurações
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
@@ -382,6 +383,14 @@ export default function DisparosPage() {
     };
 
     try {
+      setSendingStatus('Preparando disparo...');
+      
+      // Pequeno delay para mostrar status inicial
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setSendingStatus('Validando conexões...');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setSendingStatus('Enviando para o servidor...');
+      
       // Usar edge function ao invés de API externa
       const { data: result, error } = await supabase.functions.invoke('disparos-api', {
         body: {
@@ -407,6 +416,9 @@ export default function DisparosPage() {
       
       if (error) throw error;
       
+      setSendingStatus('Finalizando...');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       if (result?.error) {
         toast.error(result.error);
       } else {
@@ -423,6 +435,7 @@ export default function DisparosPage() {
       toast.error('Erro ao iniciar disparo: ' + (e.message || 'Tente novamente'));
     } finally {
       setLoading(false);
+      setSendingStatus('');
     }
   };
 
@@ -823,20 +836,41 @@ export default function DisparosPage() {
             </Card>
 
             {/* Botão Enviar */}
-            <Button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full h-14 text-lg font-semibold bg-violet-600 hover:bg-violet-700 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] opacity-0 animate-fade-in"
-              style={{ animationDelay: '250ms', animationFillMode: 'forwards' }}
-              size="lg"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              ) : (
-                <Send className="w-5 h-5 mr-2" />
+            <div className="space-y-3">
+              <Button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full h-14 text-lg font-semibold bg-violet-600 hover:bg-violet-700 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] opacity-0 animate-fade-in"
+                style={{ animationDelay: '250ms', animationFillMode: 'forwards' }}
+                size="lg"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                ) : (
+                  <Send className="w-5 h-5 mr-2" />
+                )}
+                {loading ? sendingStatus : (scheduleEnabled ? 'Agendar Disparo' : 'Iniciar Disparo')}
+              </Button>
+              
+              {/* Barra de progresso durante o envio */}
+              {loading && (
+                <div className="relative overflow-hidden rounded-full h-2 bg-violet-200">
+                  <div 
+                    className="absolute inset-0 bg-gradient-to-r from-violet-500 via-violet-600 to-violet-500 animate-pulse"
+                    style={{
+                      animation: 'shimmer 1.5s infinite linear',
+                      backgroundSize: '200% 100%',
+                    }}
+                  />
+                  <style>{`
+                    @keyframes shimmer {
+                      0% { background-position: -200% 0; }
+                      100% { background-position: 200% 0; }
+                    }
+                  `}</style>
+                </div>
               )}
-              {scheduleEnabled ? 'Agendar Disparo' : 'Iniciar Disparo'}
-            </Button>
+            </div>
           </div>
 
           {/* iPhone Preview */}
