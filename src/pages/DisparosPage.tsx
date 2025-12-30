@@ -382,15 +382,33 @@ export default function DisparosPage() {
     };
 
     try {
-      const res = await fetch(API_URLS.disparoIndividual, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      // Usar edge function ao invés de API externa
+      const { data: result, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'create-disparo',
+          userId: user.id,
+          disparoData: {
+            idConexoes: selConnsData.map(c => c.id),
+            idListas: selectedLists,
+            Mensagens: messagesData,
+            intervaloMin: parseInt(String(intervalMin)),
+            intervaloMax: parseInt(String(intervalMax)),
+            PausaAposMensagens: parseInt(String(pauseAfter)),
+            PausaMinutos: parseInt(String(pauseMinutes)),
+            StartTime: startTime,
+            EndTime: endTime,
+            DiasSelecionados: selectedDays,
+            DataAgendamento: scheduleEnabled && scheduleDateTime ? new Date(scheduleDateTime).toISOString() : null,
+            TipoDisparo: 'individual',
+            csvContacts: csvContacts.length > 0 ? csvContacts : null,
+          }
+        }
       });
-      const result = await res.json();
       
-      if (result.plano) {
-        toast.error(`Limite atingido: ${result.plano}`);
+      if (error) throw error;
+      
+      if (result?.error) {
+        toast.error(result.error);
       } else {
         toast.success('Disparo iniciado com sucesso!');
         // Reset
@@ -401,7 +419,8 @@ export default function DisparosPage() {
         setCsvContacts([]);
       }
     } catch (e: any) {
-      toast.error('Erro ao iniciar disparo: ' + e.message);
+      console.error('Erro ao criar disparo:', e);
+      toast.error('Erro ao iniciar disparo: ' + (e.message || 'Tente novamente'));
     } finally {
       setLoading(false);
     }
