@@ -476,6 +476,47 @@ serve(async (req) => {
         );
       }
 
+      case 'delete-user': {
+        // Delete user and all related data
+        console.log(`[Admin API] Deleting user ${userId}`);
+
+        // Delete related records first
+        await supabase.from('SAAS_Conexões').delete().eq('idUsuario', userId);
+        await supabase.from('SAAS_Listas').delete().eq('idUsuario', userId);
+        await supabase.from('SAAS_Contatos').delete().eq('idUsuario', userId);
+        await supabase.from('SAAS_Grupos').delete().eq('idUsuario', userId);
+        await supabase.from('SAAS_Disparos').delete().eq('userId', userId);
+        await supabase.from('SAAS_Maturador').delete().eq('userId', userId);
+        await supabase.from('SAAS_CRM_Colunas').delete().eq('idUsuario', userId);
+        await supabase.from('SAAS_CRM_Leads').delete().eq('idUsuario', userId);
+        await supabase.from('SAAS_Chat_Labels').delete().eq('idUsuario', userId);
+        await supabase.from('saas_pagamentos').delete().eq('user_id', userId);
+        await supabase.from('saas_cupons_uso').delete().eq('user_id', userId);
+        await supabase.from('user_roles').delete().eq('user_id', userId);
+        await supabase.from('search_jobs').delete().eq('user_id', userId);
+
+        // Finally delete the user
+        const { error } = await supabase
+          .from('SAAS_Usuarios')
+          .delete()
+          .eq('id', userId);
+
+        if (error) {
+          console.error('[Admin API] Error deleting user:', error);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao excluir usuário' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Admin API] User ${userId} deleted successfully`);
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'create-user': {
         const { error } = await supabase
           .from('SAAS_Usuarios')

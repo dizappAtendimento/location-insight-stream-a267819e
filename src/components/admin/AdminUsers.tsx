@@ -30,7 +30,17 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit2, RefreshCw, UserPlus, Send, Eye, Copy, Users, Sparkles, Ban, UserCheck, Percent, History, CreditCard } from 'lucide-react';
+import { Search, Edit2, RefreshCw, UserPlus, Send, Eye, Copy, Users, Sparkles, Ban, UserCheck, Percent, History, CreditCard, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { format, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -99,6 +109,9 @@ export function AdminUsers() {
   const [paymentHistoryUser, setPaymentHistoryUser] = useState<User | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [editForm, setEditForm] = useState({
     nome: '',
@@ -407,7 +420,45 @@ export function AdminUsers() {
       console.error('Error fetching payment history:', err);
       setPaymentHistory([]);
     } finally {
-      setIsLoadingPayments(false);
+    setIsLoadingPayments(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke('admin-api', {
+        body: { action: 'delete-user', userId: deletingUser.id }
+      });
+
+      if (error) {
+        toast({
+          title: 'Erro',
+          description: 'Erro ao excluir usuário',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Sucesso',
+        description: 'Usuário excluído com sucesso',
+      });
+
+      setIsDeleteDialogOpen(false);
+      setDeletingUser(null);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao excluir usuário',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -691,6 +742,18 @@ export function AdminUsers() {
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive/70 hover:bg-destructive/10 hover:text-destructive" 
+                        onClick={() => {
+                          setDeletingUser(user);
+                          setIsDeleteDialogOpen(true);
+                        }} 
+                        title="Excluir usuário"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -928,6 +991,33 @@ export function AdminUsers() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Excluir Usuário
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o usuário <span className="font-semibold text-foreground">{deletingUser?.nome || deletingUser?.Email}</span>?
+              <br /><br />
+              <span className="text-destructive font-medium">Esta ação é irreversível e todos os dados do usuário serão perdidos.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
