@@ -94,8 +94,8 @@ serve(async (req: Request) => {
         Email: email.toLowerCase().trim(),
         telefone: telefone?.trim() || null,
         senha: password,
-        status: trialPlan ? true : false, // Ativo se tiver plano Trial
-        "Status Ex": false,
+      status: trialPlan ? true : false, // Ativo se tiver plano Trial
+        "Status Ex": true, // Extrator ativo por padrão
         plano: trialPlan?.id || null,
         dataValidade: dataValidade,
       })
