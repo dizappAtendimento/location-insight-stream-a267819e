@@ -167,73 +167,71 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Extratores - só mostra se tem acesso ao extrator */}
-        {hasExtrator && (
-          <SidebarGroup className="mb-4">
-            <SidebarGroupLabel className={cn(
-              "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
-              collapsed && "sr-only"
-            )}>
-              Extratores
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-0.5">
-                {extractorItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={'external' in item ? false : isActive(item.url)}
-                      tooltip={item.title}
-                      className="p-0 h-auto"
-                    >
-                      {'external' in item ? (
-                        <a 
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+        {/* Extratores - visível para todos */}
+        <SidebarGroup className="mb-4">
+          <SidebarGroupLabel className={cn(
+            "text-[10px] font-medium uppercase tracking-wider text-slate-500 px-2 mb-2",
+            collapsed && "sr-only"
+          )}>
+            Extratores
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-0.5">
+              {extractorItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={'external' in item ? false : isActive(item.url)}
+                    tooltip={item.title}
+                    className="p-0 h-auto"
+                  >
+                    {'external' in item ? (
+                      <a 
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
+                          collapsed && "justify-center px-0",
+                          "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                        )}
+                      >
+                        <item.icon 
                           className={cn(
-                            "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
-                            collapsed && "justify-center px-0",
-                            "text-slate-400 hover:text-white hover:bg-slate-800/40"
-                          )}
-                        >
-                          <item.icon 
-                            className={cn(
-                              "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
-                              item.colorClass
-                            )} 
-                            strokeWidth={1.5} 
-                          />
-                          {!collapsed && <span className="text-sm">{item.title}</span>}
-                        </a>
-                      ) : (
-                        <Link 
-                          to={item.url} 
+                            "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
+                            item.colorClass
+                          )} 
+                          strokeWidth={1.5} 
+                        />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                      </a>
+                    ) : (
+                      <Link 
+                        to={item.url} 
+                        className={cn(
+                          "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
+                          collapsed && "justify-center px-0",
+                          isActive(item.url) 
+                            ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
+                            : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                        )}
+                      >
+                        <item.icon 
                           className={cn(
-                            "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
-                            collapsed && "justify-center px-0",
-                            isActive(item.url) 
-                              ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
-                              : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-                          )}
-                        >
-                          <item.icon 
-                            className={cn(
-                              "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
-                              item.colorClass
-                            )} 
-                            strokeWidth={1.5} 
-                          />
-                          {!collapsed && <span className="text-sm">{item.title}</span>}
-                        </Link>
-                      )}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+                            "w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110",
+                            item.colorClass
+                          )} 
+                          strokeWidth={1.5} 
+                        />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                      </Link>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
       </SidebarContent>
 
