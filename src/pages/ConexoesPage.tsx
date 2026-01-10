@@ -526,7 +526,7 @@ const ConexoesPage = () => {
     }
   };
 
-  const saveChatGptApiKey = async () => {
+  const saveXaiApiKey = async () => {
     if (!user?.id) return;
     
     try {
@@ -541,7 +541,7 @@ const ConexoesPage = () => {
         
         const { data: validationResult, error: validationError } = await supabase.functions.invoke('disparos-api', {
           body: {
-            action: 'validate-openai-key',
+            action: 'validate-xai-key',
             disparoData: { apikey_gpt: chatGptApiKey.trim() }
           }
         });
@@ -551,7 +551,7 @@ const ConexoesPage = () => {
         if (!validationResult?.valid) {
           toast({
             title: "Chave Inválida",
-            description: validationResult?.error || "A chave API do ChatGPT não é válida. Verifique e tente novamente.",
+            description: validationResult?.error || "A chave API do xAI não é válida. Verifique e tente novamente.",
             variant: "destructive"
           });
           setSavingApiKey(false);
@@ -577,7 +577,7 @@ const ConexoesPage = () => {
       
       toast({
         title: "Sucesso",
-        description: "Chave API do ChatGPT salva com sucesso!",
+        description: "Chave API do xAI salva com sucesso!",
       });
       
     } catch (error) {
@@ -609,7 +609,7 @@ const ConexoesPage = () => {
     }
   };
 
-  const openChatGptModal = () => {
+  const openXaiModal = () => {
     fetchSavedApiKey();
     setIsReplacingApiKey(false);
     setChatGptApiKey("");
@@ -1290,13 +1290,13 @@ const ConexoesPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ChatGPT API Key Modal */}
+      {/* xAI API Key Modal */}
       <Dialog open={showChatGptModal} onOpenChange={setShowChatGptModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-400">
               <Settings className="w-5 h-5" />
-              Chave API do ChatGPT
+              Chave API do xAI (Grok)
             </DialogTitle>
             <DialogDescription>
               Configure sua chave API para usar recursos de IA nos disparos
@@ -1333,7 +1333,7 @@ const ConexoesPage = () => {
                 </label>
                 <Input
                   type="password"
-                  placeholder="sk-..."
+                  placeholder="xai-..."
                   value={chatGptApiKey}
                   onChange={(e) => setChatGptApiKey(e.target.value)}
                   className="w-full"
@@ -1365,7 +1365,7 @@ const ConexoesPage = () => {
             </Button>
             {(!savedApiKey || isReplacingApiKey) && (
               <Button
-                onClick={saveChatGptApiKey}
+                onClick={saveXaiApiKey}
                 disabled={!chatGptApiKey.trim() || savingApiKey}
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
