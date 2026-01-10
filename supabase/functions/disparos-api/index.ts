@@ -637,7 +637,7 @@ serve(async (req) => {
         );
       }
 
-      case 'validate-openai-key': {
+      case 'validate-xai-key': {
         const apiKey = disparoData?.apikey_gpt;
 
         if (!apiKey) {
@@ -647,11 +647,11 @@ serve(async (req) => {
           );
         }
 
-        console.log(`[Disparos API] Validating OpenAI API key`);
+        console.log(`[Disparos API] Validating xAI API key`);
 
         try {
-          // Make a simple request to OpenAI to validate the key
-          const response = await fetch('https://api.openai.com/v1/models', {
+          // Make a simple request to xAI to validate the key
+          const response = await fetch('https://api.x.ai/v1/models', {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
@@ -659,14 +659,14 @@ serve(async (req) => {
           });
 
           if (response.ok) {
-            console.log(`[Disparos API] OpenAI API key is valid`);
+            console.log(`[Disparos API] xAI API key is valid`);
             return new Response(
               JSON.stringify({ valid: true }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           } else {
             const errorData = await response.json().catch(() => ({}));
-            console.log(`[Disparos API] OpenAI API key is invalid:`, errorData);
+            console.log(`[Disparos API] xAI API key is invalid:`, errorData);
             
             let errorMessage = 'Chave API inválida';
             if (response.status === 401) {
@@ -681,7 +681,7 @@ serve(async (req) => {
             );
           }
         } catch (validationError: any) {
-          console.error('[Disparos API] Error validating OpenAI key:', validationError);
+          console.error('[Disparos API] Error validating xAI key:', validationError);
           return new Response(
             JSON.stringify({ valid: false, error: 'Erro ao validar a chave API' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -720,22 +720,22 @@ serve(async (req) => {
         }
 
         if (!userData?.apikey_gpt) {
-          console.log('[Disparos API] User has no OpenAI API key configured');
+          console.log('[Disparos API] User has no xAI API key configured');
           return new Response(
-            JSON.stringify({ error: 'Configure sua API key do ChatGPT em Conexões antes de usar a IA' }),
+            JSON.stringify({ error: 'Configure sua API key do xAI em Conexões antes de usar a IA' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
         try {
-          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${userData.apikey_gpt}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'gpt-4o-mini',
+              model: 'grok-3-mini-fast',
               messages: [
                 {
                   role: 'system',
@@ -758,7 +758,7 @@ Não use hashtags ou emojis em excesso.`
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error('[Disparos API] OpenAI API error:', errorData);
+            console.error('[Disparos API] xAI API error:', errorData);
             
             if (response.status === 401) {
               return new Response(
