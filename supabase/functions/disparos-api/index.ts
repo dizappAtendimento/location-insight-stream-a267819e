@@ -707,22 +707,13 @@ serve(async (req) => {
 
         console.log(`[Disparos API] Generating AI message for user ${userId}`);
 
-        // Get user's OpenAI API key
-        const { data: userData, error: userError } = await supabase
-          .from('SAAS_Usuarios')
-          .select('apikey_gpt')
-          .eq('id', userId)
-          .maybeSingle();
+        // Get global xAI API key from environment
+        const xaiApiKey = Deno.env.get('XAI_API_KEY');
 
-        if (userError) {
-          console.error('[Disparos API] Error fetching user:', userError);
-          throw userError;
-        }
-
-        if (!userData?.apikey_gpt) {
-          console.log('[Disparos API] User has no xAI API key configured');
+        if (!xaiApiKey) {
+          console.log('[Disparos API] XAI_API_KEY not configured in environment');
           return new Response(
-            JSON.stringify({ error: 'Configure sua API key do xAI em Conexões antes de usar a IA' }),
+            JSON.stringify({ error: 'API xAI não configurada no sistema. Contate o administrador.' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -731,7 +722,7 @@ serve(async (req) => {
           const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${userData.apikey_gpt}`,
+              'Authorization': `Bearer ${xaiApiKey}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({

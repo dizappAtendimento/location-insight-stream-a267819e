@@ -803,15 +803,6 @@ const ConexoesPage = () => {
               Excluir Desconectadas
             </Button>
             
-<Button
-              variant="outline"
-              size="sm"
-              onClick={openXaiModal}
-            >
-              <Settings className="w-3.5 h-3.5 mr-1.5" />
-              API xAI
-            </Button>
-            
             <Button
               size="sm"
               variant={planLimit !== null && connections.length >= planLimit ? "destructive" : "default"}
