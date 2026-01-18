@@ -114,23 +114,50 @@ export default function DisparosGrupoPage() {
       .replace(/<mês>/gi, MESES[now.getMonth()]);
   };
 
-  // --- Carregar dados iniciais ---
+  // Cache keys
+  const CACHE_CONNECTIONS_KEY = `disparos_grupo_connections_${user?.id}`;
+  const CACHE_LISTS_KEY = `disparos_grupo_lists_${user?.id}`;
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+  // --- Carregar dados iniciais com cache ---
   useEffect(() => {
     if (user?.id) {
-      loadData();
+      loadWithCache();
     }
   }, [user?.id]);
 
-  const loadData = async () => {
-    setIsLoadingData(true);
-    try {
-      await Promise.all([loadConnections(), loadLists()]);
-    } finally {
+  const loadWithCache = async () => {
+    // Tentar carregar do cache primeiro (instantâneo)
+    const cachedConns = sessionStorage.getItem(CACHE_CONNECTIONS_KEY);
+    const cachedLists = sessionStorage.getItem(CACHE_LISTS_KEY);
+    const cacheTime = sessionStorage.getItem(`${CACHE_CONNECTIONS_KEY}_time`);
+    
+    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    
+    if (cachedConns && cachedLists && isCacheValid) {
+      // Usar cache imediatamente
+      setConnections(JSON.parse(cachedConns));
+      setLists(JSON.parse(cachedLists));
       setIsLoadingData(false);
+      
+      // Refresh em background (silencioso)
+      loadData(true);
+    } else {
+      // Sem cache válido, carregar normalmente
+      loadData(false);
     }
   };
 
-  const loadConnections = async () => {
+  const loadData = async (isBackground = false) => {
+    if (!isBackground) setIsLoadingData(true);
+    try {
+      await Promise.all([loadConnections(isBackground), loadLists(isBackground)]);
+    } finally {
+      if (!isBackground) setIsLoadingData(false);
+    }
+  };
+
+  const loadConnections = async (isBackground = false) => {
     try {
       // Usar evolution-api que já retorna status atualizado e sincroniza foto/telefone
       const { data, error } = await supabase.functions.invoke('evolution-api', {
@@ -154,13 +181,17 @@ export default function DisparosGrupoPage() {
         }));
       
       setConnections(mappedConns);
+      
+      // Salvar no cache
+      sessionStorage.setItem(CACHE_CONNECTIONS_KEY, JSON.stringify(mappedConns));
+      sessionStorage.setItem(`${CACHE_CONNECTIONS_KEY}_time`, Date.now().toString());
     } catch (e) {
       console.error(e);
-      toast.error('Erro ao carregar conexões');
+      if (!isBackground) toast.error('Erro ao carregar conexões');
     }
   };
 
-  const loadLists = async () => {
+  const loadLists = async (isBackground = false) => {
     try {
       const { data, error } = await supabase.functions.invoke('disparos-api', {
         body: { action: 'get-listas', userId: user?.id }
@@ -171,10 +202,14 @@ export default function DisparosGrupoPage() {
       const rawLists = data?.data || [];
       
       // Filtra apenas tipo 'groups'
-      setLists(rawLists.filter((l: any) => l.tipo === 'groups' || l.tipo === 'Grupos'));
+      const groupLists = rawLists.filter((l: any) => l.tipo === 'groups' || l.tipo === 'Grupos');
+      setLists(groupLists);
+      
+      // Salvar no cache
+      sessionStorage.setItem(CACHE_LISTS_KEY, JSON.stringify(groupLists));
     } catch (e) {
       console.error(e);
-      toast.error('Erro ao carregar listas');
+      if (!isBackground) toast.error('Erro ao carregar listas');
     }
   };
 
@@ -400,7 +435,7 @@ export default function DisparosGrupoPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={loadConnections}
+                    onClick={() => loadConnections()}
                     disabled={isLoadingData}
                   >
                     <RefreshCw className={`w-5 h-5 ${isLoadingData ? 'animate-spin' : ''}`} />
