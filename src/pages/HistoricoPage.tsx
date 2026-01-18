@@ -110,8 +110,12 @@ const HistoricoPage = () => {
     'whatsapp-groups': 'bg-[#25D366]/10 text-[#25D366]',
   };
 
-  // Fetch disparos
-  const fetchDisparos = async () => {
+  // Cache config
+  const CACHE_KEY = `historico_disparos_${user?.id}`;
+  const CACHE_TTL = 2 * 60 * 1000; // 2 minutos
+
+  // Fetch disparos with cache
+  const fetchDisparos = async (isBackground = false) => {
     if (!user?.id) return;
     
     try {
@@ -122,23 +126,45 @@ const HistoricoPage = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       
-      setDisparos(data?.disparos || []);
+      const disparosData = data?.disparos || [];
+      setDisparos(disparosData);
+      
+      // Save to cache
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(disparosData));
+      sessionStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
     } catch (error) {
       console.error('Erro ao carregar disparos:', error);
-      toast.error('Erro ao carregar histórico de disparos');
+      if (!isBackground) toast.error('Erro ao carregar histórico de disparos');
     } finally {
+      if (!isBackground) {
+        setLoadingDisparos(false);
+        setRefreshing(false);
+      }
+    }
+  };
+
+  const loadDisparosWithCache = () => {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    const cacheTime = sessionStorage.getItem(`${CACHE_KEY}_time`);
+    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    
+    if (cached && isCacheValid) {
+      setDisparos(JSON.parse(cached));
       setLoadingDisparos(false);
-      setRefreshing(false);
+      // Refresh in background
+      fetchDisparos(true);
+    } else {
+      fetchDisparos(false);
     }
   };
 
   useEffect(() => {
-    fetchDisparos();
+    loadDisparosWithCache();
     
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       if (activeTab === 'disparo') {
-        fetchDisparos();
+        fetchDisparos(true);
       }
     }, 30000);
     
@@ -147,7 +173,7 @@ const HistoricoPage = () => {
 
   const handleRefreshDisparos = () => {
     setRefreshing(true);
-    fetchDisparos();
+    fetchDisparos(false);
   };
 
   // Extraction filters

@@ -124,7 +124,11 @@ const ListasPage = () => {
   const [excelListName, setExcelListName] = useState("");
   const [importSource, setImportSource] = useState<'extractions' | 'lists' | 'groups' | 'batepapo'>('extractions');
 
-  const fetchListas = async () => {
+  // Cache config
+  const CACHE_KEY = `listas_${user?.id}`;
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+  const fetchListas = async (isBackground = false) => {
     if (!user?.id) return;
     
     try {
@@ -142,12 +146,35 @@ const ListasPage = () => {
         counts[lista.id] = lista._count || 0;
       });
       setListaCounts(counts);
+      
+      // Save to cache
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ listas: listasData, counts }));
+      sessionStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
     } catch (error) {
       console.error("Erro ao buscar listas:", error);
-      toast.error("Erro ao carregar listas");
+      if (!isBackground) toast.error("Erro ao carregar listas");
     } finally {
+      if (!isBackground) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  };
+
+  const loadWithCache = () => {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    const cacheTime = sessionStorage.getItem(`${CACHE_KEY}_time`);
+    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    
+    if (cached && isCacheValid) {
+      const { listas: cachedListas, counts } = JSON.parse(cached);
+      setListas(cachedListas);
+      setListaCounts(counts);
       setLoading(false);
-      setRefreshing(false);
+      // Refresh in background
+      fetchListas(true);
+    } else {
+      fetchListas(false);
     }
   };
 
@@ -852,7 +879,7 @@ const ListasPage = () => {
   };
 
   useEffect(() => {
-    fetchListas();
+    loadWithCache();
   }, [user?.id]);
 
   useEffect(() => {
@@ -906,7 +933,7 @@ const ListasPage = () => {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchListas();
+    fetchListas(false);
   };
 
   const handleCreateLista = async () => {

@@ -72,12 +72,16 @@ const ConexoesPage = () => {
   const [checkCount, setCheckCount] = useState(0);
   const [planLimit, setPlanLimit] = useState<number | null>(null);
 
+  // Cache config
+  const CACHE_KEY = `conexoes_${user?.id}`;
+  const CACHE_TTL = 3 * 60 * 1000; // 3 minutos para conexões (precisam de status atualizado)
+
   // Fetch connections using list-user-instances (same as WhatsApp Groups page)
-  const fetchConnections = useCallback(async () => {
+  const fetchConnections = useCallback(async (isBackground = false) => {
     if (!user?.id) return;
     
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       
       // Use list-user-instances que já retorna o status verificado
       const { data, error } = await supabase.functions.invoke('evolution-api', {
@@ -103,17 +107,39 @@ const ConexoesPage = () => {
       
       setConnections(conns);
       setLastUpdated(new Date());
+      
+      // Save to cache
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(conns));
+      sessionStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
     } catch (error) {
       console.error('Error fetching connections:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as conexões",
-        variant: "destructive"
-      });
+      if (!isBackground) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar as conexões",
+          variant: "destructive"
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [user?.id, toast]);
+
+  const loadWithCache = useCallback(() => {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    const cacheTime = sessionStorage.getItem(`${CACHE_KEY}_time`);
+    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    
+    if (cached && isCacheValid) {
+      setConnections(JSON.parse(cached));
+      setLoading(false);
+      setLastUpdated(new Date(parseInt(cacheTime)));
+      // Refresh in background
+      fetchConnections(true);
+    } else {
+      fetchConnections(false);
+    }
+  }, [fetchConnections]);
 
   // Fetch plan limit for connections
   const fetchPlanLimit = useCallback(async () => {
@@ -723,20 +749,20 @@ const ConexoesPage = () => {
       description: `${disconnected.length} conexões desconectadas foram excluídas`,
     });
     
-    fetchConnections();
+    fetchConnections(false);
   };
 
   useEffect(() => {
-    fetchConnections();
+    loadWithCache();
     fetchPlanLimit();
     
     // Auto-refresh a cada 20 segundos
     const interval = setInterval(() => {
-      fetchConnections();
+      fetchConnections(true);
     }, 20000);
     
     return () => clearInterval(interval);
-  }, [fetchConnections, fetchPlanLimit]);
+  }, [loadWithCache, fetchPlanLimit]);
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -786,7 +812,7 @@ const ConexoesPage = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchConnections}
+              onClick={() => fetchConnections(false)}
               disabled={loading}
             >
               <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
