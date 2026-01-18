@@ -50,6 +50,7 @@ import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { getFromCache, setToCache, getCacheKey } from "@/hooks/useDataPreloader";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useRef } from "react";
@@ -124,10 +125,6 @@ const ListasPage = () => {
   const [excelListName, setExcelListName] = useState("");
   const [importSource, setImportSource] = useState<'extractions' | 'lists' | 'groups' | 'batepapo'>('extractions');
 
-  // Cache config
-  const CACHE_KEY = `listas_${user?.id}`;
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
   const fetchListas = async (isBackground = false) => {
     if (!user?.id) return;
     
@@ -147,9 +144,8 @@ const ListasPage = () => {
       });
       setListaCounts(counts);
       
-      // Save to cache
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ listas: listasData, counts }));
-      sessionStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
+      // Save to global cache
+      setToCache(getCacheKey('listas', user.id), { listas: listasData, counts });
     } catch (error) {
       console.error("Erro ao buscar listas:", error);
       if (!isBackground) toast.error("Erro ao carregar listas");
@@ -162,12 +158,12 @@ const ListasPage = () => {
   };
 
   const loadWithCache = () => {
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    const cacheTime = sessionStorage.getItem(`${CACHE_KEY}_time`);
-    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    if (!user?.id) return;
     
-    if (cached && isCacheValid) {
-      const { listas: cachedListas, counts } = JSON.parse(cached);
+    const cached = getFromCache(getCacheKey('listas', user.id));
+    
+    if (cached) {
+      const { listas: cachedListas, counts } = cached;
       setListas(cachedListas);
       setListaCounts(counts);
       setLoading(false);

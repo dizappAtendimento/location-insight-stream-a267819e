@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getFromCache, setToCache, getCacheKey } from '@/hooks/useDataPreloader';
 import {
   Send,
   Plus,
@@ -114,12 +115,7 @@ export default function DisparosGrupoPage() {
       .replace(/<mês>/gi, MESES[now.getMonth()]);
   };
 
-  // Cache keys
-  const CACHE_CONNECTIONS_KEY = `disparos_grupo_connections_${user?.id}`;
-  const CACHE_LISTS_KEY = `disparos_grupo_lists_${user?.id}`;
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
-  // --- Carregar dados iniciais com cache ---
+  // --- Carregar dados iniciais com cache global ---
   useEffect(() => {
     if (user?.id) {
       loadWithCache();
@@ -127,17 +123,26 @@ export default function DisparosGrupoPage() {
   }, [user?.id]);
 
   const loadWithCache = async () => {
-    // Tentar carregar do cache primeiro (instantâneo)
-    const cachedConns = sessionStorage.getItem(CACHE_CONNECTIONS_KEY);
-    const cachedLists = sessionStorage.getItem(CACHE_LISTS_KEY);
-    const cacheTime = sessionStorage.getItem(`${CACHE_CONNECTIONS_KEY}_time`);
+    if (!user?.id) return;
     
-    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    // Tentar carregar do cache global primeiro (instantâneo)
+    const cachedConns = getFromCache(getCacheKey('disparos_grupo_connections', user.id));
+    const cachedLists = getFromCache(getCacheKey('disparos_grupo_lists', user.id));
     
-    if (cachedConns && cachedLists && isCacheValid) {
-      // Usar cache imediatamente
-      setConnections(JSON.parse(cachedConns));
-      setLists(JSON.parse(cachedLists));
+    if (cachedConns && cachedLists) {
+      // Mapear conexões para formato correto
+      const mappedConns: Connection[] = cachedConns.map((c: any) => ({
+        id: c.id,
+        name: c.name || c.NomeConexao,
+        instance: c.instance || c.instanceName,
+        phone: c.phone || c.Telefone,
+        apikey: c.apikey || c.Apikey || '',
+        isConnected: c.isConnected ?? (c.status === 'open'),
+        photo: c.photo || c.FotoPerfil || null
+      }));
+      
+      setConnections(mappedConns);
+      setLists(cachedLists);
       setIsLoadingData(false);
       
       // Refresh em background (silencioso)
@@ -158,10 +163,11 @@ export default function DisparosGrupoPage() {
   };
 
   const loadConnections = async (isBackground = false) => {
+    if (!user?.id) return;
     try {
       // Usar evolution-api que já retorna status atualizado e sincroniza foto/telefone
       const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'list-user-instances', userId: user?.id }
+        body: { action: 'list-user-instances', userId: user.id }
       });
       
       if (error) throw error;
@@ -182,9 +188,8 @@ export default function DisparosGrupoPage() {
       
       setConnections(mappedConns);
       
-      // Salvar no cache
-      sessionStorage.setItem(CACHE_CONNECTIONS_KEY, JSON.stringify(mappedConns));
-      sessionStorage.setItem(`${CACHE_CONNECTIONS_KEY}_time`, Date.now().toString());
+      // Salvar no cache global
+      setToCache(getCacheKey('disparos_grupo_connections', user.id), mappedConns);
     } catch (e) {
       console.error(e);
       if (!isBackground) toast.error('Erro ao carregar conexões');
@@ -192,9 +197,10 @@ export default function DisparosGrupoPage() {
   };
 
   const loadLists = async (isBackground = false) => {
+    if (!user?.id) return;
     try {
       const { data, error } = await supabase.functions.invoke('disparos-api', {
-        body: { action: 'get-listas', userId: user?.id }
+        body: { action: 'get-listas', userId: user.id }
       });
       
       if (error) throw error;
@@ -205,8 +211,8 @@ export default function DisparosGrupoPage() {
       const groupLists = rawLists.filter((l: any) => l.tipo === 'groups' || l.tipo === 'Grupos');
       setLists(groupLists);
       
-      // Salvar no cache
-      sessionStorage.setItem(CACHE_LISTS_KEY, JSON.stringify(groupLists));
+      // Salvar no cache global
+      setToCache(getCacheKey('disparos_grupo_lists', user.id), groupLists);
     } catch (e) {
       console.error(e);
       if (!isBackground) toast.error('Erro ao carregar listas');

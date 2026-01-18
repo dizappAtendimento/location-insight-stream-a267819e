@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getFromCache, setToCache, getCacheKey } from "@/hooks/useDataPreloader";
 import { 
   Plus, 
   RefreshCw, 
@@ -72,10 +73,6 @@ const ConexoesPage = () => {
   const [checkCount, setCheckCount] = useState(0);
   const [planLimit, setPlanLimit] = useState<number | null>(null);
 
-  // Cache config
-  const CACHE_KEY = `conexoes_${user?.id}`;
-  const CACHE_TTL = 3 * 60 * 1000; // 3 minutos para conexões (precisam de status atualizado)
-
   // Fetch connections using list-user-instances (same as WhatsApp Groups page)
   const fetchConnections = useCallback(async (isBackground = false) => {
     if (!user?.id) return;
@@ -108,9 +105,8 @@ const ConexoesPage = () => {
       setConnections(conns);
       setLastUpdated(new Date());
       
-      // Save to cache
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify(conns));
-      sessionStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
+      // Save to global cache
+      setToCache(getCacheKey('conexoes', user.id), conns);
     } catch (error) {
       console.error('Error fetching connections:', error);
       if (!isBackground) {
@@ -126,20 +122,21 @@ const ConexoesPage = () => {
   }, [user?.id, toast]);
 
   const loadWithCache = useCallback(() => {
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    const cacheTime = sessionStorage.getItem(`${CACHE_KEY}_time`);
-    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    if (!user?.id) return;
     
-    if (cached && isCacheValid) {
-      setConnections(JSON.parse(cached));
+    // Try global cache first (instant)
+    const cached = getFromCache(getCacheKey('conexoes', user.id));
+    
+    if (cached) {
+      setConnections(cached);
       setLoading(false);
-      setLastUpdated(new Date(parseInt(cacheTime)));
+      setLastUpdated(new Date());
       // Refresh in background
       fetchConnections(true);
     } else {
       fetchConnections(false);
     }
-  }, [fetchConnections]);
+  }, [user?.id, fetchConnections]);
 
   // Fetch plan limit for connections
   const fetchPlanLimit = useCallback(async () => {

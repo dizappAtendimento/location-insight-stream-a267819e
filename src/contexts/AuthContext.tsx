@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { preloadUserData } from '@/hooks/useDataPreloader';
 
 interface User {
   id: string;
@@ -109,6 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!error && data?.user && isMounted) {
               setUser(data.user);
               localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+              // Preload all data immediately after login
+              preloadUserData(data.user.id);
             }
           } catch (err) {
             console.error('Error syncing user:', err);
@@ -139,6 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!error && data?.user && isMounted) {
             setUser(data.user);
             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+            // Preload all data immediately after session init
+            preloadUserData(data.user.id);
           }
         } catch (err) {
           console.error('Error syncing session user:', err);
@@ -150,6 +155,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const parsedUser = JSON.parse(storedUser);
             setUser(parsedUser);
+            // Preload data for stored user
+            if (parsedUser.id) {
+              preloadUserData(parsedUser.id);
+            }
           } catch {
             localStorage.removeItem(AUTH_STORAGE_KEY);
           }
@@ -211,6 +220,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.user) {
         setUser(data.user);
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+        // Preload all data immediately after login
+        preloadUserData(data.user.id);
         return { error: null };
       }
 
