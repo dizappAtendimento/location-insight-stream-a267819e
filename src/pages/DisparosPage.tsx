@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getFromCache, setToCache, getCacheKey } from '@/hooks/useDataPreloader';
 import {
   Send,
   Plus,
@@ -113,12 +114,7 @@ export default function DisparosPage() {
   const [aiCount, setAiCount] = useState(3);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
-  // Cache keys
-  const CACHE_CONNECTIONS_KEY = `disparos_connections_${user?.id}`;
-  const CACHE_LISTS_KEY = `disparos_lists_${user?.id}`;
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
-  // Carregamento inicial com cache
+  // Carregamento inicial com cache global
   useEffect(() => {
     if (user?.id) {
       loadWithCache(user.id);
@@ -126,17 +122,24 @@ export default function DisparosPage() {
   }, [user]);
 
   const loadWithCache = async (userId: string) => {
-    // Tentar carregar do cache primeiro (instantâneo)
-    const cachedConns = sessionStorage.getItem(CACHE_CONNECTIONS_KEY);
-    const cachedLists = sessionStorage.getItem(CACHE_LISTS_KEY);
-    const cacheTime = sessionStorage.getItem(`${CACHE_CONNECTIONS_KEY}_time`);
+    // Tentar carregar do cache global primeiro (instantâneo)
+    const cachedConns = getFromCache(getCacheKey('disparos_connections', userId));
+    const cachedLists = getFromCache(getCacheKey('disparos_lists', userId));
     
-    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
-    
-    if (cachedConns && cachedLists && isCacheValid) {
-      // Usar cache imediatamente
-      setConnections(JSON.parse(cachedConns));
-      setLists(JSON.parse(cachedLists));
+    if (cachedConns && cachedLists) {
+      // Mapear conexões para formato correto
+      const mappedConns: Connection[] = cachedConns.map((c: any) => ({
+        id: c.id,
+        name: c.name || c.NomeConexao,
+        instance: c.instance || c.instanceName,
+        apikey: c.apikey || c.Apikey || '',
+        phone: c.phone || c.Telefone,
+        isConnected: c.isConnected ?? (c.status === 'open'),
+        photo: c.photo || c.FotoPerfil || null
+      }));
+      
+      setConnections(mappedConns);
+      setLists(cachedLists);
       setLoadingData(false);
       
       // Refresh em background (silencioso)
@@ -179,9 +182,8 @@ export default function DisparosPage() {
       
       setConnections(mappedConns);
       
-      // Salvar no cache
-      sessionStorage.setItem(CACHE_CONNECTIONS_KEY, JSON.stringify(mappedConns));
-      sessionStorage.setItem(`${CACHE_CONNECTIONS_KEY}_time`, Date.now().toString());
+      // Salvar no cache global
+      setToCache(getCacheKey('disparos_connections', userId), mappedConns);
 
       // Processar listas
       if (listRes.error) throw listRes.error;
@@ -189,8 +191,8 @@ export default function DisparosPage() {
       const contactsLists = rawLists.filter((l: any) => l.tipo === 'contacts');
       setLists(contactsLists);
       
-      // Salvar no cache
-      sessionStorage.setItem(CACHE_LISTS_KEY, JSON.stringify(contactsLists));
+      // Salvar no cache global
+      setToCache(getCacheKey('disparos_lists', userId), contactsLists);
 
     } catch (e) {
       console.error('Erro ao carregar dados:', e);

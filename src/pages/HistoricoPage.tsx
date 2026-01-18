@@ -18,6 +18,7 @@ import * as XLSX from 'xlsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getFromCache, setToCache, getCacheKey } from '@/hooks/useDataPreloader';
 import {
   Table,
   TableBody,
@@ -110,11 +111,7 @@ const HistoricoPage = () => {
     'whatsapp-groups': 'bg-[#25D366]/10 text-[#25D366]',
   };
 
-  // Cache config
-  const CACHE_KEY = `historico_disparos_${user?.id}`;
-  const CACHE_TTL = 2 * 60 * 1000; // 2 minutos
-
-  // Fetch disparos with cache
+  // Fetch disparos with cache global
   const fetchDisparos = async (isBackground = false) => {
     if (!user?.id) return;
     
@@ -129,9 +126,8 @@ const HistoricoPage = () => {
       const disparosData = data?.disparos || [];
       setDisparos(disparosData);
       
-      // Save to cache
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify(disparosData));
-      sessionStorage.setItem(`${CACHE_KEY}_time`, Date.now().toString());
+      // Save to global cache
+      setToCache(getCacheKey('historico_disparos', user.id), disparosData);
     } catch (error) {
       console.error('Erro ao carregar disparos:', error);
       if (!isBackground) toast.error('Erro ao carregar histórico de disparos');
@@ -144,12 +140,12 @@ const HistoricoPage = () => {
   };
 
   const loadDisparosWithCache = () => {
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    const cacheTime = sessionStorage.getItem(`${CACHE_KEY}_time`);
-    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    if (!user?.id) return;
     
-    if (cached && isCacheValid) {
-      setDisparos(JSON.parse(cached));
+    const cached = getFromCache(getCacheKey('historico_disparos', user.id));
+    
+    if (cached) {
+      setDisparos(cached);
       setLoadingDisparos(false);
       // Refresh in background
       fetchDisparos(true);
