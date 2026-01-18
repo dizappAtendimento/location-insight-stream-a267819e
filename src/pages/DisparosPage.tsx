@@ -217,25 +217,33 @@ export default function DisparosPage() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const res = await fetch(API_URLS.uploadMedia, {
-        method: 'POST',
-        body: formData
-      });
-      if (!res.ok) throw new Error('Falha no upload');
-      const data = await res.json();
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       
-      if (!data.link) throw new Error('Link não retornado');
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('media-disparos')
+        .upload(fileName, file, {
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('media-disparos')
+        .getPublicUrl(fileName);
+
+      if (!urlData?.publicUrl) throw new Error('Link não retornado');
       
       setMessages(prev => prev.map(m => m.id === id ? {
         ...m,
         media: { 
           type, 
           filename: file.name, 
-          link: data.link,
+          link: urlData.publicUrl,
           mimetype: file.type 
         }
       } : m));
