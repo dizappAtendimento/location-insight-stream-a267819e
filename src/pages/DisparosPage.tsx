@@ -113,15 +113,43 @@ export default function DisparosPage() {
   const [aiCount, setAiCount] = useState(3);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
-  // Carregamento inicial
+  // Cache keys
+  const CACHE_CONNECTIONS_KEY = `disparos_connections_${user?.id}`;
+  const CACHE_LISTS_KEY = `disparos_lists_${user?.id}`;
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+  // Carregamento inicial com cache
   useEffect(() => {
     if (user?.id) {
-      fetchData(user.id);
+      loadWithCache(user.id);
     }
   }, [user]);
 
-  const fetchData = async (userId: string) => {
-    setLoadingData(true);
+  const loadWithCache = async (userId: string) => {
+    // Tentar carregar do cache primeiro (instantâneo)
+    const cachedConns = sessionStorage.getItem(CACHE_CONNECTIONS_KEY);
+    const cachedLists = sessionStorage.getItem(CACHE_LISTS_KEY);
+    const cacheTime = sessionStorage.getItem(`${CACHE_CONNECTIONS_KEY}_time`);
+    
+    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_TTL;
+    
+    if (cachedConns && cachedLists && isCacheValid) {
+      // Usar cache imediatamente
+      setConnections(JSON.parse(cachedConns));
+      setLists(JSON.parse(cachedLists));
+      setLoadingData(false);
+      
+      // Refresh em background (silencioso)
+      fetchData(userId, true);
+    } else {
+      // Sem cache válido, carregar normalmente
+      fetchData(userId, false);
+    }
+  };
+
+  const fetchData = async (userId: string, isBackground = false) => {
+    if (!isBackground) setLoadingData(true);
+    
     try {
       // Carregar conexões via evolution-api (já retorna status atualizado e sincroniza foto/telefone)
       const [connRes, listRes] = await Promise.all([
@@ -150,18 +178,27 @@ export default function DisparosPage() {
         }));
       
       setConnections(mappedConns);
+      
+      // Salvar no cache
+      sessionStorage.setItem(CACHE_CONNECTIONS_KEY, JSON.stringify(mappedConns));
+      sessionStorage.setItem(`${CACHE_CONNECTIONS_KEY}_time`, Date.now().toString());
 
       // Processar listas
       if (listRes.error) throw listRes.error;
       const rawLists: any[] = listRes.data?.listas || [];
       const contactsLists = rawLists.filter((l: any) => l.tipo === 'contacts');
       setLists(contactsLists);
+      
+      // Salvar no cache
+      sessionStorage.setItem(CACHE_LISTS_KEY, JSON.stringify(contactsLists));
 
     } catch (e) {
       console.error('Erro ao carregar dados:', e);
-      toast.error('Erro ao carregar dados. Verifique console.');
+      if (!isBackground) {
+        toast.error('Erro ao carregar dados. Verifique console.');
+      }
     } finally {
-      setLoadingData(false);
+      if (!isBackground) setLoadingData(false);
     }
   };
 
