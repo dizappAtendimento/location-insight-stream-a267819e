@@ -676,7 +676,9 @@ serve(async (req) => {
         }
 
       case "fetch-chats":
-        // Busca conversas/chats
+        // Busca TODAS as conversas/chats sem limite
+        console.log(`[Evolution API] Fetching ALL chats for ${instanceName}...`);
+        
         response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
           method: "POST",
           headers,
@@ -684,7 +686,7 @@ serve(async (req) => {
         });
         
         const chatsText = await response.text();
-        let chatsResult = [];
+        let chatsResult: any[] = [];
         if (chatsText && chatsText.trim()) {
           try {
             chatsResult = JSON.parse(chatsText);
@@ -693,15 +695,62 @@ serve(async (req) => {
           }
         }
         
-        console.log(`[Evolution API] Fetched chats for ${instanceName}: ${Array.isArray(chatsResult) ? chatsResult.length : 0}`);
+        console.log(`[Evolution API] Raw chats fetched: ${Array.isArray(chatsResult) ? chatsResult.length : 0}`);
         
         // Log primeiro chat para debug da estrutura
         if (Array.isArray(chatsResult) && chatsResult.length > 0) {
           console.log(`[Evolution API] Sample chat structure:`, JSON.stringify(chatsResult[0]));
         }
         
+        // Processar cada chat para extrair o número de telefone real
+        const processedChats = (chatsResult || []).map((chat: any) => {
+          // Tenta extrair o número real de várias fontes possíveis
+          let phoneNumber = '';
+          
+          // 1. remoteJidAlt geralmente contém o número real
+          const remoteJidAlt = chat.lastMessage?.key?.remoteJidAlt;
+          if (remoteJidAlt && remoteJidAlt.includes('@s.whatsapp.net')) {
+            phoneNumber = remoteJidAlt.replace(/@.*$/, '');
+          }
+          
+          // 2. Se não tem remoteJidAlt, tenta o remoteJid se for @s.whatsapp.net
+          if (!phoneNumber && chat.remoteJid?.includes('@s.whatsapp.net')) {
+            phoneNumber = chat.remoteJid.replace(/@.*$/, '');
+          }
+          
+          // 3. Se o remoteJid é @lid, tenta extrair de outros campos
+          if (!phoneNumber && chat.remoteJid?.includes('@lid')) {
+            // Busca em participant ou phone fields
+            if (chat.lastMessage?.key?.participant?.includes('@s.whatsapp.net')) {
+              phoneNumber = chat.lastMessage.key.participant.replace(/@.*$/, '');
+            } else if (chat.phone) {
+              phoneNumber = String(chat.phone).replace(/\D/g, '');
+            }
+          }
+          
+          // 4. Extrai nome do contato
+          const pushName = chat.pushName || chat.name || chat.contact?.name || '';
+          
+          return {
+            ...chat,
+            phoneNumber,
+            pushName,
+          };
+        });
+        
+        console.log(`[Evolution API] Processed ${processedChats.length} chats with phone extraction`);
+        
+        // Log amostra de chat processado
+        if (processedChats.length > 0) {
+          console.log(`[Evolution API] Sample processed chat:`, JSON.stringify({
+            remoteJid: processedChats[0].remoteJid,
+            phoneNumber: processedChats[0].phoneNumber,
+            pushName: processedChats[0].pushName,
+          }));
+        }
+        
         return new Response(
-          JSON.stringify({ chats: chatsResult || [] }),
+          JSON.stringify({ chats: processedChats }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
