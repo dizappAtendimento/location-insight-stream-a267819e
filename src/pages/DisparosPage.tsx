@@ -257,36 +257,44 @@ export default function DisparosPage() {
     }
 
     try {
-      // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('media-disparos')
-        .upload(fileName, file, {
-          contentType: file.type,
-          upsert: true,
-        });
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          
+          // Upload via edge function (bypasses RLS)
+          const { data, error } = await supabase.functions.invoke('upload-media', {
+            body: {
+              userId: user?.id,
+              base64Data,
+              fileName: file.name,
+              contentType: file.type,
+            },
+          });
 
-      if (uploadError) throw uploadError;
+          if (error) throw error;
+          if (!data?.url) throw new Error('Link não retornado');
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('media-disparos')
-        .getPublicUrl(fileName);
-
-      if (!urlData?.publicUrl) throw new Error('Link não retornado');
-      
-      setMessages(prev => prev.map(m => m.id === id ? {
-        ...m,
-        media: { 
-          type, 
-          filename: file.name, 
-          link: urlData.publicUrl,
-          mimetype: file.type 
+          setMessages(prev => prev.map(m => m.id === id ? {
+            ...m,
+            media: { 
+              type, 
+              filename: file.name, 
+              link: data.url,
+              mimetype: file.type 
+            }
+          } : m));
+          toast.success('Mídia carregada com sucesso!');
+        } catch (e) {
+          console.error(e);
+          toast.error('Erro ao fazer upload da mídia');
         }
-      } : m));
-      toast.success('Mídia carregada com sucesso!');
+      };
+      reader.onerror = () => {
+        toast.error('Erro ao ler arquivo');
+      };
+      reader.readAsDataURL(file);
     } catch (e) {
       console.error(e);
       toast.error('Erro ao fazer upload da mídia');
