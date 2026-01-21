@@ -518,7 +518,9 @@ const WhatsAppGroupsExtractor = () => {
     
     setIsLoadingChats(true);
     try {
-      // Buscar todos os chats
+      // Buscar TODOS os chats do bate-papo
+      console.log('[WhatsApp] Fetching all chats from:', selectedInstance);
+      
       const { data, error } = await supabase.functions.invoke('evolution-api', {
         body: { action: 'fetch-chats', instanceName: selectedInstance }
       });
@@ -528,8 +530,12 @@ const WhatsAppGroupsExtractor = () => {
       const rawChats = data.chats;
       let chats = Array.isArray(rawChats) ? rawChats : [];
       
+      console.log('[WhatsApp] Total chats received:', chats.length);
+      
       // Filtrar apenas conversas individuais (não grupos)
       chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
+      
+      console.log('[WhatsApp] Individual chats (excluding groups):', chats.length);
       
       if (chats.length === 0) {
         toast({ 
@@ -540,30 +546,48 @@ const WhatsAppGroupsExtractor = () => {
         return;
       }
 
+      // Processar contatos extraindo número real
+      const processedContacts = chats.map((c: any) => {
+        // Usa phoneNumber extraído pela API, ou fallback para remoteJid
+        const telefone = c.phoneNumber || (c.remoteJid || '').replace(/@.*$/, '');
+        const nome = c.pushName || c.name || '';
+        
+        return {
+          nome,
+          telefone,
+          id: c.remoteJid || c.id || '',
+        };
+      });
+      
+      // Filtrar contatos que têm telefone válido (apenas números)
+      const validContacts = processedContacts.filter(c => c.telefone && /^\d+$/.test(c.telefone));
+      
+      console.log('[WhatsApp] Valid contacts with phone numbers:', validContacts.length);
+
       // Download Excel com contatos do bate-papo
-      const worksheet = XLSX.utils.json_to_sheet(chats.map((c: any) => ({
-        'Nome': c.pushName || c.name || '',
-        'Telefone': (c.remoteJid || '').replace(/@.*$/, ''),
-        'ID': c.remoteJid || c.id || '',
+      const worksheet = XLSX.utils.json_to_sheet(validContacts.map(c => ({
+        'Nome': c.nome,
+        'Telefone': c.telefone,
       })));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Conversas');
-      XLSX.writeFile(workbook, `conversas_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(workbook, `bate-papo_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
       
       addRecord({
         type: 'whatsapp-groups',
-        segment: `Conversas de ${selectedInstance}`,
-        totalResults: chats.length,
+        segment: `Bate-Papo de ${selectedInstance}`,
+        totalResults: validContacts.length,
         emailsFound: 0,
-        phonesFound: chats.length,
-        results: chats.map((c: any) => ({
-          nome: c.pushName || c.name || '',
-          telefone: (c.remoteJid || '').replace(/@.*$/, ''),
-        })),
+        phonesFound: validContacts.length,
+        results: validContacts,
       });
       
-      toast({ title: "Extração concluída", description: `${chats.length} conversas extraídas` });
+      toast({ 
+        title: "Extração concluída", 
+        description: `${validContacts.length} contatos extraídos do bate-papo` 
+      });
     } catch (error) {
+      console.error('[WhatsApp] Error fetching chats:', error);
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar conversas", variant: "destructive" });
     } finally {
       setIsLoadingChats(false);
