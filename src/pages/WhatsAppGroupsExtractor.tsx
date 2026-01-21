@@ -103,6 +103,10 @@ const WhatsAppGroupsExtractor = () => {
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
   
+  // Preview states for Bate-Papo
+  const [chatContacts, setChatContacts] = useState<{nome: string; telefone: string}[]>([]);
+  const [showChatPreview, setShowChatPreview] = useState(false);
+  
   // Labels/Etiquetas state
   const [labels, setLabels] = useState<WhatsAppLabel[]>([]);
   const [selectedLabel, setSelectedLabel] = useState<string>('all');
@@ -517,6 +521,9 @@ const WhatsAppGroupsExtractor = () => {
     }
     
     setIsLoadingChats(true);
+    setChatContacts([]);
+    setShowChatPreview(false);
+    
     try {
       // Buscar TODOS os chats do bate-papo
       console.log('[WhatsApp] Fetching all chats from:', selectedInstance);
@@ -555,7 +562,6 @@ const WhatsAppGroupsExtractor = () => {
         return {
           nome,
           telefone,
-          id: c.remoteJid || c.id || '',
         };
       });
       
@@ -564,27 +570,13 @@ const WhatsAppGroupsExtractor = () => {
       
       console.log('[WhatsApp] Valid contacts with phone numbers:', validContacts.length);
 
-      // Download Excel com contatos do bate-papo
-      const worksheet = XLSX.utils.json_to_sheet(validContacts.map(c => ({
-        'Nome': c.nome,
-        'Telefone': c.telefone,
-      })));
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Conversas');
-      XLSX.writeFile(workbook, `bate-papo_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
-      
-      addRecord({
-        type: 'whatsapp-groups',
-        segment: `Bate-Papo de ${selectedInstance}`,
-        totalResults: validContacts.length,
-        emailsFound: 0,
-        phonesFound: validContacts.length,
-        results: validContacts,
-      });
+      // Mostrar preview em vez de baixar diretamente
+      setChatContacts(validContacts);
+      setShowChatPreview(true);
       
       toast({ 
-        title: "Extração concluída", 
-        description: `${validContacts.length} contatos extraídos do bate-papo` 
+        title: "Contatos encontrados", 
+        description: `${validContacts.length} contatos prontos para download` 
       });
     } catch (error) {
       console.error('[WhatsApp] Error fetching chats:', error);
@@ -592,6 +584,33 @@ const WhatsAppGroupsExtractor = () => {
     } finally {
       setIsLoadingChats(false);
     }
+  };
+
+  const downloadChatContacts = () => {
+    if (chatContacts.length === 0) return;
+    
+    // Download Excel com contatos do bate-papo
+    const worksheet = XLSX.utils.json_to_sheet(chatContacts.map(c => ({
+      'Nome': c.nome,
+      'Telefone': c.telefone,
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Conversas');
+    XLSX.writeFile(workbook, `bate-papo_${selectedInstance}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    addRecord({
+      type: 'whatsapp-groups',
+      segment: `Bate-Papo de ${selectedInstance}`,
+      totalResults: chatContacts.length,
+      emailsFound: 0,
+      phonesFound: chatContacts.length,
+      results: chatContacts,
+    });
+    
+    toast({ 
+      title: "Download concluído", 
+      description: `${chatContacts.length} contatos exportados para Excel` 
+    });
   };
 
   const downloadExcel = () => {
@@ -1325,7 +1344,11 @@ const WhatsAppGroupsExtractor = () => {
                   <>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Selecione a Instância</Label>
-                      <Select value={selectedInstance} onValueChange={setSelectedInstance}>
+                      <Select value={selectedInstance} onValueChange={(val) => {
+                        setSelectedInstance(val);
+                        setChatContacts([]);
+                        setShowChatPreview(false);
+                      }}>
                         <SelectTrigger><SelectValue placeholder="Selecione uma instância conectada" /></SelectTrigger>
                         <SelectContent>
                           {connectedInstances.map((instance) => (
@@ -1343,12 +1366,61 @@ const WhatsAppGroupsExtractor = () => {
                       disabled={isLoadingChats || !selectedInstance}
                     >
                       {isLoadingChats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MessageSquare className="w-4 h-4 mr-2" />}
-                      {isLoadingChats ? 'Extraindo conversas...' : 'Extrair Todas as Conversas'}
+                      {isLoadingChats ? 'Buscando conversas...' : 'Buscar Conversas'}
                     </Button>
                     
-                    <p className="text-xs text-muted-foreground text-center">
-                      Extrai todos os contatos das suas conversas do WhatsApp
-                    </p>
+                    {/* Preview com contador de contatos */}
+                    {showChatPreview && chatContacts.length > 0 && (
+                      <div className="space-y-4 pt-4 border-t border-border/50">
+                        {/* Contador grande */}
+                        <div className="text-center p-6 rounded-xl bg-gradient-to-br from-[#25D366]/10 to-[#128C7E]/10 border border-[#25D366]/20">
+                          <div className="text-4xl font-bold text-[#25D366] mb-1">
+                            {chatContacts.length}
+                          </div>
+                          <p className="text-sm text-muted-foreground">contatos encontrados</p>
+                        </div>
+                        
+                        {/* Preview dos primeiros contatos */}
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground font-medium">Prévia dos contatos:</p>
+                          <div className="max-h-48 overflow-y-auto space-y-1.5 pr-2">
+                            {chatContacts.slice(0, 10).map((contact, idx) => (
+                              <div 
+                                key={idx}
+                                className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 text-sm"
+                              >
+                                <span className="truncate flex-1 font-medium">
+                                  {contact.nome || 'Sem nome'}
+                                </span>
+                                <span className="text-muted-foreground ml-2 font-mono text-xs">
+                                  {contact.telefone}
+                                </span>
+                              </div>
+                            ))}
+                            {chatContacts.length > 10 && (
+                              <p className="text-xs text-muted-foreground text-center py-2">
+                                + {chatContacts.length - 10} contatos...
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Botão de download */}
+                        <Button 
+                          onClick={downloadChatContacts}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          <FileDown className="w-4 h-4 mr-2" />
+                          Baixar Excel ({chatContacts.length} contatos)
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {!showChatPreview && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Extrai todos os contatos das suas conversas do WhatsApp
+                      </p>
+                    )}
                   </>
                 )}
               </CardContent>
