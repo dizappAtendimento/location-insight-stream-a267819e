@@ -526,6 +526,19 @@ serve(async (req) => {
 
         console.log(`[Disparos API] Disparo ${disparoId} config updated:`, updateData);
         
+        // Recalcular horários de envio das mensagens pendentes chamando resume_disparo
+        const { error: resumeError } = await supabase.rpc('resume_disparo', {
+          p_disparo_id: disparoId,
+          p_user_id: userId
+        });
+
+        if (resumeError) {
+          console.error('[Disparos API] Error resuming disparo after config update:', resumeError);
+          // Não falhar a operação, apenas logar o erro
+        } else {
+          console.log(`[Disparos API] Disparo ${disparoId} resumed after config update`);
+        }
+        
         return new Response(
           JSON.stringify({ success: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
