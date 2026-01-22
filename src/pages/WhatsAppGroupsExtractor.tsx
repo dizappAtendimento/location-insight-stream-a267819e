@@ -525,47 +525,66 @@ const WhatsAppGroupsExtractor = () => {
     setShowChatPreview(false);
     
     try {
-      // Buscar TODOS os chats do bate-papo
-      console.log('[WhatsApp] Fetching all chats from:', selectedInstance);
+      // Buscar TODOS os contatos do bate-papo usando fetch-contacts que traz mais resultados
+      console.log('[WhatsApp] Fetching all contacts from:', selectedInstance);
       
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
+      // Primeiro tenta fetch-contacts que traz todos os contatos salvos
+      const { data: contactsData, error: contactsError } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'fetch-contacts', instanceName: selectedInstance }
+      });
+      
+      let allRawContacts: any[] = [];
+      
+      if (!contactsError && contactsData?.contacts) {
+        allRawContacts = Array.isArray(contactsData.contacts) ? contactsData.contacts : [];
+        console.log('[WhatsApp] Contacts from fetch-contacts:', allRawContacts.length);
+      }
+      
+      // Também busca chats para pegar conversas que podem não estar nos contatos
+      const { data: chatsData, error: chatsError } = await supabase.functions.invoke('evolution-api', {
         body: { action: 'fetch-chats', instanceName: selectedInstance }
       });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
       
-      const rawChats = data.chats;
-      let chats = Array.isArray(rawChats) ? rawChats : [];
+      if (!chatsError && chatsData?.chats) {
+        const chats = Array.isArray(chatsData.chats) ? chatsData.chats : [];
+        // Filtrar apenas conversas individuais (não grupos)
+        const individualChats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
+        console.log('[WhatsApp] Individual chats from fetch-chats:', individualChats.length);
+        
+        // Mesclar com contatos existentes (sem duplicatas)
+        const existingIds = new Set(allRawContacts.map((c: any) => c.remoteJid || c.id));
+        for (const chat of individualChats) {
+          if (!existingIds.has(chat.remoteJid)) {
+            allRawContacts.push(chat);
+            existingIds.add(chat.remoteJid);
+          }
+        }
+      }
       
-      console.log('[WhatsApp] Total chats received:', chats.length);
+      console.log('[WhatsApp] Total raw contacts after merge:', allRawContacts.length);
       
-      // Filtrar apenas conversas individuais (não grupos)
-      chats = chats.filter((c: any) => !c.isGroup && c.remoteJid && !c.remoteJid.includes('@g.us'));
-      
-      console.log('[WhatsApp] Individual chats (excluding groups):', chats.length);
-      
-      if (chats.length === 0) {
+      if (allRawContacts.length === 0) {
         toast({ 
           title: "Aviso", 
-          description: "Nenhuma conversa encontrada", 
+          description: "Nenhum contato encontrado", 
           variant: "destructive" 
         });
         return;
       }
 
       // Processar TODOS os contatos - sem filtros restritivos
-      const processedContacts = chats.map((c: any) => {
+      const processedContacts = allRawContacts.map((c: any) => {
         // Usa phoneNumber extraído pela API, ou fallback para remoteJid
         let telefone = c.phoneNumber || '';
         if (!telefone && c.remoteJid) {
           telefone = c.remoteJid.replace(/@.*$/, '');
         }
-        if (!telefone && c.originalId) {
-          telefone = c.originalId.replace(/@.*$/, '');
+        if (!telefone && c.id) {
+          telefone = String(c.id).replace(/@.*$/, '');
         }
         
         const nome = c.pushName || c.name || '';
-        const idOriginal = c.originalId || c.remoteJid || '';
+        const idOriginal = c.remoteJid || c.id || '';
         
         return {
           nome,
