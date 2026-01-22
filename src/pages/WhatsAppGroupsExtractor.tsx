@@ -553,10 +553,17 @@ const WhatsAppGroupsExtractor = () => {
         return;
       }
 
-      // Processar contatos extraindo número real
+      // Processar TODOS os contatos - sem filtros restritivos
       const processedContacts = chats.map((c: any) => {
         // Usa phoneNumber extraído pela API, ou fallback para remoteJid
-        const telefone = c.phoneNumber || (c.remoteJid || '').replace(/@.*$/, '');
+        let telefone = c.phoneNumber || '';
+        if (!telefone && c.remoteJid) {
+          telefone = c.remoteJid.replace(/@.*$/, '');
+        }
+        if (!telefone && c.originalId) {
+          telefone = c.originalId.replace(/@.*$/, '');
+        }
+        
         const nome = c.pushName || c.name || '';
         
         return {
@@ -565,18 +572,19 @@ const WhatsAppGroupsExtractor = () => {
         };
       });
       
-      // Filtrar contatos que têm telefone válido (apenas números)
-      const validContacts = processedContacts.filter(c => c.telefone && /^\d+$/.test(c.telefone));
+      // Incluir TODOS os contatos que têm identificador (sem filtrar apenas números válidos)
+      // Isso garante que @lid IDs também sejam incluídos
+      const allContacts = processedContacts.filter(c => c.telefone && c.telefone.length > 0);
       
-      console.log('[WhatsApp] Valid contacts with phone numbers:', validContacts.length);
+      console.log('[WhatsApp] Total contacts extracted:', allContacts.length);
 
       // Mostrar preview em vez de baixar diretamente
-      setChatContacts(validContacts);
+      setChatContacts(allContacts);
       setShowChatPreview(true);
       
       toast({ 
         title: "Contatos encontrados", 
-        description: `${validContacts.length} contatos prontos para download` 
+        description: `${allContacts.length} contatos prontos para download` 
       });
     } catch (error) {
       console.error('[WhatsApp] Error fetching chats:', error);
