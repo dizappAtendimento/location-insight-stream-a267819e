@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, FileSpreadsheet, MessageCircle, Send, MoreVertical, Play, Pause, Trash2 as TrashIcon, RefreshCw, Eye } from 'lucide-react';
+import { History, Trash2, Calendar, Instagram, Linkedin, MapPin, Search, Filter, Users, Mail, Phone, Sparkles, FileSpreadsheet, MessageCircle, Send, MoreVertical, Play, Pause, Trash2 as TrashIcon, RefreshCw, Eye, Clock, Pencil } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,10 @@ const HistoricoPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDisparo, setSelectedDisparo] = useState<Disparo | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [editDateDialogOpen, setEditDateDialogOpen] = useState(false);
+  const [editingDisparo, setEditingDisparo] = useState<Disparo | null>(null);
+  const [newDate, setNewDate] = useState<string>('');
+  const [newTime, setNewTime] = useState<string>('');
 
   const typeLabels: Record<string, string> = {
     instagram: 'Instagram',
@@ -414,6 +418,48 @@ const HistoricoPage = () => {
     } catch (error) {
       console.error('Erro ao excluir disparo:', error);
       toast.error('Erro ao excluir disparo');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openEditDateDialog = (disparo: Disparo) => {
+    setEditingDisparo(disparo);
+    const dateToEdit = disparo.DataAgendamento || disparo.created_at;
+    const dateObj = new Date(dateToEdit);
+    setNewDate(dateObj.toISOString().split('T')[0]);
+    setNewTime(dateObj.toTimeString().slice(0, 5));
+    setEditDateDialogOpen(true);
+  };
+
+  const handleUpdateDateTime = async () => {
+    if (!editingDisparo || !newDate || !newTime) return;
+    
+    setActionLoading(editingDisparo.id);
+    try {
+      const newDateTime = new Date(`${newDate}T${newTime}:00`);
+      
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: { 
+          action: 'update-disparo-datetime', 
+          userId: user?.id, 
+          disparoData: { 
+            id: editingDisparo.id,
+            dataAgendamento: newDateTime.toISOString()
+          } 
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      toast.success('Data e hora atualizadas com sucesso');
+      setEditDateDialogOpen(false);
+      setEditingDisparo(null);
+      fetchDisparos();
+    } catch (error) {
+      console.error('Erro ao atualizar data/hora:', error);
+      toast.error('Erro ao atualizar data e hora');
     } finally {
       setActionLoading(null);
     }
@@ -907,6 +953,13 @@ const HistoricoPage = () => {
                                     )
                                   )}
                                   <DropdownMenuItem
+                                    onClick={() => openEditDateDialog(disparo)}
+                                    className="text-blue-500 focus:text-blue-500 focus:bg-blue-500/10"
+                                  >
+                                    <Pencil className="w-4 h-4 mr-2" />
+                                    Editar data/hora
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
                                     onClick={() => {
                                       setSelectedDisparo(disparo);
                                       setDeleteDialogOpen(true);
@@ -948,6 +1001,51 @@ const HistoricoPage = () => {
               disabled={actionLoading !== null}
             >
               {actionLoading !== null ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Date/Time Dialog */}
+      <AlertDialog open={editDateDialogOpen} onOpenChange={setEditDateDialogOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-primary flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Editar Data e Hora
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Altere a data e hora de agendamento deste disparo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Data</label>
+              <Input
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+                className="bg-muted border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Hora</label>
+              <Input
+                type="time"
+                value={newTime}
+                onChange={(e) => setNewTime(e.target.value)}
+                className="bg-muted border-border"
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-muted hover:bg-muted/80">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUpdateDateTime}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={actionLoading !== null || !newDate || !newTime}
+            >
+              {actionLoading !== null ? 'Salvando...' : 'Salvar'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -485,6 +485,43 @@ serve(async (req) => {
         );
       }
 
+      case 'update-disparo-datetime': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const disparoId = disparoData?.id;
+        const dataAgendamento = disparoData?.dataAgendamento;
+        
+        if (!disparoId || !dataAgendamento) {
+          return new Response(
+            JSON.stringify({ error: 'disparo id and dataAgendamento are required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error } = await supabase
+          .from('SAAS_Disparos')
+          .update({ DataAgendamento: dataAgendamento })
+          .eq('id', disparoId)
+          .eq('userId', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error updating disparo datetime:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Disparo ${disparoId} datetime updated to ${dataAgendamento}`);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'delete-connection': {
         if (!userId) {
           return new Response(
