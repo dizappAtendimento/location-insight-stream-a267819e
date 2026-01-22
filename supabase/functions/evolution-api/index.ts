@@ -676,9 +676,10 @@ serve(async (req) => {
         }
 
       case "fetch-chats":
-        // Busca TODAS as conversas/chats sem limite
+        // Busca TODAS as conversas/chats sem limite - EXTRAÇÃO COMPLETA
         console.log(`[Evolution API] Fetching ALL chats for ${instanceName}...`);
         
+        // 1. Buscar todos os chats
         response = await fetch(`${baseUrl}/chat/findChats/${instanceName}`, {
           method: "POST",
           headers,
@@ -697,6 +698,44 @@ serve(async (req) => {
         
         console.log(`[Evolution API] Raw chats fetched: ${Array.isArray(chatsResult) ? chatsResult.length : 0}`);
         
+        // 2. Buscar todos os contatos salvos para resolver @lid
+        let savedContactsMap = new Map<string, { name: string; phone: string }>();
+        try {
+          const contactsResponse = await fetch(`${baseUrl}/chat/findContacts/${instanceName}`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ where: {} }),
+          });
+          
+          if (contactsResponse.ok) {
+            const contactsText = await contactsResponse.text();
+            if (contactsText && contactsText.trim()) {
+              const contacts = JSON.parse(contactsText);
+              if (Array.isArray(contacts)) {
+                for (const contact of contacts) {
+                  const remoteJid = contact.remoteJid || contact.id;
+                  if (remoteJid) {
+                    // Mapeia o remoteJid para o nome e telefone
+                    let phone = '';
+                    if (contact.phoneNumber) {
+                      phone = String(contact.phoneNumber).replace(/\D/g, '');
+                    } else if (remoteJid.includes('@s.whatsapp.net')) {
+                      phone = remoteJid.replace(/@.*$/, '');
+                    }
+                    savedContactsMap.set(remoteJid, {
+                      name: contact.pushName || contact.name || '',
+                      phone: phone,
+                    });
+                  }
+                }
+                console.log(`[Evolution API] Loaded ${savedContactsMap.size} saved contacts for resolution`);
+              }
+            }
+          }
+        } catch (contactsError) {
+          console.error(`[Evolution API] Error fetching contacts for resolution:`, contactsError);
+        }
+        
         // Log primeiro chat para debug da estrutura
         if (Array.isArray(chatsResult) && chatsResult.length > 0) {
           console.log(`[Evolution API] Sample chat structure:`, JSON.stringify(chatsResult[0]));
@@ -704,37 +743,60 @@ serve(async (req) => {
         
         // Processar cada chat para extrair o número de telefone real
         const processedChats = (chatsResult || []).map((chat: any) => {
+          const remoteJid = chat.remoteJid || '';
+          
           // Tenta extrair o número real de várias fontes possíveis
           let phoneNumber = '';
+          let pushName = chat.pushName || chat.name || chat.contact?.name || '';
           
-          // 1. remoteJidAlt geralmente contém o número real
-          const remoteJidAlt = chat.lastMessage?.key?.remoteJidAlt;
-          if (remoteJidAlt && remoteJidAlt.includes('@s.whatsapp.net')) {
-            phoneNumber = remoteJidAlt.replace(/@.*$/, '');
+          // 1. Tenta resolver via contatos salvos primeiro
+          if (savedContactsMap.has(remoteJid)) {
+            const savedContact = savedContactsMap.get(remoteJid)!;
+            if (savedContact.phone) {
+              phoneNumber = savedContact.phone;
+            }
+            if (!pushName && savedContact.name) {
+              pushName = savedContact.name;
+            }
           }
           
-          // 2. Se não tem remoteJidAlt, tenta o remoteJid se for @s.whatsapp.net
-          if (!phoneNumber && chat.remoteJid?.includes('@s.whatsapp.net')) {
-            phoneNumber = chat.remoteJid.replace(/@.*$/, '');
+          // 2. remoteJidAlt geralmente contém o número real
+          if (!phoneNumber) {
+            const remoteJidAlt = chat.lastMessage?.key?.remoteJidAlt;
+            if (remoteJidAlt && remoteJidAlt.includes('@s.whatsapp.net')) {
+              phoneNumber = remoteJidAlt.replace(/@.*$/, '');
+            }
           }
           
-          // 3. Se o remoteJid é @lid, tenta extrair de outros campos
-          if (!phoneNumber && chat.remoteJid?.includes('@lid')) {
+          // 3. Se não tem remoteJidAlt, tenta o remoteJid se for @s.whatsapp.net
+          if (!phoneNumber && remoteJid.includes('@s.whatsapp.net')) {
+            phoneNumber = remoteJid.replace(/@.*$/, '');
+          }
+          
+          // 4. Se o remoteJid é @lid, tenta extrair de outros campos
+          if (!phoneNumber && remoteJid.includes('@lid')) {
             // Busca em participant ou phone fields
             if (chat.lastMessage?.key?.participant?.includes('@s.whatsapp.net')) {
               phoneNumber = chat.lastMessage.key.participant.replace(/@.*$/, '');
             } else if (chat.phone) {
               phoneNumber = String(chat.phone).replace(/\D/g, '');
             }
+            // Se ainda não tem, usa o próprio @lid ID como identificador
+            if (!phoneNumber) {
+              phoneNumber = remoteJid.replace(/@.*$/, '');
+            }
           }
           
-          // 4. Extrai nome do contato
-          const pushName = chat.pushName || chat.name || chat.contact?.name || '';
+          // 5. Se ainda não tem número, usa o ID do remoteJid
+          if (!phoneNumber && remoteJid) {
+            phoneNumber = remoteJid.replace(/@.*$/, '');
+          }
           
           return {
             ...chat,
             phoneNumber,
             pushName,
+            originalId: remoteJid,
           };
         });
         
@@ -748,6 +810,11 @@ serve(async (req) => {
             pushName: processedChats[0].pushName,
           }));
         }
+        
+        // Contar quantos têm número válido vs @lid
+        const withValidPhone = processedChats.filter((c: any) => c.phoneNumber && /^\d{10,}$/.test(c.phoneNumber)).length;
+        const withLidPhone = processedChats.filter((c: any) => c.phoneNumber && !/^\d{10,}$/.test(c.phoneNumber)).length;
+        console.log(`[Evolution API] Chats with valid phone: ${withValidPhone}, with LID: ${withLidPhone}`);
         
         return new Response(
           JSON.stringify({ chats: processedChats }),
