@@ -57,6 +57,13 @@ interface Disparo {
   TotalDisparos: number | null;
   MensagensDisparadas: number | null;
   DataAgendamento: string | null;
+  intervaloMin: number | null;
+  intervaloMax: number | null;
+  PausaAposMensagens: number | null;
+  PausaMinutos: number | null;
+  StartTime: string | null;
+  EndTime: string | null;
+  DiasSelecionados: number[] | null;
 }
 
 const HistoricoPage = () => {
@@ -86,6 +93,15 @@ const HistoricoPage = () => {
   const [editingDisparo, setEditingDisparo] = useState<Disparo | null>(null);
   const [newDate, setNewDate] = useState<string>('');
   const [newTime, setNewTime] = useState<string>('');
+  
+  // Edit config state
+  const [editIntervaloMin, setEditIntervaloMin] = useState<number>(30);
+  const [editIntervaloMax, setEditIntervaloMax] = useState<number>(60);
+  const [editPausaApos, setEditPausaApos] = useState<number>(20);
+  const [editPausaMinutos, setEditPausaMinutos] = useState<number>(10);
+  const [editStartTime, setEditStartTime] = useState<string>('08:00');
+  const [editEndTime, setEditEndTime] = useState<string>('18:00');
+  const [editDiasSelecionados, setEditDiasSelecionados] = useState<number[]>([1, 2, 3, 4, 5]);
 
   const typeLabels: Record<string, string> = {
     instagram: 'Instagram',
@@ -429,7 +445,25 @@ const HistoricoPage = () => {
     const dateObj = new Date(dateToEdit);
     setNewDate(dateObj.toISOString().split('T')[0]);
     setNewTime(dateObj.toTimeString().slice(0, 5));
+    
+    // Load existing config
+    setEditIntervaloMin(disparo.intervaloMin || 30);
+    setEditIntervaloMax(disparo.intervaloMax || 60);
+    setEditPausaApos(disparo.PausaAposMensagens || 20);
+    setEditPausaMinutos(disparo.PausaMinutos || 10);
+    setEditStartTime(disparo.StartTime || '08:00');
+    setEditEndTime(disparo.EndTime || '18:00');
+    setEditDiasSelecionados(disparo.DiasSelecionados || [1, 2, 3, 4, 5]);
+    
     setEditDateDialogOpen(true);
+  };
+
+  const toggleDia = (dia: number) => {
+    setEditDiasSelecionados(prev => 
+      prev.includes(dia) 
+        ? prev.filter(d => d !== dia)
+        : [...prev, dia].sort((a, b) => a - b)
+    );
   };
 
   const handleUpdateDateTime = async () => {
@@ -441,11 +475,18 @@ const HistoricoPage = () => {
       
       const { data, error } = await supabase.functions.invoke('disparos-api', {
         body: { 
-          action: 'update-disparo-datetime', 
+          action: 'update-disparo-config', 
           userId: user?.id, 
           disparoData: { 
             id: editingDisparo.id,
-            dataAgendamento: newDateTime.toISOString()
+            dataAgendamento: newDateTime.toISOString(),
+            intervaloMin: editIntervaloMin,
+            intervaloMax: editIntervaloMax,
+            pausaAposMensagens: editPausaApos,
+            pausaMinutos: editPausaMinutos,
+            startTime: editStartTime,
+            endTime: editEndTime,
+            diasSelecionados: editDiasSelecionados
           } 
         }
       });
@@ -453,13 +494,13 @@ const HistoricoPage = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       
-      toast.success('Data e hora atualizadas com sucesso');
+      toast.success('Configurações atualizadas com sucesso');
       setEditDateDialogOpen(false);
       setEditingDisparo(null);
       fetchDisparos();
     } catch (error) {
-      console.error('Erro ao atualizar data/hora:', error);
-      toast.error('Erro ao atualizar data e hora');
+      console.error('Erro ao atualizar configurações:', error);
+      toast.error('Erro ao atualizar configurações');
     } finally {
       setActionLoading(null);
     }
@@ -1006,36 +1047,125 @@ const HistoricoPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Date/Time Dialog */}
+      {/* Edit Config Dialog */}
       <AlertDialog open={editDateDialogOpen} onOpenChange={setEditDateDialogOpen}>
-        <AlertDialogContent className="bg-card border-border">
+        <AlertDialogContent className="bg-card border-border max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-primary flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Editar Data e Hora
+              Configurações de Envio
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Altere a data e hora de agendamento deste disparo.
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Data</label>
-              <Input
-                type="date"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-                className="bg-muted border-border"
-              />
+          <div className="space-y-5 py-4">
+            {/* Data e Hora de Agendamento */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Data Agendamento</label>
+                <Input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="bg-muted border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Hora</label>
+                <Input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="bg-muted border-border"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Hora</label>
+
+            {/* Intervalo */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-foreground">Intervalo:</span>
+              <Input
+                type="number"
+                value={editIntervaloMin}
+                onChange={(e) => setEditIntervaloMin(Number(e.target.value))}
+                className="w-20 bg-muted border-border text-center"
+                min={1}
+              />
+              <span className="text-sm text-muted-foreground">a</span>
+              <Input
+                type="number"
+                value={editIntervaloMax}
+                onChange={(e) => setEditIntervaloMax(Number(e.target.value))}
+                className="w-20 bg-muted border-border text-center"
+                min={1}
+              />
+              <span className="text-sm text-muted-foreground">segundos</span>
+            </div>
+
+            {/* Pausa após mensagens */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-foreground">Pausar após</span>
+              <Input
+                type="number"
+                value={editPausaApos}
+                onChange={(e) => setEditPausaApos(Number(e.target.value))}
+                className="w-20 bg-muted border-border text-center"
+                min={1}
+              />
+              <span className="text-sm text-muted-foreground">msgs, por</span>
+              <Input
+                type="number"
+                value={editPausaMinutos}
+                onChange={(e) => setEditPausaMinutos(Number(e.target.value))}
+                className="w-20 bg-muted border-border text-center"
+                min={1}
+              />
+              <span className="text-sm text-muted-foreground">minutos</span>
+            </div>
+
+            {/* Horário de funcionamento */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-foreground">Horário:</span>
               <Input
                 type="time"
-                value={newTime}
-                onChange={(e) => setNewTime(e.target.value)}
-                className="bg-muted border-border"
+                value={editStartTime}
+                onChange={(e) => setEditStartTime(e.target.value)}
+                className="w-28 bg-muted border-border"
               />
+              <span className="text-sm text-muted-foreground">até</span>
+              <Input
+                type="time"
+                value={editEndTime}
+                onChange={(e) => setEditEndTime(e.target.value)}
+                className="w-28 bg-muted border-border"
+              />
+            </div>
+
+            {/* Dias da Semana */}
+            <div className="space-y-2">
+              <span className="text-sm text-foreground">Dias da Semana:</span>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { label: 'DOM', value: 0 },
+                  { label: 'SEG', value: 1 },
+                  { label: 'TER', value: 2 },
+                  { label: 'QUA', value: 3 },
+                  { label: 'QUI', value: 4 },
+                  { label: 'SEX', value: 5 },
+                  { label: 'SAB', value: 6 },
+                ].map((dia) => (
+                  <Button
+                    key={dia.value}
+                    type="button"
+                    variant={editDiasSelecionados.includes(dia.value) ? 'default' : 'outline'}
+                    size="sm"
+                    className={editDiasSelecionados.includes(dia.value) 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted border-border'}
+                    onClick={() => toggleDia(dia.value)}
+                  >
+                    {dia.label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
           <AlertDialogFooter>
