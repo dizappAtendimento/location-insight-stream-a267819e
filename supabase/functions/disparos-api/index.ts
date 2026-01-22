@@ -485,6 +485,53 @@ serve(async (req) => {
         );
       }
 
+      case 'update-disparo-config': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const disparoId = disparoData?.id;
+        
+        if (!disparoId) {
+          return new Response(
+            JSON.stringify({ error: 'disparo id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const updateData: any = {};
+        
+        if (disparoData.dataAgendamento) updateData.DataAgendamento = disparoData.dataAgendamento;
+        if (disparoData.intervaloMin !== undefined) updateData.intervaloMin = disparoData.intervaloMin;
+        if (disparoData.intervaloMax !== undefined) updateData.intervaloMax = disparoData.intervaloMax;
+        if (disparoData.pausaAposMensagens !== undefined) updateData.PausaAposMensagens = disparoData.pausaAposMensagens;
+        if (disparoData.pausaMinutos !== undefined) updateData.PausaMinutos = disparoData.pausaMinutos;
+        if (disparoData.startTime !== undefined) updateData.StartTime = disparoData.startTime;
+        if (disparoData.endTime !== undefined) updateData.EndTime = disparoData.endTime;
+        if (disparoData.diasSelecionados !== undefined) updateData.DiasSelecionados = disparoData.diasSelecionados;
+
+        const { error } = await supabase
+          .from('SAAS_Disparos')
+          .update(updateData)
+          .eq('id', disparoId)
+          .eq('userId', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error updating disparo config:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Disparo ${disparoId} config updated:`, updateData);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'update-disparo-datetime': {
         if (!userId) {
           return new Response(
