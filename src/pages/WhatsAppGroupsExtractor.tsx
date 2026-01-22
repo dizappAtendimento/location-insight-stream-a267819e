@@ -104,7 +104,7 @@ const WhatsAppGroupsExtractor = () => {
   const [isLoadingChats, setIsLoadingChats] = useState(false);
   
   // Preview states for Bate-Papo
-  const [chatContacts, setChatContacts] = useState<{nome: string; telefone: string}[]>([]);
+  const [chatContacts, setChatContacts] = useState<{nome: string; telefone: string; idOriginal: string}[]>([]);
   const [showChatPreview, setShowChatPreview] = useState(false);
   
   // Labels/Etiquetas state
@@ -565,10 +565,12 @@ const WhatsAppGroupsExtractor = () => {
         }
         
         const nome = c.pushName || c.name || '';
+        const idOriginal = c.originalId || c.remoteJid || '';
         
         return {
           nome,
           telefone,
+          idOriginal,
         };
       });
       
@@ -597,10 +599,11 @@ const WhatsAppGroupsExtractor = () => {
   const downloadChatContacts = () => {
     if (chatContacts.length === 0) return;
     
-    // Download Excel com contatos do bate-papo
+    // Download Excel com contatos do bate-papo incluindo ID Original
     const worksheet = XLSX.utils.json_to_sheet(chatContacts.map(c => ({
       'Nome': c.nome,
       'Telefone': c.telefone,
+      'ID Original': c.idOriginal,
     })));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Conversas');
