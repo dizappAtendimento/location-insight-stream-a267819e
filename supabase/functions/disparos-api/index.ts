@@ -697,10 +697,16 @@ serve(async (req) => {
           );
         }
 
+        // Suporta tanto o formato antigo (prompt simples) quanto o novo (variações múltiplas)
+        const variacoesMensagens = disparoData?.variacoesMensagens || [];
+        const instrucoesAdicionais = disparoData?.instrucoesAdicionais || '';
+        const quantidadeMensagens = disparoData?.quantidadeMensagens || 3;
         const prompt = disparoData?.prompt;
-        if (!prompt) {
+
+        // Verificar se tem mensagens base ou prompt
+        if (variacoesMensagens.length === 0 && !prompt) {
           return new Response(
-            JSON.stringify({ error: 'Prompt is required' }),
+            JSON.stringify({ error: 'Mensagens base ou prompt são necessários' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -719,6 +725,34 @@ serve(async (req) => {
         }
 
         try {
+          let userPrompt: string;
+          let systemPrompt: string;
+
+          if (variacoesMensagens.length > 0) {
+            // Modo de variações múltiplas
+            systemPrompt = `Você é um especialista em marketing e comunicação via WhatsApp. 
+Sua tarefa é criar ${quantidadeMensagens} variações de mensagens para campanhas de marketing.
+As mensagens devem ser persuasivas, amigáveis e naturais.
+As mensagens devem ser informais mas profissionais.
+Mantenha as variáveis originais como <nome>, <saudacao>, <data>, etc.
+Mantenha as mensagens concisas (máximo 3-4 parágrafos curtos).
+Não use hashtags ou emojis em excesso.
+IMPORTANTE: Retorne APENAS um array JSON com as ${quantidadeMensagens} mensagens, sem explicações.
+Exemplo de formato: ["mensagem 1", "mensagem 2", "mensagem 3"]`;
+
+            const mensagensBase = variacoesMensagens.join('\n\n---\n\n');
+            userPrompt = `Com base nestas mensagens de exemplo:\n\n${mensagensBase}\n\n${instrucoesAdicionais ? `Instruções adicionais: ${instrucoesAdicionais}\n\n` : ''}Crie ${quantidadeMensagens} variações criativas dessas mensagens, mantendo o mesmo tom e objetivo.`;
+          } else {
+            // Modo de prompt simples
+            systemPrompt = `Você é um especialista em marketing e comunicação via WhatsApp. 
+Crie mensagens persuasivas, amigáveis e naturais para campanhas de marketing.
+As mensagens devem ser informais mas profissionais.
+Use variáveis como <nome> para personalização quando apropriado.
+Mantenha as mensagens concisas (máximo 3-4 parágrafos curtos).
+Não use hashtags ou emojis em excesso.`;
+            userPrompt = `Crie uma mensagem de WhatsApp com base nesta descrição: ${prompt}`;
+          }
+
           const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -728,32 +762,21 @@ serve(async (req) => {
             body: JSON.stringify({
               model: 'grok-3-mini-fast',
               messages: [
-                {
-                  role: 'system',
-                  content: `Você é um especialista em marketing e comunicação via WhatsApp. 
-Crie mensagens persuasivas, amigáveis e naturais para campanhas de marketing.
-As mensagens devem ser informais mas profissionais.
-Use variáveis como <nome> para personalização quando apropriado.
-Mantenha as mensagens concisas (máximo 3-4 parágrafos curtos).
-Não use hashtags ou emojis em excesso.`
-                },
-                {
-                  role: 'user',
-                  content: `Crie uma mensagem de WhatsApp com base nesta descrição: ${prompt}`
-                }
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
               ],
-              max_tokens: 500,
-              temperature: 0.7,
+              max_tokens: 2000,
+              temperature: 0.8,
             }),
           });
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error('[Disparos API] xAI API error:', errorData);
+            console.error('[Disparos API] xAI API error:', response.status, errorData);
             
             if (response.status === 401) {
               return new Response(
-                JSON.stringify({ error: 'API key inválida ou expirada. Atualize sua chave em Conexões.' }),
+                JSON.stringify({ error: 'Chave API xAI inválida. Contate o administrador.' }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
               );
             }
@@ -768,16 +791,52 @@ Não use hashtags ou emojis em excesso.`
           }
 
           const data = await response.json();
-          const generatedMessage = data.choices?.[0]?.message?.content;
+          const generatedContent = data.choices?.[0]?.message?.content;
 
-          if (!generatedMessage) {
+          if (!generatedContent) {
             throw new Error('Resposta vazia da IA');
           }
 
           console.log('[Disparos API] AI message generated successfully');
 
+          // Se for modo de variações, tentar fazer parse do array JSON
+          if (variacoesMensagens.length > 0) {
+            try {
+              // Tentar extrair o array JSON da resposta
+              const jsonMatch = generatedContent.match(/\[[\s\S]*\]/);
+              if (jsonMatch) {
+                const mensagensArray = JSON.parse(jsonMatch[0]);
+                return new Response(
+                  JSON.stringify({ 
+                    mensagens: { mensagens: mensagensArray },
+                    success: true 
+                  }),
+                  { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+              }
+            } catch (parseError) {
+              console.log('[Disparos API] Could not parse as JSON, splitting by separator');
+            }
+            
+            // Se não conseguir fazer parse, dividir por linhas ou separadores
+            const mensagens = generatedContent
+              .split(/\n\n+/)
+              .map((m: string) => m.trim())
+              .filter((m: string) => m.length > 20)
+              .slice(0, quantidadeMensagens);
+            
+            return new Response(
+              JSON.stringify({ 
+                mensagens: { mensagens: mensagens.length > 0 ? mensagens : [generatedContent] },
+                success: true 
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          // Modo simples - retorna mensagem única
           return new Response(
-            JSON.stringify({ message: generatedMessage }),
+            JSON.stringify({ message: generatedContent }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } catch (aiError: any) {

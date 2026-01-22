@@ -344,17 +344,21 @@ export default function DisparosPage() {
 
     setIsGeneratingAI(true);
     try {
-      const res = await fetch(API_URLS.gerarMensagemIA, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'generate-ai-message',
           userId: user.id,
-          variacoesMensagens: seeds,
-          instrucoesAdicionais: aiInstructions,
-          quantidadeMensagens: parseInt(String(aiCount))
-        })
+          disparoData: {
+            variacoesMensagens: seeds,
+            instrucoesAdicionais: aiInstructions,
+            quantidadeMensagens: parseInt(String(aiCount))
+          }
+        }
       });
-      const data = await res.json();
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
       if (data && data.mensagens && data.mensagens.mensagens) {
         const newMsgs: MessageItem[] = data.mensagens.mensagens.map((txt: string, idx: number) => ({
           id: Date.now() + idx,
@@ -363,11 +367,20 @@ export default function DisparosPage() {
         }));
         setMessages(prev => [...prev, ...newMsgs]); 
         toast.success(`${newMsgs.length} mensagens geradas!`);
+      } else if (data?.message) {
+        const newMsg: MessageItem = {
+          id: Date.now(),
+          text: data.message,
+          media: null
+        };
+        setMessages(prev => [...prev, newMsg]);
+        toast.success('Mensagem gerada!');
       } else {
-        throw new Error('Formato inválido da API');
+        throw new Error('Formato inválido da resposta');
       }
-    } catch (e) {
-      toast.error('Erro na IA: Verifique sua API Key');
+    } catch (err: any) {
+      console.error('Erro ao gerar mensagem com IA:', err);
+      toast.error(err.message || 'Erro ao gerar mensagem com IA');
     } finally {
       setIsGeneratingAI(false);
     }
