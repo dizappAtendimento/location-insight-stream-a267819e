@@ -265,14 +265,20 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Buscar API key do Serper
-      const { data: configData } = await supabase
-        .from('saas_configuracoes')
-        .select('valor')
-        .eq('chave', 'SERPER_API_KEY')
-        .single();
+      // Buscar API key do Serper - primeiro das configurações, depois do env
+      let serperApiKey = Deno.env.get('SERPER_API_KEY');
+      
+      if (!serperApiKey) {
+        const { data: configData } = await supabase
+          .from('saas_configuracoes')
+          .select('valor')
+          .eq('chave', 'SERPER_API_KEY')
+          .single();
+        
+        serperApiKey = configData?.valor || null;
+      }
 
-      if (!configData?.valor) {
+      if (!serperApiKey) {
         return new Response(
           JSON.stringify({ error: 'API key não configurada' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -280,7 +286,7 @@ Deno.serve(async (req) => {
       }
 
       const empresas = await searchCNPJByName(
-        configData.valor,
+        serperApiKey,
         query,
         uf || null,
         Math.min(maxResults, 100)
