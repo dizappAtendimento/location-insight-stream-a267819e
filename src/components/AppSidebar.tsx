@@ -11,6 +11,7 @@ import {
   Instagram,
   Linkedin,
   MapPin,
+  Building2,
   Headphones,
   CreditCard,
   Sun,
@@ -70,6 +71,7 @@ const extractorItems = [
   { title: 'LinkedIn', url: '/linkedin', icon: Linkedin, colorClass: 'text-linkedin' },
   { title: 'Google Places', url: '/places', icon: MapPin, colorClass: 'text-places' },
   { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, colorClass: 'text-whatsapp' },
+  { title: 'CNPJ', url: '/cnpj', icon: Building2, colorClass: 'text-amber-500' },
   { title: 'Suporte', url: 'https://api.whatsapp.com/send/?phone=5561992557146&text&type=phone_number&app_absent=0', icon: Headphones, colorClass: 'text-emerald-400', external: true },
   { title: 'Planos', url: '/configuracoes?tab=planos', icon: CreditCard, colorClass: 'text-amber-400' },
 ];

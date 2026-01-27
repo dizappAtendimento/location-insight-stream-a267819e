@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import InstagramExtractor from "./pages/InstagramExtractor";
 import LinkedInExtractor from "./pages/LinkedInExtractor";
 import WhatsAppGroupsExtractor from "./pages/WhatsAppGroupsExtractor";
+import CNPJExtractor from "./pages/CNPJExtractor";
 import DisparosPage from "./pages/DisparosPage";
 import DisparosGrupoPage from "./pages/DisparosGrupoPage";
 import DisparoDetalhesPage from "./pages/DisparoDetalhesPage";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/instagram" element={<ProtectedRoute><InstagramExtractor /></ProtectedRoute>} />
               <Route path="/linkedin" element={<ProtectedRoute><LinkedInExtractor /></ProtectedRoute>} />
               <Route path="/grupos" element={<ProtectedRoute><WhatsAppGroupsExtractor /></ProtectedRoute>} />
+              <Route path="/cnpj" element={<ProtectedRoute><CNPJExtractor /></ProtectedRoute>} />
               <Route path="/whatsapp-config" element={<ProtectedRoute><WhatsAppConfigPage /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/perfil" element={<ProtectedRoute><PerfilPage /></ProtectedRoute>} />
