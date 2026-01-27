@@ -36,7 +36,7 @@ interface Empresa {
 }
 
 const UF_OPTIONS = [
-  { value: '', label: 'Todos os estados' },
+  { value: 'all', label: 'Todos os estados' },
   { value: 'AC', label: 'Acre' },
   { value: 'AL', label: 'Alagoas' },
   { value: 'AP', label: 'Amapá' },
@@ -67,7 +67,7 @@ const UF_OPTIONS = [
 ];
 
 const PORTE_OPTIONS = [
-  { value: '', label: 'Todos os portes' },
+  { value: 'all', label: 'Todos os portes' },
   { value: 'MEI', label: 'MEI' },
   { value: 'ME', label: 'Microempresa' },
   { value: 'EPP', label: 'Empresa de Pequeno Porte' },
@@ -81,10 +81,10 @@ export default function CNPJExtractor() {
   
   // Estados para busca por nome
   const [query, setQuery] = useState('');
-  const [uf, setUf] = useState('');
+  const [uf, setUf] = useState('all');
   const [maxResults, setMaxResults] = useState('50');
-  const [porteFilter, setPorteFilter] = useState('');
-  const [simplesFilter, setSimplesFilter] = useState<string>('');
+  const [porteFilter, setPorteFilter] = useState('all');
+  const [simplesFilter, setSimplesFilter] = useState<string>('all');
   
   // Estados para busca por CNPJ
   const [cnpjInput, setCnpjInput] = useState('');
@@ -108,7 +108,7 @@ export default function CNPJExtractor() {
         body: { 
           action: 'search',
           query: query.trim(),
-          uf: uf || undefined,
+          uf: uf === 'all' ? undefined : uf,
           maxResults: parseInt(maxResults),
           userId: user?.id
         }
@@ -120,7 +120,7 @@ export default function CNPJExtractor() {
       let results = data.empresas || [];
       
       // Aplicar filtros locais
-      if (porteFilter) {
+      if (porteFilter && porteFilter !== 'all') {
         results = results.filter((e: Empresa) => {
           if (porteFilter === 'MEI') return e.mei;
           if (porteFilter === 'ME') return e.porte?.includes('MICRO');
@@ -350,7 +350,7 @@ export default function CNPJExtractor() {
                       <SelectValue placeholder="Simples Nacional" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
+                      <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="sim">Optante Simples</SelectItem>
                       <SelectItem value="nao">Não optante</SelectItem>
                     </SelectContent>
