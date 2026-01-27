@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, Search, Download, Loader2, MapPin, Phone, Mail, Users, FileSpreadsheet, AlertCircle, Filter } from 'lucide-react';
+import { Building2, Search, Download, Loader2, MapPin, Phone, Mail, Users, FileSpreadsheet, AlertCircle, Filter, ChevronDown, ChevronUp, Calendar, Briefcase, Scale, DollarSign, Globe, Hash } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import * as XLSX from 'xlsx';
-
 interface Empresa {
   cnpj: string;
   razaoSocial: string;
@@ -93,7 +93,19 @@ export default function CNPJExtractor() {
   const [isLoading, setIsLoading] = useState(false);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [activeTab, setActiveTab] = useState('search');
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
 
+  const toggleCard = (index: number) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
   const searchByName = async () => {
     if (!query.trim()) {
       toast({ title: 'Erro', description: 'Digite o segmento ou nome da empresa', variant: 'destructive' });
@@ -401,80 +413,189 @@ export default function CNPJExtractor() {
               <ScrollArea className="h-[600px] pr-4">
                 <div className="space-y-4">
                   {empresas.map((empresa, index) => (
-                    <Card key={index} className="border-border/30 bg-secondary/20">
-                      <CardContent className="pt-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-foreground truncate">
-                                {empresa.nomeFantasia || empresa.razaoSocial}
-                              </h3>
-                              <Badge variant={empresa.situacao === 'ATIVA' ? 'default' : 'destructive'} className="text-xs">
-                                {empresa.situacao}
-                              </Badge>
-                              {empresa.simples && (
-                                <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/50">
-                                  Simples
-                                </Badge>
-                              )}
-                              {empresa.mei && (
-                                <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/50">
-                                  MEI
-                                </Badge>
-                              )}
+                    <Collapsible 
+                      key={index} 
+                      open={expandedCards.has(index)}
+                      onOpenChange={() => toggleCard(index)}
+                    >
+                      <Card className="border-border/30 bg-secondary/20 overflow-hidden transition-all duration-200 hover:border-amber-500/30">
+                        <CollapsibleTrigger asChild>
+                          <CardContent className="pt-4 cursor-pointer">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="font-semibold text-foreground truncate">
+                                    {empresa.nomeFantasia || empresa.razaoSocial}
+                                  </h3>
+                                  <Badge variant={empresa.situacao === 'ATIVA' ? 'default' : 'destructive'} className="text-xs">
+                                    {empresa.situacao}
+                                  </Badge>
+                                  {empresa.simples && (
+                                    <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/50">
+                                      Simples
+                                    </Badge>
+                                  )}
+                                  {empresa.mei && (
+                                    <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/50">
+                                      MEI
+                                    </Badge>
+                                  )}
+                                </div>
+                                {empresa.nomeFantasia && (
+                                  <p className="text-sm text-muted-foreground mt-0.5">{empresa.razaoSocial}</p>
+                                )}
+                                <p className="text-sm font-mono text-muted-foreground mt-1">{empresa.cnpj}</p>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <div className="text-right text-sm">
+                                  <p className="text-muted-foreground">{empresa.porte}</p>
+                                  <p className="font-medium text-amber-400">{formatCurrency(empresa.capitalSocial)}</p>
+                                </div>
+                                <div className="text-muted-foreground">
+                                  {expandedCards.has(index) ? (
+                                    <ChevronUp className="w-5 h-5" />
+                                  ) : (
+                                    <ChevronDown className="w-5 h-5" />
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            {empresa.nomeFantasia && (
-                              <p className="text-sm text-muted-foreground mt-0.5">{empresa.razaoSocial}</p>
-                            )}
-                            <p className="text-sm font-mono text-muted-foreground mt-1">{empresa.cnpj}</p>
-                          </div>
-                          <div className="text-right text-sm">
-                            <p className="text-muted-foreground">{empresa.porte}</p>
-                            <p className="font-medium text-amber-400">{formatCurrency(empresa.capitalSocial)}</p>
-                          </div>
-                        </div>
 
-                        <div className="grid gap-3 mt-4 md:grid-cols-2">
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-start gap-2 text-muted-foreground">
-                              <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
-                              <span>{empresa.endereco}</span>
-                            </div>
-                            {empresa.telefone && (
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Phone className="w-4 h-4 shrink-0" />
-                                <span>{empresa.telefone}{empresa.telefone2 ? ` / ${empresa.telefone2}` : ''}</span>
+                            {/* Preview info quando fechado */}
+                            {!expandedCards.has(index) && (
+                              <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
+                                {empresa.telefone && (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" />
+                                    {empresa.telefone}
+                                  </span>
+                                )}
+                                {empresa.email && (
+                                  <span className="flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    {empresa.email}
+                                  </span>
+                                )}
+                                {empresa.cidade && (
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {empresa.cidade}/{empresa.uf}
+                                  </span>
+                                )}
                               </div>
                             )}
-                            {empresa.email && (
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Mail className="w-4 h-4 shrink-0" />
-                                <a href={`mailto:${empresa.email}`} className="text-primary hover:underline">
-                                  {empresa.email}
-                                </a>
-                              </div>
-                            )}
-                          </div>
+                          </CardContent>
+                        </CollapsibleTrigger>
 
-                          <div className="space-y-2 text-sm">
-                            <div className="text-muted-foreground">
-                              <span className="font-medium text-foreground">Atividade: </span>
-                              {empresa.atividadePrincipal}
-                            </div>
-                            {empresa.socios?.length > 0 && (
-                              <div className="flex items-start gap-2 text-muted-foreground">
-                                <Users className="w-4 h-4 shrink-0 mt-0.5" />
-                                <span>{empresa.socios.slice(0, 3).join(', ')}{empresa.socios.length > 3 ? ` (+${empresa.socios.length - 3})` : ''}</span>
+                        <CollapsibleContent>
+                          <div className="px-4 pb-4 border-t border-border/30 pt-4">
+                            <div className="grid gap-4 md:grid-cols-2">
+                              {/* Coluna 1 - Dados da empresa */}
+                              <div className="space-y-3">
+                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                                  <Building2 className="w-4 h-4 text-amber-500" />
+                                  Dados da Empresa
+                                </h4>
+                                
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Hash className="w-4 h-4 shrink-0" />
+                                    <span className="font-medium text-foreground">CNPJ:</span>
+                                    <span className="font-mono">{empresa.cnpj}</span>
+                                  </div>
+                                  
+                                  <div className="flex items-start gap-2 text-muted-foreground">
+                                    <Briefcase className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <div>
+                                      <span className="font-medium text-foreground">Atividade Principal:</span>
+                                      <p>{empresa.atividadePrincipal || 'Não informada'}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Scale className="w-4 h-4 shrink-0" />
+                                    <span className="font-medium text-foreground">Natureza Jurídica:</span>
+                                    <span>{empresa.naturezaJuridica || 'Não informada'}</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <DollarSign className="w-4 h-4 shrink-0" />
+                                    <span className="font-medium text-foreground">Capital Social:</span>
+                                    <span className="text-amber-400 font-medium">{formatCurrency(empresa.capitalSocial)}</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Calendar className="w-4 h-4 shrink-0" />
+                                    <span className="font-medium text-foreground">Data de Abertura:</span>
+                                    <span>{empresa.dataAbertura || 'Não informada'}</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Globe className="w-4 h-4 shrink-0" />
+                                    <span className="font-medium text-foreground">Porte:</span>
+                                    <span>{empresa.porte || 'Não informado'}</span>
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                            <div className="text-muted-foreground">
-                              <span className="font-medium text-foreground">Abertura: </span>
-                              {empresa.dataAbertura}
+
+                              {/* Coluna 2 - Contato e Sócios */}
+                              <div className="space-y-3">
+                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                                  <Users className="w-4 h-4 text-amber-500" />
+                                  Contato e Sócios
+                                </h4>
+                                
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex items-start gap-2 text-muted-foreground">
+                                    <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <div>
+                                      <span className="font-medium text-foreground">Endereço:</span>
+                                      <p>{empresa.endereco || 'Não informado'}</p>
+                                      {empresa.cidade && <p>{empresa.cidade} - {empresa.uf}</p>}
+                                    </div>
+                                  </div>
+                                  
+                                  {(empresa.telefone || empresa.telefone2) && (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                      <Phone className="w-4 h-4 shrink-0" />
+                                      <div>
+                                        <span className="font-medium text-foreground">Telefone:</span>
+                                        <span className="ml-1">{empresa.telefone}</span>
+                                        {empresa.telefone2 && <span className="ml-2 opacity-70">/ {empresa.telefone2}</span>}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {empresa.email && (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                      <Mail className="w-4 h-4 shrink-0" />
+                                      <span className="font-medium text-foreground">E-mail:</span>
+                                      <a href={`mailto:${empresa.email}`} className="text-primary hover:underline break-all">
+                                        {empresa.email}
+                                      </a>
+                                    </div>
+                                  )}
+                                  
+                                  {empresa.socios && empresa.socios.length > 0 && (
+                                    <div className="flex items-start gap-2 text-muted-foreground pt-2 border-t border-border/30">
+                                      <Users className="w-4 h-4 shrink-0 mt-0.5" />
+                                      <div>
+                                        <span className="font-medium text-foreground">Sócios ({empresa.socios.length}):</span>
+                                        <ul className="mt-1 space-y-0.5">
+                                          {empresa.socios.map((socio, i) => (
+                                            <li key={i} className="text-muted-foreground">{socio}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
                   ))}
                 </div>
               </ScrollArea>
