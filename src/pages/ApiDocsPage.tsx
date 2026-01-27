@@ -22,6 +22,7 @@ interface Endpoint {
 }
 
 const endpoints: Endpoint[] = [
+  // Disparos
   { method: 'GET', name: 'Listar Disparos', path: '/disparos-api', body: '{\n  "action": "get-disparos",\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'GET', name: 'Detalhes Disparo', path: '/disparos-api', body: '{\n  "action": "get-disparo-detalhes",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}' },
   { method: 'POST', name: 'Criar Disparo', path: '/disparos-api', body: '{\n  "action": "create-disparo",\n  "userId": "SEU_USER_ID",\n  "disparoData": {\n    "mensagens": [{"text": "Olá!"}],\n    "idLista": [1],\n    "connections": [{"id": 1}]\n  }\n}' },
@@ -33,12 +34,20 @@ const endpoints: Endpoint[] = [
   { method: 'GET', name: 'Listar Listas', path: '/disparos-api', body: '{\n  "action": "get-listas",\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'GET', name: 'Listar Contatos', path: '/disparos-api', body: '{\n  "action": "get-contatos",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "idLista": 1 }\n}' },
   { method: 'GET', name: 'Listar Conexões', path: '/disparos-api', body: '{\n  "action": "get-connections",\n  "userId": "SEU_USER_ID"\n}' },
+  // WhatsApp / Evolution
   { method: 'GET', name: 'Instâncias WhatsApp', path: '/evolution-api', body: '{\n  "action": "list-user-instances",\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'POST', name: 'Criar Instância', path: '/evolution-api', body: '{\n  "action": "create-instance",\n  "instanceName": "minha-conexao",\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'GET', name: 'Obter QR Code', path: '/evolution-api', body: '{\n  "action": "get-qrcode",\n  "instanceName": "minha-conexao"\n}' },
   { method: 'GET', name: 'Status Conexão', path: '/evolution-api', body: '{\n  "action": "connection-state",\n  "instanceName": "minha-conexao"\n}' },
+  // Extratores
   { method: 'POST', name: 'Buscar Google Places', path: '/search-places', body: '{\n  "query": "restaurantes",\n  "location": "São Paulo, SP",\n  "maxResults": 100,\n  "userId": "SEU_USER_ID"\n}' },
+  { method: 'POST', name: 'Consultar CNPJ', path: '/search-cnpj', body: '{\n  "action": "fetch-cnpj",\n  "cnpj": "00000000000191",\n  "userId": "SEU_USER_ID"\n}' },
+  { method: 'POST', name: 'Buscar Empresas por Segmento', path: '/search-cnpj', body: '{\n  "action": "search",\n  "query": "restaurante",\n  "uf": "SP",\n  "maxResults": 50,\n  "userId": "SEU_USER_ID"\n}' },
+  { method: 'POST', name: 'Buscar Instagram', path: '/search-instagram', body: '{\n  "query": "nutricionista",\n  "location": "São Paulo",\n  "maxResults": 100,\n  "userId": "SEU_USER_ID"\n}' },
+  { method: 'POST', name: 'Buscar LinkedIn', path: '/search-linkedin', body: '{\n  "query": "desenvolvedor",\n  "location": "Brasil",\n  "maxResults": 100,\n  "userId": "SEU_USER_ID"\n}' },
+  // Admin
   { method: 'GET', name: 'Dados do Plano', path: '/admin-api', body: '{\n  "action": "get-user-plan-usage",\n  "userId": "SEU_USER_ID"\n}' },
+  // CRM
   { method: 'GET', name: 'Listar CRM Leads', path: '/disparos-api', body: '{\n  "action": "get-crm-leads",\n  "userId": "SEU_USER_ID"\n}' },
   { method: 'GET', name: 'Detalhes CRM Lead', path: '/disparos-api', body: '{\n  "action": "get-crm-lead",\n  "userId": "SEU_USER_ID",\n  "disparoData": { "id": 123 }\n}' },
   { method: 'POST', name: 'Criar CRM Lead', path: '/disparos-api', body: '{\n  "action": "create-crm-lead",\n  "userId": "SEU_USER_ID",\n  "disparoData": {\n    "nome": "João Silva",\n    "telefone": "5511999999999",\n    "valor": 1500.00,\n    "status": "novo",\n    "observacao": "Lead interessado"\n  }\n}' },
