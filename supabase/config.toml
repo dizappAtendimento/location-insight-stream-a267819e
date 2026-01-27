@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.asaas-api]
 verify_jwt = false
+
+[functions.search-cnpj]
+verify_jwt = false
