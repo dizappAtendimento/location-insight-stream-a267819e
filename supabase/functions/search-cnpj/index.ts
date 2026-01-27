@@ -72,15 +72,16 @@ async function searchCNPJByName(
   maxResults: number
 ): Promise<any[]> {
   // Busca empresas pelo nome usando Serper (Google Search)
+  // Simplificando query para evitar bloqueio da API
   const searchQuery = uf 
-    ? `"${query}" CNPJ site:cnpj.info OR site:empresaqui.com.br OR site:consultasocio.com ${uf}`
-    : `"${query}" CNPJ site:cnpj.info OR site:empresaqui.com.br OR site:consultasocio.com`;
+    ? `${query} CNPJ empresa ${uf} brasil`
+    : `${query} CNPJ empresa brasil`;
   
   const results: any[] = [];
   const seenCNPJs = new Set<string>();
   
-  // Serper API - single request, num limits results
-  const numResults = Math.min(maxResults * 2, 100); // Request more to account for duplicates/invalid
+  // Serper API - single request
+  const numResults = Math.min(maxResults * 3, 100); // Request more to account for filtering
   
   try {
     console.log('Serper search query:', searchQuery);
