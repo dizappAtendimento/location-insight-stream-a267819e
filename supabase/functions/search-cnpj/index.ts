@@ -71,125 +71,123 @@ async function searchCNPJByName(
   uf: string | null,
   maxResults: number
 ): Promise<any[]> {
-  // Busca empresas pelo nome usando Serper (Google Search)
-  // Simplificando query para evitar bloqueio da API
-  const searchQuery = uf 
-    ? `${query} CNPJ empresa ${uf} brasil`
-    : `${query} CNPJ empresa brasil`;
-  
   const results: any[] = [];
   const seenCNPJs = new Set<string>();
   
-  // Serper API - single request
-  const numResults = Math.min(maxResults * 3, 100); // Request more to account for filtering
+  // Múltiplas queries para maximizar resultados
+  const searchQueries = [
+    `"${query}" CNPJ ${uf || ''} site:cnpj.info`,
+    `"${query}" CNPJ ${uf || ''} site:empresaqui.com.br`,
+    `"${query}" CNPJ ${uf || ''} site:consultasocio.com`,
+    `"${query}" CNPJ ${uf || ''} site:cnpj.biz`,
+    `${query} CNPJ razao social ${uf || ''} brasil`,
+  ];
   
-  try {
-    console.log('Serper search query:', searchQuery);
+  for (const searchQuery of searchQueries) {
+    if (results.length >= maxResults) break;
     
-    const response = await fetch('https://google.serper.dev/search', {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: searchQuery,
-        gl: 'br',
-        hl: 'pt-br',
-        num: numResults,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Serper API error:', response.status, errorText);
-      throw new Error(`Serper API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Serper response organic count:', data.organic?.length || 0);
-    
-    const organic = data.organic || [];
-
-    for (const result of organic) {
-      // Extrair CNPJ do snippet ou título
-      const text = `${result.title || ''} ${result.snippet || ''} ${result.link || ''}`;
-      const cnpjMatch = text.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g);
+    try {
+      console.log('Serper search query:', searchQuery.trim());
       
-      if (cnpjMatch) {
-        for (const cnpj of cnpjMatch) {
+      const response = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: searchQuery.trim(),
+          gl: 'br',
+          hl: 'pt-br',
+          num: 30,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Serper API error:', response.status);
+        continue;
+      }
+
+      const data = await response.json();
+      console.log('Serper response organic count:', data.organic?.length || 0);
+      
+      const organic = data.organic || [];
+
+      for (const result of organic) {
+        if (results.length >= maxResults) break;
+        
+        const text = `${result.title || ''} ${result.snippet || ''} ${result.link || ''}`;
+        
+        // Regex para CNPJ
+        const cnpjMatches = text.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g) || [];
+        
+        for (const cnpj of cnpjMatches) {
+          if (results.length >= maxResults) break;
+          
           const cleanCNPJ = cnpj.replace(/\D/g, '');
-          if (cleanCNPJ.length === 14 && !seenCNPJs.has(cleanCNPJ)) {
+          
+          if (cleanCNPJ.length === 14 && !seenCNPJs.has(cleanCNPJ) && !cleanCNPJ.startsWith('00000')) {
             seenCNPJs.add(cleanCNPJ);
             
-            // Buscar dados completos do CNPJ
             try {
               const cnpjData = await fetchCNPJ(cleanCNPJ);
               if (cnpjData) {
                 // Filtrar por UF se especificado
                 if (uf && cnpjData.uf !== uf) {
+                  console.log(`Skipping ${cleanCNPJ}: UF ${cnpjData.uf} != ${uf}`);
                   continue;
                 }
                 
-                // Incluir apenas empresas ativas
-                if (cnpjData.situacao_cadastral === 'ATIVA') {
-                  results.push({
-                    cnpj: formatCNPJ(cleanCNPJ),
-                    razaoSocial: cnpjData.razao_social,
-                    nomeFantasia: cnpjData.nome_fantasia || '',
-                    situacao: cnpjData.situacao_cadastral,
-                    dataAbertura: cnpjData.data_inicio_atividade,
-                    dataSituacao: cnpjData.data_situacao_cadastral,
-                    atividadePrincipal: cnpjData.cnae_fiscal_descricao,
-                    codigoCnae: cnpjData.cnae_fiscal,
-                    atividadesSecundarias: cnpjData.cnaes_secundarios?.map(c => ({
-                      codigo: c.codigo,
-                      descricao: c.descricao
-                    })) || [],
-                    naturezaJuridica: cnpjData.natureza_juridica,
-                    logradouro: cnpjData.logradouro,
-                    numero: cnpjData.numero,
-                    complemento: cnpjData.complemento,
-                    bairro: cnpjData.bairro,
-                    cep: cnpjData.cep,
-                    endereco: formatEndereco(cnpjData),
-                    telefone: formatTelefone(cnpjData.ddd_telefone_1),
-                    telefone2: formatTelefone(cnpjData.ddd_telefone_2),
-                    email: cnpjData.email?.toLowerCase() || '',
-                    capitalSocial: cnpjData.capital_social,
-                    porte: cnpjData.porte,
-                    simples: cnpjData.opcao_pelo_simples,
-                    mei: cnpjData.opcao_pelo_mei,
-                    uf: cnpjData.uf,
-                    cidade: cnpjData.municipio,
-                    socios: cnpjData.qsa?.map(s => s.nome_socio) || [],
-                    qsa: cnpjData.qsa?.map(s => ({
-                      nome: s.nome_socio,
-                      cpfCnpj: s.cnpj_cpf_do_socio,
-                      qualificacao: s.qualificacao_socio,
-                      dataEntrada: s.data_entrada_sociedade
-                    })) || [],
-                  });
-                  
-                  console.log(`Found CNPJ: ${cleanCNPJ} - ${cnpjData.razao_social}`);
-                  
-                  if (results.length >= maxResults) break;
-                }
+                console.log(`Found CNPJ: ${cleanCNPJ} - ${cnpjData.razao_social} - ${cnpjData.situacao_cadastral}`);
+                
+                results.push({
+                  cnpj: formatCNPJ(cleanCNPJ),
+                  razaoSocial: cnpjData.razao_social,
+                  nomeFantasia: cnpjData.nome_fantasia || '',
+                  situacao: cnpjData.situacao_cadastral,
+                  dataAbertura: cnpjData.data_inicio_atividade,
+                  dataSituacao: cnpjData.data_situacao_cadastral,
+                  atividadePrincipal: cnpjData.cnae_fiscal_descricao,
+                  codigoCnae: cnpjData.cnae_fiscal,
+                  atividadesSecundarias: cnpjData.cnaes_secundarios?.map(c => ({
+                    codigo: c.codigo,
+                    descricao: c.descricao
+                  })) || [],
+                  naturezaJuridica: cnpjData.natureza_juridica,
+                  logradouro: cnpjData.logradouro,
+                  numero: cnpjData.numero,
+                  complemento: cnpjData.complemento,
+                  bairro: cnpjData.bairro,
+                  cep: cnpjData.cep,
+                  endereco: formatEndereco(cnpjData),
+                  telefone: formatTelefone(cnpjData.ddd_telefone_1),
+                  telefone2: formatTelefone(cnpjData.ddd_telefone_2),
+                  email: cnpjData.email?.toLowerCase() || '',
+                  capitalSocial: cnpjData.capital_social,
+                  porte: cnpjData.porte,
+                  simples: cnpjData.opcao_pelo_simples,
+                  mei: cnpjData.opcao_pelo_mei,
+                  uf: cnpjData.uf,
+                  cidade: cnpjData.municipio,
+                  socios: cnpjData.qsa?.map(s => s.nome_socio) || [],
+                  qsa: cnpjData.qsa?.map(s => ({
+                    nome: s.nome_socio,
+                    cpfCnpj: s.cnpj_cpf_do_socio,
+                    qualificacao: s.qualificacao_socio,
+                    dataEntrada: s.data_entrada_sociedade
+                  })) || [],
+                });
               }
-              // Delay para não sobrecarregar a API BrasilAPI
-              await new Promise(resolve => setTimeout(resolve, 300));
+              await new Promise(resolve => setTimeout(resolve, 200));
             } catch (e) {
               console.error(`Erro ao buscar CNPJ ${cleanCNPJ}:`, e);
             }
           }
         }
       }
-      
-      if (results.length >= maxResults) break;
+    } catch (error) {
+      console.error('Erro na busca Serper:', error);
     }
-  } catch (error) {
-    console.error('Erro na busca Serper:', error);
-    throw error;
   }
   
   return results;
