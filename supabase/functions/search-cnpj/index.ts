@@ -78,50 +78,60 @@ async function searchCNPJByName(
   
   const results: any[] = [];
   const seenCNPJs = new Set<string>();
-  let page = 1;
   
-  while (results.length < maxResults && page <= 5) {
-    try {
-      const response = await fetch('https://google.serper.dev/search', {
-        method: 'POST',
-        headers: {
-          'X-API-KEY': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          q: searchQuery,
-          gl: 'br',
-          hl: 'pt-br',
-          num: 100,
-          page: page,
-        }),
-      });
+  // Serper API - single request, num limits results
+  const numResults = Math.min(maxResults * 2, 100); // Request more to account for duplicates/invalid
+  
+  try {
+    console.log('Serper search query:', searchQuery);
+    
+    const response = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        q: searchQuery,
+        gl: 'br',
+        hl: 'pt-br',
+        num: numResults,
+      }),
+    });
 
-      if (!response.ok) {
-        console.error('Serper API error:', response.status);
-        break;
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Serper API error:', response.status, errorText);
+      throw new Error(`Serper API error: ${response.status}`);
+    }
 
-      const data = await response.json();
-      const organic = data.organic || [];
+    const data = await response.json();
+    console.log('Serper response organic count:', data.organic?.length || 0);
+    
+    const organic = data.organic || [];
+
+    for (const result of organic) {
+      // Extrair CNPJ do snippet ou título
+      const text = `${result.title || ''} ${result.snippet || ''} ${result.link || ''}`;
+      const cnpjMatch = text.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g);
       
-      if (organic.length === 0) break;
-
-      for (const result of organic) {
-        // Extrair CNPJ do snippet ou título
-        const text = `${result.title || ''} ${result.snippet || ''}`;
-        const cnpjMatch = text.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g);
-        
-        if (cnpjMatch) {
-          for (const cnpj of cnpjMatch) {
-            const cleanCNPJ = cnpj.replace(/\D/g, '');
-            if (cleanCNPJ.length === 14 && !seenCNPJs.has(cleanCNPJ)) {
-              seenCNPJs.add(cleanCNPJ);
-              
-              // Buscar dados completos do CNPJ
-              try {
-                const cnpjData = await fetchCNPJ(cleanCNPJ);
-                if (cnpjData && cnpjData.situacao_cadastral === 'ATIVA') {
+      if (cnpjMatch) {
+        for (const cnpj of cnpjMatch) {
+          const cleanCNPJ = cnpj.replace(/\D/g, '');
+          if (cleanCNPJ.length === 14 && !seenCNPJs.has(cleanCNPJ)) {
+            seenCNPJs.add(cleanCNPJ);
+            
+            // Buscar dados completos do CNPJ
+            try {
+              const cnpjData = await fetchCNPJ(cleanCNPJ);
+              if (cnpjData) {
+                // Filtrar por UF se especificado
+                if (uf && cnpjData.uf !== uf) {
+                  continue;
+                }
+                
+                // Incluir apenas empresas ativas
+                if (cnpjData.situacao_cadastral === 'ATIVA') {
                   results.push({
                     cnpj: formatCNPJ(cleanCNPJ),
                     razaoSocial: cnpjData.razao_social,
@@ -143,26 +153,25 @@ async function searchCNPJByName(
                     socios: cnpjData.qsa?.map(s => s.nome_socio) || [],
                   });
                   
+                  console.log(`Found CNPJ: ${cleanCNPJ} - ${cnpjData.razao_social}`);
+                  
                   if (results.length >= maxResults) break;
                 }
-                // Delay para não sobrecarregar a API
-                await new Promise(resolve => setTimeout(resolve, 200));
-              } catch (e) {
-                console.error(`Erro ao buscar CNPJ ${cleanCNPJ}:`, e);
               }
+              // Delay para não sobrecarregar a API BrasilAPI
+              await new Promise(resolve => setTimeout(resolve, 300));
+            } catch (e) {
+              console.error(`Erro ao buscar CNPJ ${cleanCNPJ}:`, e);
             }
           }
         }
-        
-        if (results.length >= maxResults) break;
       }
       
-      page++;
-      await new Promise(resolve => setTimeout(resolve, 100));
-    } catch (error) {
-      console.error('Erro na busca:', error);
-      break;
+      if (results.length >= maxResults) break;
     }
+  } catch (error) {
+    console.error('Erro na busca Serper:', error);
+    throw error;
   }
   
   return results;
