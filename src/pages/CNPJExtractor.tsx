@@ -14,14 +14,34 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import * as XLSX from 'xlsx';
+interface Socio {
+  nome: string;
+  cpfCnpj: string;
+  qualificacao: string;
+  dataEntrada: string;
+}
+
+interface AtividadeSecundaria {
+  codigo: number;
+  descricao: string;
+}
+
 interface Empresa {
   cnpj: string;
   razaoSocial: string;
   nomeFantasia: string;
   situacao: string;
   dataAbertura: string;
+  dataSituacao: string;
   atividadePrincipal: string;
+  codigoCnae: number;
+  atividadesSecundarias: AtividadeSecundaria[];
   naturezaJuridica: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cep: string;
   endereco: string;
   telefone: string;
   telefone2: string;
@@ -33,6 +53,7 @@ interface Empresa {
   uf: string;
   cidade: string;
   socios: string[];
+  qsa: Socio[];
 }
 
 const UF_OPTIONS = [
@@ -489,7 +510,7 @@ export default function CNPJExtractor() {
 
                         <CollapsibleContent>
                           <div className="px-4 pb-4 border-t border-border/30 pt-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-6 lg:grid-cols-3">
                               {/* Coluna 1 - Dados da empresa */}
                               <div className="space-y-3">
                                 <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -498,24 +519,45 @@ export default function CNPJExtractor() {
                                 </h4>
                                 
                                 <div className="space-y-2 text-sm">
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Hash className="w-4 h-4 shrink-0" />
-                                    <span className="font-medium text-foreground">CNPJ:</span>
-                                    <span className="font-mono">{empresa.cnpj}</span>
+                                  <div className="flex items-start gap-2 text-muted-foreground">
+                                    <Hash className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <div>
+                                      <span className="font-medium text-foreground">CNPJ:</span>
+                                      <p className="font-mono">{empresa.cnpj}</p>
+                                    </div>
                                   </div>
                                   
                                   <div className="flex items-start gap-2 text-muted-foreground">
                                     <Briefcase className="w-4 h-4 shrink-0 mt-0.5" />
                                     <div>
                                       <span className="font-medium text-foreground">Atividade Principal:</span>
-                                      <p>{empresa.atividadePrincipal || 'Não informada'}</p>
+                                      <p>{empresa.codigoCnae ? `${empresa.codigoCnae} - ` : ''}{empresa.atividadePrincipal || 'Não informada'}</p>
                                     </div>
                                   </div>
+
+                                  {empresa.atividadesSecundarias && empresa.atividadesSecundarias.length > 0 && (
+                                    <div className="flex items-start gap-2 text-muted-foreground">
+                                      <Briefcase className="w-4 h-4 shrink-0 mt-0.5 opacity-50" />
+                                      <div>
+                                        <span className="font-medium text-foreground">Atividades Secundárias:</span>
+                                        <ul className="mt-1 space-y-0.5 text-xs">
+                                          {empresa.atividadesSecundarias.slice(0, 5).map((at, i) => (
+                                            <li key={i}>{at.codigo} - {at.descricao}</li>
+                                          ))}
+                                          {empresa.atividadesSecundarias.length > 5 && (
+                                            <li className="text-muted-foreground/70">+{empresa.atividadesSecundarias.length - 5} mais...</li>
+                                          )}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  )}
                                   
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Scale className="w-4 h-4 shrink-0" />
-                                    <span className="font-medium text-foreground">Natureza Jurídica:</span>
-                                    <span>{empresa.naturezaJuridica || 'Não informada'}</span>
+                                  <div className="flex items-start gap-2 text-muted-foreground">
+                                    <Scale className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <div>
+                                      <span className="font-medium text-foreground">Natureza Jurídica:</span>
+                                      <p>{empresa.naturezaJuridica || 'Não informada'}</p>
+                                    </div>
                                   </div>
                                   
                                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -526,7 +568,7 @@ export default function CNPJExtractor() {
                                   
                                   <div className="flex items-center gap-2 text-muted-foreground">
                                     <Calendar className="w-4 h-4 shrink-0" />
-                                    <span className="font-medium text-foreground">Data de Abertura:</span>
+                                    <span className="font-medium text-foreground">Abertura:</span>
                                     <span>{empresa.dataAbertura || 'Não informada'}</span>
                                   </div>
                                   
@@ -538,56 +580,82 @@ export default function CNPJExtractor() {
                                 </div>
                               </div>
 
-                              {/* Coluna 2 - Contato e Sócios */}
+                              {/* Coluna 2 - Contato */}
                               <div className="space-y-3">
                                 <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-amber-500" />
-                                  Contato e Sócios
+                                  <MapPin className="w-4 h-4 text-amber-500" />
+                                  Localização e Contato
                                 </h4>
                                 
                                 <div className="space-y-2 text-sm">
                                   <div className="flex items-start gap-2 text-muted-foreground">
                                     <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
                                     <div>
-                                      <span className="font-medium text-foreground">Endereço:</span>
-                                      <p>{empresa.endereco || 'Não informado'}</p>
-                                      {empresa.cidade && <p>{empresa.cidade} - {empresa.uf}</p>}
+                                      <span className="font-medium text-foreground">Endereço Completo:</span>
+                                      <p>{empresa.logradouro || ''}{empresa.numero ? `, ${empresa.numero}` : ''}</p>
+                                      {empresa.complemento && <p>{empresa.complemento}</p>}
+                                      <p>{empresa.bairro || ''}</p>
+                                      <p>{empresa.cidade} - {empresa.uf}</p>
+                                      {empresa.cep && <p className="font-mono text-xs">CEP: {empresa.cep}</p>}
                                     </div>
                                   </div>
                                   
                                   {(empresa.telefone || empresa.telefone2) && (
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                      <Phone className="w-4 h-4 shrink-0" />
+                                    <div className="flex items-start gap-2 text-muted-foreground">
+                                      <Phone className="w-4 h-4 shrink-0 mt-0.5" />
                                       <div>
-                                        <span className="font-medium text-foreground">Telefone:</span>
-                                        <span className="ml-1">{empresa.telefone}</span>
-                                        {empresa.telefone2 && <span className="ml-2 opacity-70">/ {empresa.telefone2}</span>}
+                                        <span className="font-medium text-foreground">Telefone(s):</span>
+                                        <p>{empresa.telefone}</p>
+                                        {empresa.telefone2 && <p>{empresa.telefone2}</p>}
                                       </div>
                                     </div>
                                   )}
                                   
                                   {empresa.email && (
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                      <Mail className="w-4 h-4 shrink-0" />
-                                      <span className="font-medium text-foreground">E-mail:</span>
-                                      <a href={`mailto:${empresa.email}`} className="text-primary hover:underline break-all">
-                                        {empresa.email}
-                                      </a>
-                                    </div>
-                                  )}
-                                  
-                                  {empresa.socios && empresa.socios.length > 0 && (
-                                    <div className="flex items-start gap-2 text-muted-foreground pt-2 border-t border-border/30">
-                                      <Users className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <div className="flex items-start gap-2 text-muted-foreground">
+                                      <Mail className="w-4 h-4 shrink-0 mt-0.5" />
                                       <div>
-                                        <span className="font-medium text-foreground">Sócios ({empresa.socios.length}):</span>
-                                        <ul className="mt-1 space-y-0.5">
-                                          {empresa.socios.map((socio, i) => (
-                                            <li key={i} className="text-muted-foreground">{socio}</li>
-                                          ))}
-                                        </ul>
+                                        <span className="font-medium text-foreground">E-mail:</span>
+                                        <a href={`mailto:${empresa.email}`} className="text-primary hover:underline break-all block">
+                                          {empresa.email}
+                                        </a>
                                       </div>
                                     </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Coluna 3 - Sócios/Administradores */}
+                              <div className="space-y-3">
+                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                                  <Users className="w-4 h-4 text-amber-500" />
+                                  Quadro Societário ({empresa.qsa?.length || 0})
+                                </h4>
+                                
+                                <div className="space-y-2 text-sm">
+                                  {empresa.qsa && empresa.qsa.length > 0 ? (
+                                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                                      {empresa.qsa.map((socio, i) => (
+                                        <div key={i} className="p-2 rounded-lg bg-secondary/30 border border-border/20">
+                                          <p className="font-medium text-foreground">{socio.nome}</p>
+                                          <p className="text-xs text-amber-400 mt-0.5">{socio.qualificacao}</p>
+                                          {socio.cpfCnpj && (
+                                            <p className="text-xs text-muted-foreground font-mono mt-1">
+                                              CPF/CNPJ: {socio.cpfCnpj.replace(/\D/g, '').length <= 11 
+                                                ? '***.' + socio.cpfCnpj.slice(-6, -3) + '.' + socio.cpfCnpj.slice(-3) + '-**'
+                                                : socio.cpfCnpj}
+                                            </p>
+                                          )}
+                                          {socio.dataEntrada && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              Entrada: {socio.dataEntrada}
+                                            </p>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-muted-foreground text-xs">Nenhum sócio informado</p>
                                   )}
                                 </div>
                               </div>
