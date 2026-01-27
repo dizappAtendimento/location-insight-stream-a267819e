@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, Search, Download, Loader2, MapPin, Phone, Mail, Users, FileSpreadsheet, AlertCircle, Filter, ChevronDown, ChevronUp, Calendar, Briefcase, Scale, DollarSign, Globe, Hash } from 'lucide-react';
+import { Building2, Search, Download, Loader2, MapPin, Phone, Mail, Users, FileSpreadsheet, AlertCircle, Filter, Calendar, Briefcase, Scale, DollarSign, Globe, Hash, X, CheckCircle2, XCircle, Copy, ExternalLink } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -114,18 +115,11 @@ export default function CNPJExtractor() {
   const [isLoading, setIsLoading] = useState(false);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [activeTab, setActiveTab] = useState('search');
-  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+  const [selectedEmpresa, setSelectedEmpresa] = useState<Empresa | null>(null);
 
-  const toggleCard = (index: number) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copiado!', description: `${label} copiado para a área de transferência` });
   };
   const searchByName = async () => {
     if (!query.trim()) {
@@ -432,238 +426,74 @@ export default function CNPJExtractor() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[600px] pr-4">
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {empresas.map((empresa, index) => (
-                    <Collapsible 
+                    <Card 
                       key={index} 
-                      open={expandedCards.has(index)}
-                      onOpenChange={() => toggleCard(index)}
+                      className="border-border/30 bg-secondary/20 overflow-hidden transition-all duration-200 hover:border-amber-500/30 cursor-pointer"
+                      onClick={() => setSelectedEmpresa(empresa)}
                     >
-                      <Card className="border-border/30 bg-secondary/20 overflow-hidden transition-all duration-200 hover:border-amber-500/30">
-                        <CollapsibleTrigger asChild>
-                          <CardContent className="pt-4 cursor-pointer">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h3 className="font-semibold text-foreground truncate">
-                                    {empresa.nomeFantasia || empresa.razaoSocial}
-                                  </h3>
-                                  <Badge variant={empresa.situacao === 'ATIVA' ? 'default' : 'destructive'} className="text-xs">
-                                    {empresa.situacao}
-                                  </Badge>
-                                  {empresa.simples && (
-                                    <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/50">
-                                      Simples
-                                    </Badge>
-                                  )}
-                                  {empresa.mei && (
-                                    <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/50">
-                                      MEI
-                                    </Badge>
-                                  )}
-                                </div>
-                                {empresa.nomeFantasia && (
-                                  <p className="text-sm text-muted-foreground mt-0.5">{empresa.razaoSocial}</p>
+                      <CardContent className="pt-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-foreground truncate">
+                                {empresa.nomeFantasia || empresa.razaoSocial}
+                              </h3>
+                              <Badge 
+                                variant={empresa.situacao === 'ATIVA' ? 'default' : 'destructive'} 
+                                className={`text-xs ${empresa.situacao === 'ATIVA' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : ''}`}
+                              >
+                                {empresa.situacao === 'ATIVA' ? (
+                                  <><CheckCircle2 className="w-3 h-3 mr-1" />{empresa.situacao}</>
+                                ) : (
+                                  <><XCircle className="w-3 h-3 mr-1" />{empresa.situacao}</>
                                 )}
-                                <p className="text-sm font-mono text-muted-foreground mt-1">{empresa.cnpj}</p>
-                              </div>
-                              <div className="flex items-start gap-3">
-                                <div className="text-right text-sm">
-                                  <p className="text-muted-foreground">{empresa.porte}</p>
-                                  <p className="font-medium text-amber-400">{formatCurrency(empresa.capitalSocial)}</p>
-                                </div>
-                                <div className="text-muted-foreground">
-                                  {expandedCards.has(index) ? (
-                                    <ChevronUp className="w-5 h-5" />
-                                  ) : (
-                                    <ChevronDown className="w-5 h-5" />
-                                  )}
-                                </div>
-                              </div>
+                              </Badge>
+                              {empresa.simples && (
+                                <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/50">
+                                  Simples
+                                </Badge>
+                              )}
+                              {empresa.mei && (
+                                <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/50">
+                                  MEI
+                                </Badge>
+                              )}
                             </div>
-
-                            {/* Preview info quando fechado */}
-                            {!expandedCards.has(index) && (
-                              <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
-                                {empresa.telefone && (
-                                  <span className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {empresa.telefone}
-                                  </span>
-                                )}
-                                {empresa.email && (
-                                  <span className="flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    {empresa.email}
-                                  </span>
-                                )}
-                                {empresa.cidade && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {empresa.cidade}/{empresa.uf}
-                                  </span>
-                                )}
-                              </div>
+                            {empresa.nomeFantasia && (
+                              <p className="text-sm text-muted-foreground mt-0.5">{empresa.razaoSocial}</p>
                             )}
-                          </CardContent>
-                        </CollapsibleTrigger>
-
-                        <CollapsibleContent>
-                          <div className="px-4 pb-4 border-t border-border/30 pt-4">
-                            <div className="grid gap-6 lg:grid-cols-3">
-                              {/* Coluna 1 - Dados da empresa */}
-                              <div className="space-y-3">
-                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                                  <Building2 className="w-4 h-4 text-amber-500" />
-                                  Dados da Empresa
-                                </h4>
-                                
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex items-start gap-2 text-muted-foreground">
-                                    <Hash className="w-4 h-4 shrink-0 mt-0.5" />
-                                    <div>
-                                      <span className="font-medium text-foreground">CNPJ:</span>
-                                      <p className="font-mono">{empresa.cnpj}</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-start gap-2 text-muted-foreground">
-                                    <Briefcase className="w-4 h-4 shrink-0 mt-0.5" />
-                                    <div>
-                                      <span className="font-medium text-foreground">Atividade Principal:</span>
-                                      <p>{empresa.codigoCnae ? `${empresa.codigoCnae} - ` : ''}{empresa.atividadePrincipal || 'Não informada'}</p>
-                                    </div>
-                                  </div>
-
-                                  {empresa.atividadesSecundarias && empresa.atividadesSecundarias.length > 0 && (
-                                    <div className="flex items-start gap-2 text-muted-foreground">
-                                      <Briefcase className="w-4 h-4 shrink-0 mt-0.5 opacity-50" />
-                                      <div>
-                                        <span className="font-medium text-foreground">Atividades Secundárias:</span>
-                                        <ul className="mt-1 space-y-0.5 text-xs">
-                                          {empresa.atividadesSecundarias.slice(0, 5).map((at, i) => (
-                                            <li key={i}>{at.codigo} - {at.descricao}</li>
-                                          ))}
-                                          {empresa.atividadesSecundarias.length > 5 && (
-                                            <li className="text-muted-foreground/70">+{empresa.atividadesSecundarias.length - 5} mais...</li>
-                                          )}
-                                        </ul>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  <div className="flex items-start gap-2 text-muted-foreground">
-                                    <Scale className="w-4 h-4 shrink-0 mt-0.5" />
-                                    <div>
-                                      <span className="font-medium text-foreground">Natureza Jurídica:</span>
-                                      <p>{empresa.naturezaJuridica || 'Não informada'}</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <DollarSign className="w-4 h-4 shrink-0" />
-                                    <span className="font-medium text-foreground">Capital Social:</span>
-                                    <span className="text-amber-400 font-medium">{formatCurrency(empresa.capitalSocial)}</span>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Calendar className="w-4 h-4 shrink-0" />
-                                    <span className="font-medium text-foreground">Abertura:</span>
-                                    <span>{empresa.dataAbertura || 'Não informada'}</span>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Globe className="w-4 h-4 shrink-0" />
-                                    <span className="font-medium text-foreground">Porte:</span>
-                                    <span>{empresa.porte || 'Não informado'}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Coluna 2 - Contato */}
-                              <div className="space-y-3">
-                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                                  <MapPin className="w-4 h-4 text-amber-500" />
-                                  Localização e Contato
-                                </h4>
-                                
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex items-start gap-2 text-muted-foreground">
-                                    <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
-                                    <div>
-                                      <span className="font-medium text-foreground">Endereço Completo:</span>
-                                      <p>{empresa.logradouro || ''}{empresa.numero ? `, ${empresa.numero}` : ''}</p>
-                                      {empresa.complemento && <p>{empresa.complemento}</p>}
-                                      <p>{empresa.bairro || ''}</p>
-                                      <p>{empresa.cidade} - {empresa.uf}</p>
-                                      {empresa.cep && <p className="font-mono text-xs">CEP: {empresa.cep}</p>}
-                                    </div>
-                                  </div>
-                                  
-                                  {(empresa.telefone || empresa.telefone2) && (
-                                    <div className="flex items-start gap-2 text-muted-foreground">
-                                      <Phone className="w-4 h-4 shrink-0 mt-0.5" />
-                                      <div>
-                                        <span className="font-medium text-foreground">Telefone(s):</span>
-                                        <p>{empresa.telefone}</p>
-                                        {empresa.telefone2 && <p>{empresa.telefone2}</p>}
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {empresa.email && (
-                                    <div className="flex items-start gap-2 text-muted-foreground">
-                                      <Mail className="w-4 h-4 shrink-0 mt-0.5" />
-                                      <div>
-                                        <span className="font-medium text-foreground">E-mail:</span>
-                                        <a href={`mailto:${empresa.email}`} className="text-primary hover:underline break-all block">
-                                          {empresa.email}
-                                        </a>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Coluna 3 - Sócios/Administradores */}
-                              <div className="space-y-3">
-                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-amber-500" />
-                                  Quadro Societário ({empresa.qsa?.length || 0})
-                                </h4>
-                                
-                                <div className="space-y-2 text-sm">
-                                  {empresa.qsa && empresa.qsa.length > 0 ? (
-                                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                                      {empresa.qsa.map((socio, i) => (
-                                        <div key={i} className="p-2 rounded-lg bg-secondary/30 border border-border/20">
-                                          <p className="font-medium text-foreground">{socio.nome}</p>
-                                          <p className="text-xs text-amber-400 mt-0.5">{socio.qualificacao}</p>
-                                          {socio.cpfCnpj && (
-                                            <p className="text-xs text-muted-foreground font-mono mt-1">
-                                              CPF/CNPJ: {socio.cpfCnpj.replace(/\D/g, '').length <= 11 
-                                                ? '***.' + socio.cpfCnpj.slice(-6, -3) + '.' + socio.cpfCnpj.slice(-3) + '-**'
-                                                : socio.cpfCnpj}
-                                            </p>
-                                          )}
-                                          {socio.dataEntrada && (
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                              Entrada: {socio.dataEntrada}
-                                            </p>
-                                          )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <p className="text-muted-foreground text-xs">Nenhum sócio informado</p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                            <p className="text-sm font-mono text-muted-foreground mt-1">{empresa.cnpj}</p>
                           </div>
-                        </CollapsibleContent>
-                      </Card>
-                    </Collapsible>
+                          <div className="text-right text-sm">
+                            <p className="text-muted-foreground">{empresa.porte}</p>
+                            <p className="font-medium text-amber-400">{formatCurrency(empresa.capitalSocial)}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
+                          {empresa.telefone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {empresa.telefone}
+                            </span>
+                          )}
+                          {empresa.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {empresa.email}
+                            </span>
+                          )}
+                          {empresa.cidade && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {empresa.cidade}/{empresa.uf}
+                            </span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               </ScrollArea>
@@ -685,6 +515,240 @@ export default function CNPJExtractor() {
             </CardContent>
           </Card>
         )}
+
+        {/* Modal de detalhes da empresa */}
+        <Dialog open={!!selectedEmpresa} onOpenChange={() => setSelectedEmpresa(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {selectedEmpresa && (
+              <>
+                <DialogHeader>
+                  <div className="flex items-start justify-between gap-4 pr-8">
+                    <div>
+                      <DialogTitle className="text-xl">
+                        {selectedEmpresa.nomeFantasia || selectedEmpresa.razaoSocial}
+                      </DialogTitle>
+                      {selectedEmpresa.nomeFantasia && (
+                        <p className="text-sm text-muted-foreground mt-1">{selectedEmpresa.razaoSocial}</p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge 
+                        variant={selectedEmpresa.situacao === 'ATIVA' ? 'default' : 'destructive'}
+                        className={`${selectedEmpresa.situacao === 'ATIVA' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}
+                      >
+                        {selectedEmpresa.situacao === 'ATIVA' ? (
+                          <><CheckCircle2 className="w-3 h-3 mr-1" />ATIVA</>
+                        ) : (
+                          <><XCircle className="w-3 h-3 mr-1" />{selectedEmpresa.situacao}</>
+                        )}
+                      </Badge>
+                      {selectedEmpresa.dataSituacao && (
+                        <span className="text-xs text-muted-foreground">
+                          desde {selectedEmpresa.dataSituacao}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                <div className="space-y-6 mt-4">
+                  {/* Status e Badges */}
+                  <div className="flex flex-wrap gap-2">
+                    {selectedEmpresa.simples && (
+                      <Badge variant="outline" className="text-emerald-400 border-emerald-400/50">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Optante Simples Nacional
+                      </Badge>
+                    )}
+                    {selectedEmpresa.mei && (
+                      <Badge variant="outline" className="text-blue-400 border-blue-400/50">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        MEI
+                      </Badge>
+                    )}
+                    {!selectedEmpresa.simples && (
+                      <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Não optante Simples
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-amber-400 border-amber-400/50">
+                      {selectedEmpresa.porte}
+                    </Badge>
+                  </div>
+
+                  <Separator />
+
+                  {/* Dados da Empresa */}
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-amber-500" />
+                        Dados da Empresa
+                      </h4>
+                      
+                      <div className="space-y-3 text-sm">
+                        <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-secondary/30">
+                          <div className="flex items-center gap-2">
+                            <Hash className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">CNPJ:</span>
+                            <span className="font-mono font-medium">{selectedEmpresa.cnpj}</span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 px-2"
+                            onClick={(e) => { e.stopPropagation(); copyToClipboard(selectedEmpresa.cnpj, 'CNPJ'); }}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Briefcase className="w-4 h-4" />
+                            <span className="font-medium text-foreground">Atividade Principal:</span>
+                          </div>
+                          <p className="text-muted-foreground pl-6">
+                            {selectedEmpresa.codigoCnae ? `${selectedEmpresa.codigoCnae} - ` : ''}{selectedEmpresa.atividadePrincipal || 'Não informada'}
+                          </p>
+                        </div>
+
+                        {selectedEmpresa.atividadesSecundarias && selectedEmpresa.atividadesSecundarias.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-xs">Atividades Secundárias ({selectedEmpresa.atividadesSecundarias.length}):</span>
+                            <ul className="text-xs text-muted-foreground pl-6 space-y-0.5 max-h-20 overflow-y-auto">
+                              {selectedEmpresa.atividadesSecundarias.map((at, i) => (
+                                <li key={i}>{at.codigo} - {at.descricao}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Scale className="w-4 h-4" />
+                          <span className="font-medium text-foreground">Natureza Jurídica:</span>
+                          <span>{selectedEmpresa.naturezaJuridica || 'Não informada'}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <DollarSign className="w-4 h-4" />
+                          <span className="font-medium text-foreground">Capital Social:</span>
+                          <span className="text-amber-400 font-medium">{formatCurrency(selectedEmpresa.capitalSocial)}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="w-4 h-4" />
+                          <span className="font-medium text-foreground">Data de Abertura:</span>
+                          <span>{selectedEmpresa.dataAbertura || 'Não informada'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Localização e Contato */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-amber-500" />
+                        Localização e Contato
+                      </h4>
+                      
+                      <div className="space-y-3 text-sm">
+                        <div className="space-y-1 p-2 rounded-lg bg-secondary/30">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <MapPin className="w-4 h-4" />
+                            <span className="font-medium text-foreground">Endereço:</span>
+                          </div>
+                          <div className="pl-6 text-muted-foreground">
+                            <p>{selectedEmpresa.logradouro || ''}{selectedEmpresa.numero ? `, ${selectedEmpresa.numero}` : ''}</p>
+                            {selectedEmpresa.complemento && <p>{selectedEmpresa.complemento}</p>}
+                            <p>{selectedEmpresa.bairro || ''}</p>
+                            <p className="font-medium">{selectedEmpresa.cidade} - {selectedEmpresa.uf}</p>
+                            {selectedEmpresa.cep && <p className="font-mono text-xs">CEP: {selectedEmpresa.cep}</p>}
+                          </div>
+                        </div>
+
+                        {selectedEmpresa.telefone && (
+                          <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-secondary/30">
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Telefone:</span>
+                              <span className="font-medium">{selectedEmpresa.telefone}</span>
+                              {selectedEmpresa.telefone2 && <span className="text-muted-foreground">/ {selectedEmpresa.telefone2}</span>}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 px-2"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(selectedEmpresa.telefone, 'Telefone'); }}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+
+                        {selectedEmpresa.email && (
+                          <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-secondary/30">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <span className="text-muted-foreground shrink-0">E-mail:</span>
+                              <a href={`mailto:${selectedEmpresa.email}`} className="text-primary hover:underline truncate">
+                                {selectedEmpresa.email}
+                              </a>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 px-2 shrink-0"
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(selectedEmpresa.email, 'E-mail'); }}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Quadro Societário */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Users className="w-4 h-4 text-amber-500" />
+                      Quadro Societário / Administradores ({selectedEmpresa.qsa?.length || 0})
+                    </h4>
+                    
+                    {selectedEmpresa.qsa && selectedEmpresa.qsa.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {selectedEmpresa.qsa.map((socio, i) => (
+                          <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border/20">
+                            <p className="font-medium text-foreground">{socio.nome}</p>
+                            <p className="text-xs text-amber-400 mt-1">{socio.qualificacao}</p>
+                            {socio.cpfCnpj && (
+                              <p className="text-xs text-muted-foreground font-mono mt-2">
+                                CPF/CNPJ: {socio.cpfCnpj.replace(/\D/g, '').length <= 11 
+                                  ? '***.' + socio.cpfCnpj.slice(-6, -3) + '.' + socio.cpfCnpj.slice(-3) + '-**'
+                                  : socio.cpfCnpj}
+                              </p>
+                            )}
+                            {socio.dataEntrada && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                <Calendar className="w-3 h-3 inline mr-1" />
+                                Entrada: {socio.dataEntrada}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">Nenhum sócio/administrador informado</p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
