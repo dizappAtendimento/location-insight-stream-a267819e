@@ -139,8 +139,19 @@ async function searchCNPJByName(
                     nomeFantasia: cnpjData.nome_fantasia || '',
                     situacao: cnpjData.situacao_cadastral,
                     dataAbertura: cnpjData.data_inicio_atividade,
+                    dataSituacao: cnpjData.data_situacao_cadastral,
                     atividadePrincipal: cnpjData.cnae_fiscal_descricao,
+                    codigoCnae: cnpjData.cnae_fiscal,
+                    atividadesSecundarias: cnpjData.cnaes_secundarios?.map(c => ({
+                      codigo: c.codigo,
+                      descricao: c.descricao
+                    })) || [],
                     naturezaJuridica: cnpjData.natureza_juridica,
+                    logradouro: cnpjData.logradouro,
+                    numero: cnpjData.numero,
+                    complemento: cnpjData.complemento,
+                    bairro: cnpjData.bairro,
+                    cep: cnpjData.cep,
                     endereco: formatEndereco(cnpjData),
                     telefone: formatTelefone(cnpjData.ddd_telefone_1),
                     telefone2: formatTelefone(cnpjData.ddd_telefone_2),
@@ -152,6 +163,12 @@ async function searchCNPJByName(
                     uf: cnpjData.uf,
                     cidade: cnpjData.municipio,
                     socios: cnpjData.qsa?.map(s => s.nome_socio) || [],
+                    qsa: cnpjData.qsa?.map(s => ({
+                      nome: s.nome_socio,
+                      cpfCnpj: s.cnpj_cpf_do_socio,
+                      qualificacao: s.qualificacao_socio,
+                      dataEntrada: s.data_entrada_sociedade
+                    })) || [],
                   });
                   
                   console.log(`Found CNPJ: ${cleanCNPJ} - ${cnpjData.razao_social}`);
@@ -247,8 +264,19 @@ Deno.serve(async (req) => {
             nomeFantasia: data.nome_fantasia || '',
             situacao: data.situacao_cadastral,
             dataAbertura: data.data_inicio_atividade,
+            dataSituacao: data.data_situacao_cadastral,
             atividadePrincipal: data.cnae_fiscal_descricao,
+            codigoCnae: data.cnae_fiscal,
+            atividadesSecundarias: data.cnaes_secundarios?.map(c => ({
+              codigo: c.codigo,
+              descricao: c.descricao
+            })) || [],
             naturezaJuridica: data.natureza_juridica,
+            logradouro: data.logradouro,
+            numero: data.numero,
+            complemento: data.complemento,
+            bairro: data.bairro,
+            cep: data.cep,
             endereco: formatEndereco(data),
             telefone: formatTelefone(data.ddd_telefone_1),
             telefone2: formatTelefone(data.ddd_telefone_2),
@@ -260,6 +288,12 @@ Deno.serve(async (req) => {
             uf: data.uf,
             cidade: data.municipio,
             socios: data.qsa?.map(s => s.nome_socio) || [],
+            qsa: data.qsa?.map(s => ({
+              nome: s.nome_socio,
+              cpfCnpj: s.cnpj_cpf_do_socio,
+              qualificacao: s.qualificacao_socio,
+              dataEntrada: s.data_entrada_sociedade
+            })) || [],
           }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
