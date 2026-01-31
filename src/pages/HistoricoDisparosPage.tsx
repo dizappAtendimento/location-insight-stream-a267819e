@@ -47,6 +47,7 @@ interface Disparo {
   TotalDisparos: number | null;
   MensagensDisparadas: number | null;
   DataAgendamento: string | null;
+  TotalDestinatarios?: number | null; // Número de contatos/grupos únicos
 }
 
 const HistoricoDisparosPage = () => {
@@ -218,10 +219,13 @@ const HistoricoDisparosPage = () => {
     );
   };
 
-  const calculateProgress = (total: number | null, sent: number | null) => {
-    if (!total || total === 0) return 0;
-    // Limitar a 100% máximo (pode acontecer em modo sequência quando sent > total original)
-    return Math.min(100, Math.round(((sent || 0) / total) * 100));
+  // Calcular progresso baseado em mensagens enviadas vs total
+  const calculateProgress = (disparo: Disparo) => {
+    const total = disparo.TotalDisparos || 0;
+    const sent = disparo.MensagensDisparadas || 0;
+    if (total === 0) return 0;
+    // Limitar a 100% máximo
+    return Math.min(100, Math.round((sent / total) * 100));
   };
 
   // Verificar se o disparo está completo (para exibição de status)
@@ -229,6 +233,28 @@ const HistoricoDisparosPage = () => {
     const sent = disparo.MensagensDisparadas || 0;
     const total = disparo.TotalDisparos || 0;
     return total > 0 && sent >= total;
+  };
+
+  // Obter o número a exibir como "Total" (destinatários únicos)
+  const getDisplayTotal = (disparo: Disparo) => {
+    // Se temos TotalDestinatarios do backend, usar ele
+    if (disparo.TotalDestinatarios && disparo.TotalDestinatarios > 0) {
+      return disparo.TotalDestinatarios;
+    }
+    // Fallback para TotalDisparos
+    return disparo.TotalDisparos || 0;
+  };
+
+  // Obter o número de enviados a exibir (destinatários que receberam pelo menos uma mensagem)
+  const getDisplaySent = (disparo: Disparo) => {
+    // Se temos TotalDestinatarios, calcular proporcionalmente
+    if (disparo.TotalDestinatarios && disparo.TotalDestinatarios > 0 && disparo.TotalDisparos && disparo.TotalDisparos > 0) {
+      const mensagensPorDestinatario = disparo.TotalDisparos / disparo.TotalDestinatarios;
+      const destinatariosCompletos = Math.floor((disparo.MensagensDisparadas || 0) / mensagensPorDestinatario);
+      return Math.min(destinatariosCompletos, disparo.TotalDestinatarios);
+    }
+    // Fallback
+    return disparo.MensagensDisparadas || 0;
   };
 
   return (
@@ -343,7 +369,9 @@ const HistoricoDisparosPage = () => {
                 <TableBody>
                   {filteredDisparos.map((disparo) => {
                     const { date, time } = formatDate(disparo.created_at);
-                    const progress = calculateProgress(disparo.TotalDisparos, disparo.MensagensDisparadas);
+                    const progress = calculateProgress(disparo);
+                    const displayTotal = getDisplayTotal(disparo);
+                    const displaySent = getDisplaySent(disparo);
                     const isPaused = disparo.StatusDisparo?.toLowerCase() === "pausado";
                     const isRunning = disparo.StatusDisparo?.toLowerCase() === "em andamento" || disparo.StatusDisparo?.toLowerCase() === "em_andamento";
                     const canPauseResume = isPaused || isRunning;
@@ -356,10 +384,10 @@ const HistoricoDisparosPage = () => {
                         </TableCell>
                         <TableCell>{getTipoBadge(disparo.TipoDisparo)}</TableCell>
                         <TableCell className="text-center font-semibold text-primary">
-                          {disparo.TotalDisparos || 0}
+                          {displayTotal}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-primary">
-                          {disparo.MensagensDisparadas || 0}
+                          {displaySent}
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">

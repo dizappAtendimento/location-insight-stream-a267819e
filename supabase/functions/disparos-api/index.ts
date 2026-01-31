@@ -291,10 +291,31 @@ serve(async (req) => {
           throw error;
         }
 
-        console.log(`[Disparos API] Found ${data?.length || 0} disparos`);
+        // Para cada disparo, calcular o número de destinatários únicos
+        const disparosWithDestinatarios = await Promise.all((data || []).map(async (disparo: any) => {
+          // Buscar detalhes deste disparo para contar destinatários únicos
+          const { data: detalhes } = await supabase
+            .from('SAAS_Detalhes_Disparos')
+            .select('idContato, idGrupo')
+            .eq('idDisparo', disparo.id);
+          
+          // Contar destinatários únicos (por idContato ou idGrupo)
+          const uniqueDestinatarios = new Set<string>();
+          (detalhes || []).forEach((d: any) => {
+            if (d.idContato) uniqueDestinatarios.add(`c_${d.idContato}`);
+            if (d.idGrupo) uniqueDestinatarios.add(`g_${d.idGrupo}`);
+          });
+          
+          return {
+            ...disparo,
+            TotalDestinatarios: uniqueDestinatarios.size
+          };
+        }));
+
+        console.log(`[Disparos API] Found ${disparosWithDestinatarios.length} disparos`);
         
         return new Response(
-          JSON.stringify({ disparos: data || [] }),
+          JSON.stringify({ disparos: disparosWithDestinatarios }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
