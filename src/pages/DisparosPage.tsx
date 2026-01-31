@@ -909,6 +909,54 @@ export default function DisparosPage() {
                       </div>
                     )}
 
+                    {/* Painel de geração IA - aparece quando ativado */}
+                    {msg.aiEnabled && (
+                      <div className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-emerald-500" />
+                          <span className="text-sm font-medium text-emerald-600">Gerar Variações com IA</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3 items-center">
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">Variações:</Label>
+                            <Input
+                              type="number"
+                              value={aiCount}
+                              onChange={e => setAiCount(Number(e.target.value))}
+                              className="w-16 h-8 text-sm"
+                              min={1}
+                              max={10}
+                            />
+                          </div>
+                          <Input
+                            type="text"
+                            placeholder="Instruções (ex: mais informal)"
+                            value={aiInstructions}
+                            onChange={e => setAiInstructions(e.target.value)}
+                            className="flex-1 min-w-[150px] h-8 text-sm"
+                          />
+                          <Button
+                            onClick={() => generateAIForMessage(msg.id)}
+                            disabled={isGeneratingAI || !msg.text.trim()}
+                            size="sm"
+                            className="bg-emerald-500 hover:bg-emerald-600 h-8 px-4"
+                          >
+                            {isGeneratingAI ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                Gerar
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        {!msg.text.trim() && (
+                          <p className="text-xs text-amber-500">⚠️ Digite uma mensagem base primeiro</p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-3">
                       {[
                         { type: 'image', icon: Image, label: 'Imagem' },
@@ -941,58 +989,6 @@ export default function DisparosPage() {
                   <Plus className="w-5 h-5 mr-2" />
                   {messageMode === 'sequence' ? 'Adicionar Etapa' : 'Nova Variação'}
                 </Button>
-
-                {/* IA - Configurações globais */}
-                {messages.some(m => m.aiEnabled) && (
-                  <div className="p-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 space-y-4">
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="w-5 h-5 text-emerald-500" />
-                        <span className="text-base font-medium">
-                          🤖 Gerar Variações com IA
-                        </span>
-                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                          {messages.filter(m => m.aiEnabled).length} etapa(s) marcada(s)
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      A IA irá criar variações das mensagens marcadas acima com o ícone ✨
-                    </p>
-                    <div className="flex flex-wrap gap-3 items-center">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm">Variações:</Label>
-                        <Input
-                          type="number"
-                          value={aiCount}
-                          onChange={e => setAiCount(Number(e.target.value))}
-                          className="w-20 h-10"
-                          min={1}
-                          max={10}
-                        />
-                      </div>
-                      <Input
-                        type="text"
-                        placeholder="Instruções (ex: seja persuasivo, mais informal)"
-                        value={aiInstructions}
-                        onChange={e => setAiInstructions(e.target.value)}
-                        className="flex-1 min-w-[200px] h-10"
-                      />
-                      <Button
-                        onClick={generateAIForAll}
-                        disabled={isGeneratingAI || !messages.some(m => m.aiEnabled && m.text.trim())}
-                        className="bg-emerald-500 hover:bg-emerald-600 h-10 px-6"
-                      >
-                        {isGeneratingAI ? (
-                          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        ) : (
-                          <Sparkles className="w-4 h-4 mr-2" />
-                        )}
-                        {isGeneratingAI ? 'Gerando...' : 'Gerar Variações'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
