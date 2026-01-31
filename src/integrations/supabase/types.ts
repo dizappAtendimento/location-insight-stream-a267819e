@@ -1137,6 +1137,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_disparo_owner: { Args: { p_disparo_id: number }; Returns: string }
       get_grupos_by_lista: {
         Args: { p_id_lista: number }
         Returns: {
