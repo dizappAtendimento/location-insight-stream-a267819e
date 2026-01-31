@@ -501,12 +501,16 @@ export default function MaturadorPage() {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <Badge className={`${statusConfig.bg} ${statusConfig.text} border-0 text-[10px] px-2 py-0`}>
                                   {statusConfig.label}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
                                   {session.mensagensEnviadas}/{session.totalMensagens}
+                                </span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {session.intervaloMin}s a {session.intervaloMax}s
                                 </span>
                               </div>
                             </div>
