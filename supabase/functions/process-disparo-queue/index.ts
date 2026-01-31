@@ -169,8 +169,14 @@ serve(async (req) => {
         // Preparar payload para Evolution API
         const payload = msg.Payload || {};
         
-        // NEW: Each detail now has a single media (or none)
-        const mediaItem = payload.media;
+        // Support both old format (medias array) and new format (single media object)
+        let mediaItem = payload.media;
+        
+        // Fallback: if old format with medias array, take the first item
+        if (!mediaItem && payload.medias && Array.isArray(payload.medias) && payload.medias.length > 0) {
+          mediaItem = payload.medias[0];
+          console.log(`[Process Queue] Message ${msg.id} using legacy medias array format`);
+        }
 
         if (mediaItem?.link) {
           // Send media
