@@ -794,41 +794,6 @@ export default function DisparosPage() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-5 px-6 pb-6">
-                {/* Intervalo entre mensagens da sequência */}
-                {messageMode === 'sequence' && messages.length > 1 && (
-                  <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5 flex-wrap">
-                    <Clock className="w-5 h-5 text-primary" />
-                    <Label className="text-sm font-medium">Intervalo entre mensagens da sequência:</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        value={sequenceIntervalMin}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          setSequenceIntervalMin(val);
-                          if (val > sequenceIntervalMax) setSequenceIntervalMax(val);
-                        }}
-                        className="w-20 h-9"
-                        min={1}
-                        max={86400}
-                      />
-                      <span className="text-sm text-muted-foreground">a</span>
-                      <Input
-                        type="number"
-                        value={sequenceIntervalMax}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          setSequenceIntervalMax(val);
-                          if (val < sequenceIntervalMin) setSequenceIntervalMin(val);
-                        }}
-                        className="w-20 h-9"
-                        min={1}
-                        max={86400}
-                      />
-                    </div>
-                    <span className="text-sm text-muted-foreground">segundos</span>
-                  </div>
-                )}
                 {messages.map((msg, idx) => (
                   <div key={msg.id} className="p-5 rounded-xl border border-border/50 bg-background/50 space-y-4 transition-all duration-200 hover:border-primary/30">
                     <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1098,6 +1063,39 @@ export default function DisparosPage() {
                   />
                   <span className="text-base text-muted-foreground">segundos</span>
                 </div>
+
+                {/* Intervalo entre mensagens da sequência */}
+                {messageMode === 'sequence' && messages.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Label className="text-base">Intervalo entre mensagens da sequência:</Label>
+                    <Input
+                      type="number"
+                      value={sequenceIntervalMin}
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        setSequenceIntervalMin(val);
+                        if (val > sequenceIntervalMax) setSequenceIntervalMax(val);
+                      }}
+                      className="w-20 h-11"
+                      min={1}
+                      max={86400}
+                    />
+                    <span className="text-base text-muted-foreground">a</span>
+                    <Input
+                      type="number"
+                      value={sequenceIntervalMax}
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        setSequenceIntervalMax(val);
+                        if (val < sequenceIntervalMin) setSequenceIntervalMin(val);
+                      }}
+                      className="w-20 h-11"
+                      min={1}
+                      max={86400}
+                    />
+                    <span className="text-base text-muted-foreground">segundos</span>
+                  </div>
+                )}
 
                 {/* Pausa */}
                 <div className="flex flex-wrap items-center gap-3">
