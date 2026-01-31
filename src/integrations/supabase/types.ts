@@ -102,6 +102,13 @@ export type Database = {
             foreignKeyName: "SAAS_Conexões_idUsuario_fkey"
             columns: ["idUsuario"]
             isOneToOne: false
+            referencedRelation: "vw_usuarios_com_plano"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Conexões_idUsuario_fkey"
+            columns: ["idUsuario"]
+            isOneToOne: false
             referencedRelation: "vw_Usuarios_Com_Plano"
             referencedColumns: ["id"]
           },
@@ -181,6 +188,13 @@ export type Database = {
             columns: ["idUsuario"]
             isOneToOne: false
             referencedRelation: "SAAS_Usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Contatos_idUsuario_fkey"
+            columns: ["idUsuario"]
+            isOneToOne: false
+            referencedRelation: "vw_usuarios_com_plano"
             referencedColumns: ["id"]
           },
           {
@@ -568,6 +582,13 @@ export type Database = {
             foreignKeyName: "SAAS_Grupos_idUsuario_fkey"
             columns: ["idUsuario"]
             isOneToOne: false
+            referencedRelation: "vw_usuarios_com_plano"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Grupos_idUsuario_fkey"
+            columns: ["idUsuario"]
+            isOneToOne: false
             referencedRelation: "vw_Usuarios_Com_Plano"
             referencedColumns: ["id"]
           },
@@ -617,6 +638,13 @@ export type Database = {
             columns: ["idUsuario"]
             isOneToOne: false
             referencedRelation: "SAAS_Usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Listas_idUsuario_fkey"
+            columns: ["idUsuario"]
+            isOneToOne: false
+            referencedRelation: "vw_usuarios_com_plano"
             referencedColumns: ["id"]
           },
           {
@@ -881,8 +909,22 @@ export type Database = {
             foreignKeyName: "SAAS_Usuarios_plano_extrator_fkey"
             columns: ["plano_extrator"]
             isOneToOne: false
+            referencedRelation: "vw_planos_usuarios_count"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Usuarios_plano_extrator_fkey"
+            columns: ["plano_extrator"]
+            isOneToOne: false
             referencedRelation: "vw_Planos_Usuarios_Count"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Usuarios_plano_extrator_fkey"
+            columns: ["plano_extrator"]
+            isOneToOne: false
+            referencedRelation: "vw_usuarios_com_plano"
+            referencedColumns: ["plano_id"]
           },
           {
             foreignKeyName: "SAAS_Usuarios_plano_fkey"
@@ -895,8 +937,22 @@ export type Database = {
             foreignKeyName: "SAAS_Usuarios_plano_fkey"
             columns: ["plano"]
             isOneToOne: false
+            referencedRelation: "vw_planos_usuarios_count"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Usuarios_plano_fkey"
+            columns: ["plano"]
+            isOneToOne: false
             referencedRelation: "vw_Planos_Usuarios_Count"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Usuarios_plano_fkey"
+            columns: ["plano"]
+            isOneToOne: false
+            referencedRelation: "vw_usuarios_com_plano"
+            referencedColumns: ["plano_id"]
           },
         ]
       }
@@ -974,6 +1030,63 @@ export type Database = {
       }
     }
     Views: {
+      vw_detalhes_completo: {
+        Row: {
+          ApikeyConexao: string | null
+          dataEnvio: string | null
+          FakeCall: boolean | null
+          id: number | null
+          idConexao: number | null
+          idContato: number | null
+          idDisparo: number | null
+          idGrupo: number | null
+          InstanceName: string | null
+          KeyRedis: string | null
+          Mensagem: string | null
+          mensagemErro: string | null
+          NomeConexao: string | null
+          NomeGrupo: string | null
+          Payload: Json | null
+          respostaHttp: Json | null
+          Status: string | null
+          StatusDisparo: string | null
+          statusHttp: string | null
+          TelefoneContato: string | null
+          TipoDisparo: string | null
+          UserId: string | null
+          WhatsAppIdGrupo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "SAAS_Detalhes_Disparos_idConexao_fkey"
+            columns: ["idConexao"]
+            isOneToOne: false
+            referencedRelation: "SAAS_Conexões"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Detalhes_Disparos_idContato_fkey"
+            columns: ["idContato"]
+            isOneToOne: false
+            referencedRelation: "SAAS_Contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Detalhes_Disparos_idDisparo_fkey"
+            columns: ["idDisparo"]
+            isOneToOne: false
+            referencedRelation: "SAAS_Disparos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Detalhes_Disparos_idGrupo_fkey"
+            columns: ["idGrupo"]
+            isOneToOne: false
+            referencedRelation: "SAAS_Grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_Detalhes_Completo: {
         Row: {
           ApikeyConexao: string | null
@@ -1031,6 +1144,42 @@ export type Database = {
           },
         ]
       }
+      vw_planos_usuarios_count: {
+        Row: {
+          created_at: string | null
+          id: number | null
+          nome: string | null
+          preco: number | null
+          qntConexoes: number | null
+          qntContatos: number | null
+          qntDisparos: number | null
+          qntListas: number | null
+          total_usuarios: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number | null
+          nome?: string | null
+          preco?: number | null
+          qntConexoes?: number | null
+          qntContatos?: number | null
+          qntDisparos?: number | null
+          qntListas?: number | null
+          total_usuarios?: never
+        }
+        Update: {
+          created_at?: string | null
+          id?: number | null
+          nome?: string | null
+          preco?: number | null
+          qntConexoes?: number | null
+          qntContatos?: number | null
+          qntDisparos?: number | null
+          qntListas?: number | null
+          total_usuarios?: never
+        }
+        Relationships: []
+      }
       vw_Planos_Usuarios_Count: {
         Row: {
           created_at: string | null
@@ -1042,6 +1191,31 @@ export type Database = {
           qntDisparos: number | null
           qntListas: number | null
           total_usuarios: number | null
+        }
+        Relationships: []
+      }
+      vw_usuarios_com_plano: {
+        Row: {
+          apikey_gpt: string | null
+          created_at: string | null
+          dataValidade: string | null
+          Email: string | null
+          id: string | null
+          nome: string | null
+          plano_created_at: string | null
+          plano_id: number | null
+          plano_nome: string | null
+          plano_preco: number | null
+          plano_qntconexoes: number | null
+          plano_qntcontatos: number | null
+          plano_qntdisparos: number | null
+          plano_qntlistas: number | null
+          status: boolean | null
+          telefone: string | null
+          total_conexoes: number | null
+          total_contatos: number | null
+          total_disparos: number | null
+          total_listas: number | null
         }
         Relationships: []
       }
@@ -1081,8 +1255,22 @@ export type Database = {
             foreignKeyName: "SAAS_Usuarios_plano_fkey"
             columns: ["plano_id"]
             isOneToOne: false
+            referencedRelation: "vw_planos_usuarios_count"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Usuarios_plano_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
             referencedRelation: "vw_Planos_Usuarios_Count"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SAAS_Usuarios_plano_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "vw_usuarios_com_plano"
+            referencedColumns: ["plano_id"]
           },
         ]
       }
