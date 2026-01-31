@@ -108,7 +108,7 @@ const playNewLeadSound = () => {
     oscillator.start(now);
     oscillator.stop(now + 0.5);
     
-    console.log('🔔 Som de notificação tocado');
+    console.log('Som de notificação tocado');
   } catch (error) {
     console.error('Erro ao tocar som:', error);
   }
@@ -138,7 +138,7 @@ const playMessageSound = () => {
     oscillator.start(now);
     oscillator.stop(now + 0.4);
     
-    console.log('💬 Som de mensagem tocado');
+    console.log('Som de mensagem tocado');
   } catch (error) {
     console.error('Erro ao tocar som de mensagem:', error);
   }
@@ -540,12 +540,12 @@ const CrmPage = () => {
             }
             if (notificationsEnabled) {
               showPushNotification(
-                '🔔 Novo Lead!',
+                'Novo Lead!',
                 `${lead.nome || 'Novo contato'} - ${lead.telefone || ''}`
               );
             }
             toast({ 
-              title: "🔔 Novo Lead!", 
+              title: "Novo Lead!", 
               description: `${lead.nome || 'Novo contato'} - ${lead.telefone}` 
             });
           }
@@ -589,12 +589,12 @@ const CrmPage = () => {
             }
             if (notificationsEnabled) {
               showPushNotification(
-                '💬 Nova mensagem!',
+                'Nova mensagem!',
                 `${updatedLeadData.nome || 'Contato'} enviou mensagem`
               );
             }
             toast({ 
-              title: "💬 Nova mensagem!", 
+              title: "Nova mensagem!", 
               description: `${updatedLeadData.nome || 'Contato'} enviou mensagem` 
             });
           }

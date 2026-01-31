@@ -61,8 +61,8 @@ Perfeito!
 Show de bola!
 Beleza, depois a gente se fala
 Até mais!
-👍
-✅`;
+OK
+Certo`;
 
 export default function MaturadorPage() {
   const { user } = useAuth();

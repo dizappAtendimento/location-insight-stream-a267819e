@@ -38,11 +38,11 @@ const MENSAGENS_MATURADOR = [
   "Pode deixar",
   "Sem problemas",
   "Tranquilo!",
-  "😊",
-  "👍",
-  "✅",
-  "🙏",
-  "😄"
+  "Beleza",
+  "OK",
+  "Certo",
+  "Valeu",
+  "Show"
 ];
 
 serve(async (req) => {

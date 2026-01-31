@@ -851,7 +851,7 @@ export default function DisparosGrupoPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Sparkles className="w-6 h-6 text-emerald-500" />
-                    <CardTitle className="text-xl font-semibold">🤖 Gerar com IA</CardTitle>
+                    <CardTitle className="text-xl font-semibold">Gerar com IA</CardTitle>
                   </div>
                   <Switch
                     checked={aiEnabled}
@@ -1014,7 +1014,7 @@ export default function DisparosGrupoPage() {
                                 </div>
                               ) : (
                                 <div className="bg-white/50 p-2 rounded-lg mb-2 flex items-center gap-2">
-                                  <div className="text-2xl">📄</div>
+                                  <FileText className="w-5 h-5 text-black/60" />
                                   <span className="text-xs text-black/70 truncate">{messages[0].media.filename}</span>
                                 </div>
                               )

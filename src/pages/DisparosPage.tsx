@@ -944,7 +944,7 @@ export default function DisparosPage() {
                           </Button>
                         </div>
                         {!msg.text.trim() && (
-                          <p className="text-xs text-amber-500">⚠️ Digite uma mensagem base primeiro</p>
+                          <p className="text-xs text-amber-500">Digite uma mensagem base primeiro</p>
                         )}
                       </div>
                     )}
@@ -991,7 +991,7 @@ export default function DisparosPage() {
                           ))}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          💡 No modo sequência, uma variação aleatória será escolhida para esta etapa
+                          No modo sequência, uma variação aleatória será escolhida para esta etapa
                         </p>
                       </div>
                     )}
