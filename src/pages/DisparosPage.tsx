@@ -125,7 +125,8 @@ export default function DisparosPage() {
   
   // Modo de mensagens: sempre sequência (múltiplas para mesmo contato)
   const messageMode = 'sequence';
-  const [sequenceInterval, setSequenceInterval] = useState(5); // segundos entre mensagens da sequência
+  const [sequenceIntervalMin, setSequenceIntervalMin] = useState(5); // segundos mínimo entre mensagens
+  const [sequenceIntervalMax, setSequenceIntervalMax] = useState(20); // segundos máximo entre mensagens
   
   // IA - Configurações globais para geração
   const [aiInstructions, setAiInstructions] = useState('');
@@ -539,7 +540,8 @@ export default function DisparosPage() {
       selectedDays,
       // Novo: modo de mensagem e intervalo entre mensagens da sequência
       messageMode,
-      sequenceInterval: messageMode === 'sequence' ? parseInt(String(sequenceInterval)) : undefined,
+      sequenceIntervalMin: messageMode === 'sequence' ? parseInt(String(sequenceIntervalMin)) : undefined,
+      sequenceIntervalMax: messageMode === 'sequence' ? parseInt(String(sequenceIntervalMax)) : undefined,
     };
 
     if (scheduleEnabled && scheduleDateTime) {
@@ -588,7 +590,8 @@ export default function DisparosPage() {
               selectedDays: selectedDays,
               // CRÍTICO: Modo de mensagem (sequence envia TODAS as mensagens para cada contato)
               messageMode: messageMode,
-              sequenceInterval: messageMode === 'sequence' ? parseInt(String(sequenceInterval)) : 5,
+              sequenceIntervalMin: messageMode === 'sequence' ? parseInt(String(sequenceIntervalMin)) : 5,
+              sequenceIntervalMax: messageMode === 'sequence' ? parseInt(String(sequenceIntervalMax)) : 20,
               // Se não há agendamento, enviar hora atual para iniciar imediatamente
               scheduleData: scheduleEnabled && scheduleDateTime 
                 ? new Date(scheduleDateTime).toISOString() 
@@ -793,17 +796,36 @@ export default function DisparosPage() {
               <CardContent className="space-y-5 px-6 pb-6">
                 {/* Intervalo entre mensagens da sequência */}
                 {messageMode === 'sequence' && messages.length > 1 && (
-                  <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5 flex-wrap">
                     <Clock className="w-5 h-5 text-primary" />
                     <Label className="text-sm font-medium">Intervalo entre mensagens da sequência:</Label>
-                    <Input
-                      type="number"
-                      value={sequenceInterval}
-                      onChange={e => setSequenceInterval(Number(e.target.value))}
-                      className="w-24 h-9"
-                      min={1}
-                      max={86400}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={sequenceIntervalMin}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          setSequenceIntervalMin(val);
+                          if (val > sequenceIntervalMax) setSequenceIntervalMax(val);
+                        }}
+                        className="w-20 h-9"
+                        min={1}
+                        max={86400}
+                      />
+                      <span className="text-sm text-muted-foreground">a</span>
+                      <Input
+                        type="number"
+                        value={sequenceIntervalMax}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          setSequenceIntervalMax(val);
+                          if (val < sequenceIntervalMin) setSequenceIntervalMin(val);
+                        }}
+                        className="w-20 h-9"
+                        min={1}
+                        max={86400}
+                      />
+                    </div>
                     <span className="text-sm text-muted-foreground">segundos</span>
                   </div>
                 )}
