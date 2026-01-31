@@ -59,6 +59,8 @@ interface MessageItem {
   media: { type: string; filename: string; link: string; mimetype?: string } | null;
 }
 
+type MessageMode = 'variation' | 'sequence';
+
 const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 const DIAS_SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -107,6 +109,10 @@ export default function DisparosPage() {
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('18:00');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  
+  // Modo de mensagens: variação (aleatória) ou sequência (múltiplas para mesmo contato)
+  const [messageMode, setMessageMode] = useState<MessageMode>('variation');
+  const [sequenceInterval, setSequenceInterval] = useState(5); // segundos entre mensagens da sequência
   
   // IA
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -434,7 +440,10 @@ export default function DisparosPage() {
       pauseMinutes: parseInt(String(pauseMinutes)),
       startTime,
       endTime,
-      selectedDays
+      selectedDays,
+      // Novo: modo de mensagem e intervalo entre mensagens da sequência
+      messageMode,
+      sequenceInterval: messageMode === 'sequence' ? parseInt(String(sequenceInterval)) : undefined,
     };
 
     if (scheduleEnabled && scheduleDateTime) {
@@ -675,13 +684,71 @@ export default function DisparosPage() {
             {/* Mensagens */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '150ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-4 px-6 pt-6">
-                <CardTitle className="text-xl font-semibold">Mensagens *</CardTitle>
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <CardTitle className="text-xl font-semibold">Mensagens *</CardTitle>
+                  {/* Seletor de modo */}
+                  <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setMessageMode('variation')}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                        messageMode === 'variation'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Variação
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMessageMode('sequence')}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                        messageMode === 'sequence'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Sequência
+                    </button>
+                  </div>
+                </div>
+                {/* Descrição do modo */}
+                <p className="text-sm text-muted-foreground mt-2">
+                  {messageMode === 'variation' 
+                    ? '📝 Uma mensagem aleatória será enviada para cada contato'
+                    : '📨 Todas as mensagens serão enviadas em sequência para cada contato'}
+                </p>
               </CardHeader>
               <CardContent className="space-y-5 px-6 pb-6">
+                {/* Intervalo entre mensagens da sequência */}
+                {messageMode === 'sequence' && messages.length > 1 && (
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                    <Clock className="w-5 h-5 text-primary" />
+                    <Label className="text-sm font-medium">Intervalo entre mensagens da sequência:</Label>
+                    <Input
+                      type="number"
+                      value={sequenceInterval}
+                      onChange={e => setSequenceInterval(Number(e.target.value))}
+                      className="w-20 h-9"
+                      min={1}
+                      max={60}
+                    />
+                    <span className="text-sm text-muted-foreground">segundos</span>
+                  </div>
+                )}
                 {messages.map((msg, idx) => (
                   <div key={msg.id} className="p-5 rounded-xl border border-border/50 bg-background/50 space-y-4 transition-all duration-200 hover:border-primary/30">
                     <div className="flex items-center justify-between">
-                      <Label className="text-base font-medium">Mensagem {idx + 1}</Label>
+                      <div className="flex items-center gap-3">
+                        {messageMode === 'sequence' && (
+                          <span className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
+                            {idx + 1}
+                          </span>
+                        )}
+                        <Label className="text-base font-medium">
+                          {messageMode === 'sequence' ? `Etapa ${idx + 1}` : `Mensagem ${idx + 1}`}
+                        </Label>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -761,7 +828,7 @@ export default function DisparosPage() {
                   className="w-full h-12 border-dashed border-primary text-primary hover:bg-primary/10 text-base"
                 >
                   <Plus className="w-5 h-5 mr-2" />
-                  Nova Variação
+                  {messageMode === 'sequence' ? 'Adicionar Etapa' : 'Nova Variação'}
                 </Button>
 
                 {/* IA */}
