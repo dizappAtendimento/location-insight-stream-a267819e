@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -362,10 +362,64 @@ export default function DisparoDetalhesPage() {
     pendentes: detalhes.filter((d) => d.Status === "pending" || d.Status === "Pendente" || d.Status === "pendente" || d.Status === "processing" || !d.Status).length,
   };
 
-  // Filter and paginate
-  const filteredDetalhes = detalhes.filter((d) => {
+  // Agrupar detalhes por contato/grupo (mostrar cada número apenas uma vez)
+  const groupedDetalhes = useMemo(() => {
+    const groups: Record<string, {
+      destinatario: string;
+      conexao: string | null;
+      totalMensagens: number;
+      enviados: number;
+      falhas: number;
+      pendentes: number;
+      ultimoEnvio: string | null;
+      ultimaMensagem: string | null;
+      ultimoErro: string | null;
+    }> = {};
+    
+    detalhes.forEach((d) => {
+      const key = d.TelefoneContato || d.NomeGrupo || `id_${d.idContato || d.idGrupo}`;
+      if (!groups[key]) {
+        groups[key] = {
+          destinatario: d.TelefoneContato || d.NomeGrupo || "N/A",
+          conexao: d.NomeConexao,
+          totalMensagens: 0,
+          enviados: 0,
+          falhas: 0,
+          pendentes: 0,
+          ultimoEnvio: null,
+          ultimaMensagem: null,
+          ultimoErro: null,
+        };
+      }
+      
+      groups[key].totalMensagens++;
+      
+      const status = d.Status?.toLowerCase();
+      if (status === "sent" || status === "enviado") {
+        groups[key].enviados++;
+      } else if (status === "failed" || status === "falha" || status === "erro") {
+        groups[key].falhas++;
+        groups[key].ultimoErro = d.mensagemErro || groups[key].ultimoErro;
+      } else {
+        groups[key].pendentes++;
+      }
+      
+      if (d.dataEnvio && (!groups[key].ultimoEnvio || d.dataEnvio > groups[key].ultimoEnvio)) {
+        groups[key].ultimoEnvio = d.dataEnvio;
+        groups[key].ultimaMensagem = d.Mensagem;
+      }
+    });
+    
+    return Object.values(groups);
+  }, [detalhes]);
+
+  // Filter and paginate grouped data
+  const filteredDetalhes = groupedDetalhes.filter((d) => {
     if (statusFilter === "all") return true;
-    return d.Status?.toLowerCase() === statusFilter.toLowerCase();
+    if (statusFilter === "enviado") return d.enviados > 0;
+    if (statusFilter === "falha") return d.falhas > 0;
+    if (statusFilter === "pendente") return d.pendentes > 0;
+    return true;
   });
 
   const totalPages = Math.ceil(filteredDetalhes.length / ITEMS_PER_PAGE);
@@ -789,37 +843,53 @@ export default function DisparoDetalhesPage() {
                 <TableRow>
                   <TableHead>Destinatário</TableHead>
                   <TableHead>Conexão</TableHead>
+                  <TableHead>Mensagens</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Mensagem</TableHead>
+                  <TableHead>Último Envio</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedDetalhes.map((d) => (
-                  <TableRow key={d.id}>
+                {paginatedDetalhes.map((d, idx) => (
+                  <TableRow key={d.destinatario + idx}>
                     <TableCell className="font-mono text-primary">
-                      {d.TelefoneContato || d.NomeGrupo || "N/A"}
+                      {d.destinatario}
                     </TableCell>
                     <TableCell>
-                      {d.NomeConexao || (
+                      {d.conexao || (
                         <span className="text-destructive font-medium">Sem conexão</span>
                       )}
                     </TableCell>
-                    <TableCell>{getStatusBadge(d.Status)}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {d.dataEnvio
-                        ? format(parseISO(d.dataEnvio), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })
-                        : "-"}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{d.totalMensagens}</span>
+                        {d.totalMensagens > 1 && (
+                          <span className="text-xs text-muted-foreground">msgs</span>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell className="max-w-[200px]">
-                      <p className="truncate text-sm text-muted-foreground">
-                        {d.Mensagem || "-"}
-                      </p>
-                      {d.mensagemErro && (
-                        <p className="text-xs text-destructive mt-1 truncate">
-                          {d.mensagemErro}
-                        </p>
-                      )}
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {d.enviados > 0 && (
+                          <Badge className="bg-success/20 text-success border-success/30 text-xs">
+                            {d.enviados} enviado{d.enviados > 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                        {d.falhas > 0 && (
+                          <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs">
+                            {d.falhas} falha{d.falhas > 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                        {d.pendentes > 0 && (
+                          <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">
+                            {d.pendentes} pendente{d.pendentes > 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {d.ultimoEnvio
+                        ? format(parseISO(d.ultimoEnvio), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })
+                        : "-"}
                     </TableCell>
                   </TableRow>
                 ))}
