@@ -847,19 +847,25 @@ serve(async (req) => {
           let systemPrompt: string;
 
           if (variacoesMensagens.length > 0) {
-            // Modo de variações múltiplas
-            systemPrompt = `Você é um especialista em marketing e comunicação via WhatsApp. 
-Sua tarefa é criar ${quantidadeMensagens} variações de mensagens para campanhas de marketing.
-As mensagens devem ser persuasivas, amigáveis e naturais.
-As mensagens devem ser informais mas profissionais.
-Mantenha as variáveis originais como <nome>, <saudacao>, <data>, etc.
-Mantenha as mensagens concisas (máximo 3-4 parágrafos curtos).
-Não use hashtags ou emojis em excesso.
+            // Modo de variações múltiplas - mudanças SUTIS apenas
+            systemPrompt = `Você é um especialista em marketing e comunicação via WhatsApp.
+Sua tarefa é criar ${quantidadeMensagens} variações SUTIS de mensagens para campanhas de marketing.
+
+REGRAS IMPORTANTES:
+- Faça apenas MUDANÇAS SUTIS de uma mensagem para outra
+- NÃO altere o sentido, tom ou objetivo da mensagem original
+- Mantenha a estrutura e o tamanho aproximado da mensagem original
+- Troque sinônimos, reorganize frases levemente, mude pontuação
+- Mantenha TODAS as variáveis originais como <nome>, <saudacao>, <data>, etc.
+- As variações devem parecer escritas pela mesma pessoa
+- NÃO adicione ou remova informações importantes
+- NÃO mude emojis significativamente (apenas posição ou pequenas trocas)
+
 IMPORTANTE: Retorne APENAS um array JSON com as ${quantidadeMensagens} mensagens, sem explicações.
 Exemplo de formato: ["mensagem 1", "mensagem 2", "mensagem 3"]`;
 
             const mensagensBase = variacoesMensagens.join('\n\n---\n\n');
-            userPrompt = `Com base nestas mensagens de exemplo:\n\n${mensagensBase}\n\n${instrucoesAdicionais ? `Instruções adicionais: ${instrucoesAdicionais}\n\n` : ''}Crie ${quantidadeMensagens} variações criativas dessas mensagens, mantendo o mesmo tom e objetivo.`;
+            userPrompt = `Com base nesta mensagem original:\n\n${mensagensBase}\n\n${instrucoesAdicionais ? `Instruções adicionais: ${instrucoesAdicionais}\n\n` : ''}Crie ${quantidadeMensagens} variações SUTIS desta mensagem. Mude apenas palavras, sinônimos e pequenos detalhes. O significado e tom devem permanecer IDÊNTICOS.`;
           } else {
             // Modo de prompt simples
             systemPrompt = `Você é um especialista em marketing e comunicação via WhatsApp. 
