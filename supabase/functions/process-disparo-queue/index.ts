@@ -219,7 +219,10 @@ serve(async (req) => {
               break;
           }
         } else {
-          // Envio de texto simples
+          // Envio de texto simples - verificar se há texto
+          if (!messageText || messageText.trim() === '') {
+            throw new Error('Mensagem sem texto e sem mídia - nada para enviar');
+          }
           endpoint = '/message/sendText/';
           evolutionPayload = {
             number: remoteJid,
