@@ -22,6 +22,7 @@ import {
   Loader2,
   Sparkles,
   Check,
+  CheckCheck,
   Upload,
   Wifi,
   WifiOff,
@@ -773,7 +774,7 @@ export default function DisparosPage() {
                     </label>
                   </div>
                   {csvContacts.length > 0 && (
-                    <p className="text-sm text-success mt-3">✓ {csvContacts.length} contatos encontrados no CSV</p>
+                    <p className="text-sm text-success mt-3">{csvContacts.length} contatos encontrados no CSV</p>
                   )}
                 </div>
                 
@@ -1229,8 +1230,9 @@ export default function DisparosPage() {
                                 </div>
                               )}
                               {m.text && <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{substituirVariaveis(m.text)}</p>}
-                              <div className="text-right text-[10px] text-black/40 mt-1">
-                                {new Date().toLocaleTimeString().slice(0, 5)} ✓✓
+                              <div className="text-right text-[10px] text-black/40 mt-1 flex items-center justify-end gap-1">
+                                {new Date().toLocaleTimeString().slice(0, 5)}
+                                <CheckCheck className="w-3 h-3 text-[#53bdeb]" />
                               </div>
                             </div>
                           </div>
