@@ -570,16 +570,24 @@ const HistoricoPage = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'extracao' | 'disparo')} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="extracao" className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Extração
-            </TabsTrigger>
-            <TabsTrigger value="disparo" className="flex items-center gap-2">
-              <Send className="w-4 h-4" />
-              Disparo
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <TabsList className="inline-flex h-11 items-center gap-1 rounded-xl bg-muted/50 p-1.5 border border-border/40">
+              <TabsTrigger 
+                value="extracao" 
+                className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground/80"
+              >
+                <Sparkles className="w-4 h-4" />
+                Extração de Leads
+              </TabsTrigger>
+              <TabsTrigger 
+                value="disparo" 
+                className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground/80"
+              >
+                <Send className="w-4 h-4" />
+                Disparos de Mensagens
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Extração Tab */}
           <TabsContent value="extracao" className="space-y-6 mt-6">
