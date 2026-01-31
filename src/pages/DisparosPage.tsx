@@ -64,8 +64,9 @@ interface MediaItem {
 interface MessageItem {
   id: number;
   text: string;
-  medias: MediaItem[]; // Changed from single media to array
-  aiEnabled: boolean; // Individual AI toggle per message
+  variations: string[]; // Variações de texto geradas por IA para esta etapa
+  medias: MediaItem[];
+  aiEnabled: boolean;
 }
 
 type MessageMode = 'variation' | 'sequence';
@@ -102,7 +103,7 @@ export default function DisparosPage() {
   const [selectedConnections, setSelectedConnections] = useState<number[]>([]);
   const [lists, setLists] = useState<Lista[]>([]);
   const [selectedLists, setSelectedLists] = useState<number[]>([]);
-  const [messages, setMessages] = useState<MessageItem[]>([{ id: 1, text: '', medias: [], aiEnabled: false }]);
+  const [messages, setMessages] = useState<MessageItem[]>([{ id: 1, text: '', variations: [], medias: [], aiEnabled: false }]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [csvContacts, setCsvContacts] = useState<string[]>([]);
@@ -247,7 +248,7 @@ export default function DisparosPage() {
   };
 
   const addMessage = () => {
-    setMessages(prev => [...prev, { id: Date.now(), text: '', medias: [], aiEnabled: false }]);
+    setMessages(prev => [...prev, { id: Date.now(), text: '', variations: [], medias: [], aiEnabled: false }]);
   };
 
   const updateMessageText = (id: number, text: string) => {
@@ -256,6 +257,20 @@ export default function DisparosPage() {
 
   const toggleMessageAI = (id: number) => {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, aiEnabled: !m.aiEnabled } : m));
+  };
+
+  const removeVariation = (msgId: number, variationIndex: number) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id === msgId) {
+        const newVariations = m.variations.filter((_, idx) => idx !== variationIndex);
+        return { ...m, variations: newVariations };
+      }
+      return m;
+    }));
+  };
+
+  const clearAllVariations = (msgId: number) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, variations: [] } : m));
   };
 
   const insertVariable = (msgId: number, variable: string) => {
@@ -385,23 +400,22 @@ export default function DisparosPage() {
       if (data?.error) throw new Error(data.error);
 
       if (data && data.mensagens && data.mensagens.mensagens) {
-        const newMsgs: MessageItem[] = data.mensagens.mensagens.map((txt: string, idx: number) => ({
-          id: Date.now() + idx,
-          text: txt,
-          medias: [],
-          aiEnabled: false
-        }));
-        setMessages(prev => [...prev, ...newMsgs]); 
-        toast.success(`${newMsgs.length} variações geradas!`);
+        // Adicionar variações à etapa atual ao invés de criar novas mensagens
+        const newVariations: string[] = data.mensagens.mensagens;
+        setMessages(prev => prev.map(m => 
+          m.id === msgId 
+            ? { ...m, variations: [...m.variations, ...newVariations] }
+            : m
+        ));
+        toast.success(`${newVariations.length} variações adicionadas à etapa!`);
       } else if (data?.message) {
-        const newMsg: MessageItem = {
-          id: Date.now(),
-          text: data.message,
-          medias: [],
-          aiEnabled: false
-        };
-        setMessages(prev => [...prev, newMsg]);
-        toast.success('Variação gerada!');
+        // Adicionar uma variação à etapa atual
+        setMessages(prev => prev.map(m => 
+          m.id === msgId 
+            ? { ...m, variations: [...m.variations, data.message] }
+            : m
+        ));
+        toast.success('Variação adicionada à etapa!');
       } else {
         throw new Error('Formato inválido da resposta');
       }
@@ -493,9 +507,13 @@ export default function DisparosPage() {
         apikey: c.apikey
       }));
 
-    const messagesData = messages.filter(m => m.text || m.medias.length > 0).map(m => {
+    const messagesData = messages.filter(m => m.text || m.medias.length > 0 || m.variations.length > 0).map(m => {
       const obj: any = {};
       if (m.text) obj.text = m.text;
+      // Enviar variações para o backend
+      if (m.variations.length > 0) {
+        obj.variations = m.variations;
+      }
       // Support multiple medias - send array or first media for backwards compatibility
       if (m.medias.length > 0) {
         obj.media = m.medias[0]; // Primary media for backwards compatibility
@@ -584,7 +602,7 @@ export default function DisparosPage() {
         // Reset
         setSelectedConnections([]);
         setSelectedLists([]);
-        setMessages([{ id: 1, text: '', medias: [], aiEnabled: false }]);
+        setMessages([{ id: 1, text: '', variations: [], medias: [], aiEnabled: false }]);
         setSelectedDays([]);
         setCsvContacts([]);
       }
@@ -954,6 +972,53 @@ export default function DisparosPage() {
                         {!msg.text.trim() && (
                           <p className="text-xs text-amber-500">⚠️ Digite uma mensagem base primeiro</p>
                         )}
+                      </div>
+                    )}
+
+                    {/* Lista de variações geradas */}
+                    {msg.variations.length > 0 && (
+                      <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-medium text-primary">
+                              {msg.variations.length} variações geradas
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => clearAllVariations(msg.id)}
+                            className="text-destructive hover:text-destructive h-7 px-2"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Limpar
+                          </Button>
+                        </div>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {msg.variations.map((variation, vIdx) => (
+                            <div 
+                              key={vIdx} 
+                              className="flex items-start justify-between gap-2 p-2 rounded bg-background/50 border border-border/30"
+                            >
+                              <p className="text-xs text-muted-foreground flex-1 line-clamp-2">
+                                <span className="text-primary font-medium mr-1">V{vIdx + 1}:</span>
+                                {variation}
+                              </p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeVariation(msg.id, vIdx)}
+                                className="text-destructive hover:text-destructive h-6 w-6 p-0 shrink-0"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          💡 No modo sequência, uma variação aleatória será escolhida para esta etapa
+                        </p>
                       </div>
                     )}
 
