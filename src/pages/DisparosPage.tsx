@@ -919,13 +919,6 @@ export default function DisparosPage() {
                               max={10}
                             />
                           </div>
-                          <Input
-                            type="text"
-                            placeholder="Instruções (ex: mais informal)"
-                            value={aiInstructions}
-                            onChange={e => setAiInstructions(e.target.value)}
-                            className="flex-1 min-w-[150px] h-8 text-sm"
-                          />
                           <Button
                             onClick={() => generateAIForMessage(msg.id)}
                             disabled={isGeneratingAI || !msg.text.trim()}
