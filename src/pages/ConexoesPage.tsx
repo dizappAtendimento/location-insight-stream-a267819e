@@ -377,8 +377,6 @@ const ConexoesPage = () => {
     if (!connection.instanceName || !connection.Apikey) return;
     
     setSelectedConnection(connection);
-    // Save instance name for polling to detect connection
-    setConnectionInstanceName(connection.instanceName);
     
     try {
       const { data, error } = await supabase.functions.invoke('evolution-api', {
@@ -391,22 +389,39 @@ const ConexoesPage = () => {
 
       if (error) throw error;
       
-      if (data?.base64) {
-        setQrCodeData({ base64: data.base64 });
+      // Verifica se a conexão já está ativa
+      if (data?.error === 'already_connected') {
+        toast({
+          title: "Conexão Ativa",
+          description: data.message || "Esta conexão já está ativa!",
+        });
+        // Atualiza o status no frontend
+        setConnections(prev => prev.map(c => 
+          c.id === connection.id ? { ...c, status: 'open' } : c
+        ));
+        return;
+      }
+      
+      // Verifica se retornou QR Code
+      const qrBase64 = data?.base64 || data?.qrcode?.base64;
+      const pairingCode = data?.pairingCode;
+      
+      if (qrBase64) {
+        setQrCodeData({ base64: qrBase64 });
+        setConnectionInstanceName(connection.instanceName);
         setShowQrModal(true);
-      } else if (data?.pairingCode) {
-        setQrCodeData({ pairingCode: data.pairingCode });
+      } else if (pairingCode) {
+        setQrCodeData({ pairingCode: pairingCode });
+        setConnectionInstanceName(connection.instanceName);
         setShowQrModal(true);
       } else {
-        setConnectionInstanceName(null);
         toast({
           title: "Aviso",
-          description: "Não foi possível obter o QR Code. A conexão pode já estar ativa.",
+          description: "Não foi possível obter o QR Code. Tente atualizar a página e verifique o status da conexão.",
         });
       }
     } catch (error) {
       console.error('Error getting QR code:', error);
-      setConnectionInstanceName(null);
       toast({
         title: "Erro",
         description: "Não foi possível obter o QR Code",

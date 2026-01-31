@@ -256,11 +256,63 @@ serve(async (req) => {
         );
 
       case "get-qrcode":
+        // Primeiro verifica o status da instância
+        const statusCheckRes = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
+          method: "GET",
+          headers,
+        });
+        const statusCheckData = await statusCheckRes.json();
+        const instanceStatusData = Array.isArray(statusCheckData) ? statusCheckData[0] : statusCheckData;
+        const currentStatus = instanceStatusData?.connectionStatus || instanceStatusData?.instance?.state || instanceStatusData?.state;
+        
+        console.log(`[Evolution API] get-qrcode: Instance ${instanceName} current status: ${currentStatus}`);
+        
+        // Se já estiver conectado, retorna mensagem clara
+        if (currentStatus === 'open') {
+          return new Response(
+            JSON.stringify({ 
+              error: "already_connected", 
+              message: "Esta conexão já está ativa. Não é necessário escanear o QR Code novamente."
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // Se não estiver conectado, tenta obter o QR Code
         response = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
           method: "GET",
           headers,
         });
         result = await response.json();
+        
+        console.log(`[Evolution API] get-qrcode response:`, JSON.stringify(result));
+        
+        // Se ainda não retornar QR Code, a instância pode precisar ser reiniciada
+        if (!result?.base64 && !result?.qrcode?.base64 && !result?.pairingCode) {
+          console.log(`[Evolution API] No QR code returned, instance may need restart`);
+          
+          // Tenta reiniciar a instância
+          try {
+            await fetch(`${baseUrl}/instance/restart/${instanceName}`, {
+              method: "PUT",
+              headers,
+            });
+            console.log(`[Evolution API] Instance ${instanceName} restarted`);
+            
+            // Aguarda um pouco e tenta novamente
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const retryRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+              method: "GET",
+              headers,
+            });
+            result = await retryRes.json();
+            console.log(`[Evolution API] Retry get-qrcode response:`, JSON.stringify(result));
+          } catch (restartErr) {
+            console.error(`[Evolution API] Error restarting instance:`, restartErr);
+          }
+        }
+        
         return new Response(
           JSON.stringify(result),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
