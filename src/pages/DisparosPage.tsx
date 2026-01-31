@@ -25,10 +25,7 @@ import {
   Upload,
   Wifi,
   WifiOff,
-  Users,
-  RefreshCw,
 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // URLs da API
 const API_URLS = {
@@ -56,15 +53,6 @@ interface Lista {
   tipo: string | null;
 }
 
-interface WhatsAppGroup {
-  id: string;
-  subject: string;
-  size: number;
-  owner?: string;
-  creation?: number;
-  connectionId: number;
-  connectionName: string;
-}
 
 interface MediaItem {
   id: number;
@@ -81,9 +69,6 @@ interface MessageItem {
   medias: MediaItem[];
   aiEnabled: boolean;
 }
-
-// Tipo de destinatário: contatos ou grupos
-type DestinationType = 'contacts' | 'groups';
 
 // MessageMode is now always 'sequence' - variation mode removed
 
@@ -125,11 +110,6 @@ export default function DisparosPage() {
   const [csvContacts, setCsvContacts] = useState<string[]>([]);
   const [sendingStatus, setSendingStatus] = useState<string>('');
   
-  // Estados para grupos WhatsApp
-  const [destinationType, setDestinationType] = useState<DestinationType>('contacts');
-  const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [loadingGroups, setLoadingGroups] = useState(false);
   
   // Configurações
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
@@ -263,77 +243,6 @@ export default function DisparosPage() {
     );
   };
 
-  const toggleGroup = (groupId: string) => {
-    setSelectedGroups(prev => 
-      prev.includes(groupId) ? prev.filter(x => x !== groupId) : [...prev, groupId]
-    );
-  };
-
-  // Buscar grupos das conexões selecionadas
-  const fetchGroups = async () => {
-    if (selectedConnections.length === 0) {
-      toast.error('Selecione pelo menos uma conexão primeiro');
-      return;
-    }
-
-    setLoadingGroups(true);
-    setGroups([]);
-    
-    try {
-      const selectedConns = connections.filter(c => selectedConnections.includes(c.id) && c.isConnected);
-      
-      if (selectedConns.length === 0) {
-        toast.error('Nenhuma conexão ativa selecionada');
-        setLoadingGroups(false);
-        return;
-      }
-
-      const allGroups: WhatsAppGroup[] = [];
-
-      for (const conn of selectedConns) {
-        try {
-          const { data, error } = await supabase.functions.invoke('evolution-api', {
-            body: { action: 'fetch-groups', instanceName: conn.instance }
-          });
-
-          if (error) {
-            console.error(`Erro ao buscar grupos de ${conn.name}:`, error);
-            continue;
-          }
-
-          const fetchedGroups = data?.groups || [];
-          
-          // Mapear e adicionar informação da conexão
-          const mappedGroups: WhatsAppGroup[] = fetchedGroups.map((g: any) => ({
-            id: g.id,
-            subject: g.subject || g.name || 'Grupo sem nome',
-            size: g.size || 0,
-            owner: g.owner,
-            creation: g.creation,
-            connectionId: conn.id,
-            connectionName: conn.name
-          }));
-
-          allGroups.push(...mappedGroups);
-        } catch (err) {
-          console.error(`Erro ao buscar grupos de ${conn.name}:`, err);
-        }
-      }
-
-      setGroups(allGroups);
-      
-      if (allGroups.length > 0) {
-        toast.success(`${allGroups.length} grupos encontrados`);
-      } else {
-        toast.info('Nenhum grupo encontrado nas conexões selecionadas');
-      }
-    } catch (err) {
-      console.error('Erro ao buscar grupos:', err);
-      toast.error('Erro ao buscar grupos');
-    } finally {
-      setLoadingGroups(false);
-    }
-  };
 
   const toggleDay = (day: number) => {
     setSelectedDays(prev => 
@@ -575,17 +484,10 @@ export default function DisparosPage() {
       return;
     }
     
-    // Validar destinatários baseado no tipo selecionado
-    if (destinationType === 'contacts') {
-      if (selectedLists.length === 0 && csvContacts.length === 0) {
-        toast.error('Selecione uma lista ou envie um CSV');
-        return;
-      }
-    } else {
-      if (selectedGroups.length === 0) {
-        toast.error('Selecione ao menos um grupo');
-        return;
-      }
+    // Validar destinatários
+    if (selectedLists.length === 0 && csvContacts.length === 0) {
+      toast.error('Selecione uma lista ou envie um CSV');
+      return;
     }
     
     if (selectedDays.length === 0) {
@@ -665,24 +567,13 @@ export default function DisparosPage() {
       // IMPORTANTE: A RPC create_disparo espera o payload em formato específico
       const { data: result, error } = await supabase.functions.invoke('disparos-api', {
         body: {
-          action: destinationType === 'groups' ? 'create-disparo-grupo' : 'create-disparo',
+          action: 'create-disparo',
           userId: user.id,
           disparoData: {
             // connections deve ser array de objetos com id
             connections: selConnsData.map(c => ({ id: c.id })),
-            // idLista é o nome esperado pela RPC (só para contatos)
-            idLista: destinationType === 'contacts' ? selectedLists : [],
-            // Grupos selecionados (só para grupos)
-            ...(destinationType === 'groups' && {
-              grupos: selectedGroups.map(gId => {
-                const group = groups.find(g => g.id === gId);
-                return {
-                  id: gId,
-                  subject: group?.subject,
-                  connectionId: group?.connectionId
-                };
-              })
-            }),
+            // idLista é o nome esperado pela RPC
+            idLista: selectedLists,
             // mensagens em lowercase
             mensagens: messagesData,
             // settings como objeto separado
@@ -702,8 +593,8 @@ export default function DisparosPage() {
                 ? new Date(scheduleDateTime).toISOString() 
                 : new Date().toISOString(),
             },
-            TipoDisparo: destinationType === 'groups' ? 'grupo' : 'individual',
-            csvContacts: destinationType === 'contacts' && csvContacts.length > 0 ? csvContacts : null,
+            TipoDisparo: 'individual',
+            csvContacts: csvContacts.length > 0 ? csvContacts : null,
           }
         }
       });
@@ -720,8 +611,6 @@ export default function DisparosPage() {
         // Reset
         setSelectedConnections([]);
         setSelectedLists([]);
-        setSelectedGroups([]);
-        setGroups([]);
         setMessages([{ id: 1, text: '', variations: [], medias: [], aiEnabled: false }]);
         setSelectedDays([]);
         setCsvContacts([]);
@@ -822,185 +711,73 @@ export default function DisparosPage() {
               </div>
             </Card>
 
-            {/* Destinatários - Tabs para Contatos e Grupos */}
+            {/* Destinatários - Contatos */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-4 px-6 pt-6">
                 <CardTitle className="text-xl font-semibold">Destinatários *</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 px-6 pb-6">
-                <Tabs value={destinationType} onValueChange={(v) => setDestinationType(v as DestinationType)} className="w-full">
-                  <TabsList className="inline-flex h-10 items-center gap-1 rounded-xl bg-muted/50 p-1 border border-border/40 mb-4">
-                    <TabsTrigger 
-                      value="contacts" 
-                      className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Contatos
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="groups" 
-                      className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                    >
-                      <Users className="w-4 h-4" />
-                      Grupos
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* Tab: Contatos */}
-                  <TabsContent value="contacts" className="space-y-4 mt-0">
-                    {/* Listas */}
-                    <div className="space-y-3 max-h-[250px] overflow-y-auto">
-                      {loadingData ? (
-                        <div className="flex items-center gap-3 text-muted-foreground text-base py-4">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Carregando listas...
-                        </div>
-                      ) : lists.length === 0 ? (
-                        <p className="text-muted-foreground text-base py-4">Nenhuma lista de contatos encontrada.</p>
-                      ) : (
-                        lists.map((list, index) => (
-                          <div
-                            key={list.id}
-                            onClick={() => toggleList(list.id)}
-                            className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
-                              selectedLists.includes(list.id)
-                                ? 'border-primary bg-primary/10 shadow-sm'
-                                : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
-                            }`}
-                            style={{ animationDelay: `${index * 30}ms` }}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
-                                <FileText className="w-5 h-5 text-primary" />
-                              </div>
-                              <span className="font-medium text-base text-foreground">{list.nome}</span>
-                            </div>
-                            {selectedLists.includes(list.id) && (
-                              <Check className="w-6 h-6 text-primary" />
-                            )}
-                          </div>
-                        ))
-                      )}
+                {/* Listas */}
+                <div className="space-y-3 max-h-[250px] overflow-y-auto">
+                  {loadingData ? (
+                    <div className="flex items-center gap-3 text-muted-foreground text-base py-4">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Carregando listas...
                     </div>
-
-                    {/* CSV Upload */}
-                    <div className="p-5 rounded-xl border border-dashed border-border/50 bg-background/30">
-                      <div className="flex items-center gap-4">
-                        <Upload className="w-6 h-6 text-muted-foreground" />
-                        <div className="flex-1">
-                          <p className="text-base font-medium">Ou envie um arquivo CSV</p>
-                          <p className="text-sm text-muted-foreground">Primeira coluna deve conter os telefones</p>
-                        </div>
-                        <label className="cursor-pointer">
-                          <div className="px-4 py-2 text-sm rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors font-medium">
-                            Escolher arquivo
-                          </div>
-                          <input
-                            type="file"
-                            accept=".csv"
-                            className="hidden"
-                            onChange={handleCsvUpload}
-                          />
-                        </label>
-                      </div>
-                      {csvContacts.length > 0 && (
-                        <p className="text-sm text-emerald-500 mt-3">✓ {csvContacts.length} contatos encontrados no CSV</p>
-                      )}
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground">{selectedLists.length} listas + {csvContacts.length} CSV selecionados</p>
-                  </TabsContent>
-
-                  {/* Tab: Grupos */}
-                  <TabsContent value="groups" className="space-y-4 mt-0">
-                    {/* Botão para buscar grupos */}
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-border/50 bg-background/30">
-                      <div className="flex-1">
-                        <p className="text-base font-medium">Grupos das conexões selecionadas</p>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedConnections.length === 0 
-                            ? 'Selecione conexões acima primeiro'
-                            : `${selectedConnections.length} conexão(ões) selecionada(s)`
-                          }
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="default"
-                        onClick={fetchGroups}
-                        disabled={loadingGroups}
-                        className="gap-2"
+                  ) : lists.length === 0 ? (
+                    <p className="text-muted-foreground text-base py-4">Nenhuma lista de contatos encontrada.</p>
+                  ) : (
+                    lists.map((list, index) => (
+                      <div
+                        key={list.id}
+                        onClick={() => toggleList(list.id)}
+                        className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
+                          selectedLists.includes(list.id)
+                            ? 'border-primary bg-primary/10 shadow-sm'
+                            : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
+                        }`}
+                        style={{ animationDelay: `${index * 30}ms` }}
                       >
-                        {loadingGroups ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4" />
-                        )}
-                        {loadingGroups ? 'Buscando...' : 'Buscar Grupos'}
-                      </Button>
-                    </div>
-
-                    {/* Lista de grupos */}
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                      {loadingGroups ? (
-                        <div className="flex items-center gap-3 text-muted-foreground text-base py-4">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Buscando grupos...
-                        </div>
-                      ) : groups.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p className="text-base">Nenhum grupo carregado</p>
-                          <p className="text-sm mb-4">Selecione conexões e clique para buscar</p>
-                          <Button
-                            variant="outline"
-                            size="default"
-                            onClick={fetchGroups}
-                            disabled={loadingGroups}
-                            className="gap-2"
-                          >
-                            {loadingGroups ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4" />
-                            )}
-                            {loadingGroups ? 'Buscando...' : 'Puxar Grupos'}
-                          </Button>
-                        </div>
-                      ) : (
-                        groups.map((group, index) => (
-                          <div
-                            key={group.id}
-                            onClick={() => toggleGroup(group.id)}
-                            className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${
-                              selectedGroups.includes(group.id)
-                                ? 'border-primary bg-primary/10 shadow-sm'
-                                : 'border-border/50 bg-background/50 hover:border-primary/40 hover:bg-primary/5'
-                            }`}
-                            style={{ animationDelay: `${index * 30}ms` }}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-11 h-11 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                <Users className="w-5 h-5 text-emerald-500" />
-                              </div>
-                              <div>
-                                <span className="font-medium text-base text-foreground block">{group.subject}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {group.size} participantes • {group.connectionName}
-                                </span>
-                              </div>
-                            </div>
-                            {selectedGroups.includes(group.id) && (
-                              <Check className="w-6 h-6 text-primary" />
-                            )}
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-primary" />
                           </div>
-                        ))
-                      )}
+                          <span className="font-medium text-base text-foreground">{list.nome}</span>
+                        </div>
+                        {selectedLists.includes(list.id) && (
+                          <Check className="w-6 h-6 text-primary" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* CSV Upload */}
+                <div className="p-5 rounded-xl border border-dashed border-border/50 bg-background/30">
+                  <div className="flex items-center gap-4">
+                    <Upload className="w-6 h-6 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-base font-medium">Ou envie um arquivo CSV</p>
+                      <p className="text-sm text-muted-foreground">Primeira coluna deve conter os telefones</p>
                     </div>
-                    
-                    <p className="text-sm text-muted-foreground">{selectedGroups.length} grupos selecionados</p>
-                  </TabsContent>
-                </Tabs>
+                    <label className="cursor-pointer">
+                      <div className="px-4 py-2 text-sm rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors font-medium">
+                        Escolher arquivo
+                      </div>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        onChange={handleCsvUpload}
+                      />
+                    </label>
+                  </div>
+                  {csvContacts.length > 0 && (
+                    <p className="text-sm text-success mt-3">✓ {csvContacts.length} contatos encontrados no CSV</p>
+                  )}
+                </div>
+                
+                <p className="text-sm text-muted-foreground">{selectedLists.length} listas + {csvContacts.length} CSV selecionados</p>
               </CardContent>
             </Card>
 
@@ -1009,7 +786,7 @@ export default function DisparosPage() {
               <CardHeader className="pb-4 px-6 pt-6">
                 <CardTitle className="text-xl font-semibold">Mensagens *</CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
-                  📨 Todas as mensagens serão enviadas em sequência para cada {destinationType === 'groups' ? 'grupo' : 'contato'}
+                  📨 Todas as mensagens serão enviadas em sequência para cada contato
                 </p>
               </CardHeader>
               <CardContent className="space-y-5 px-6 pb-6">
