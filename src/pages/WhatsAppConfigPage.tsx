@@ -6,7 +6,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 export default function WhatsAppConfigPage() {
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-whatsapp/10">
             <WhatsAppIcon className="w-6 h-6 text-whatsapp" />
