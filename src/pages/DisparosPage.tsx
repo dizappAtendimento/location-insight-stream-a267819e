@@ -69,7 +69,7 @@ interface MessageItem {
   aiEnabled: boolean;
 }
 
-type MessageMode = 'variation' | 'sequence';
+// MessageMode is now always 'sequence' - variation mode removed
 
 const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 const DIAS_SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
@@ -120,8 +120,8 @@ export default function DisparosPage() {
   const [endTime, setEndTime] = useState('18:00');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   
-  // Modo de mensagens: variação (aleatória) ou sequência (múltiplas para mesmo contato)
-  const [messageMode, setMessageMode] = useState<MessageMode>('variation');
+  // Modo de mensagens: sempre sequência (múltiplas para mesmo contato)
+  const messageMode = 'sequence';
   const [sequenceInterval, setSequenceInterval] = useState(5); // segundos entre mensagens da sequência
   
   // IA - Configurações globais para geração
@@ -776,39 +776,9 @@ export default function DisparosPage() {
             {/* Mensagens */}
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '150ms', animationFillMode: 'forwards' }}>
               <CardHeader className="pb-4 px-6 pt-6">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <CardTitle className="text-xl font-semibold">Mensagens *</CardTitle>
-                  {/* Seletor de modo */}
-                  <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
-                    <button
-                      type="button"
-                      onClick={() => setMessageMode('variation')}
-                      className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                        messageMode === 'variation'
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Variação
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMessageMode('sequence')}
-                      className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                        messageMode === 'sequence'
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Sequência
-                    </button>
-                  </div>
-                </div>
-                {/* Descrição do modo */}
+                <CardTitle className="text-xl font-semibold">Mensagens *</CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {messageMode === 'variation' 
-                    ? '📝 Uma mensagem aleatória será enviada para cada contato'
-                    : '📨 Todas as mensagens serão enviadas em sequência para cada contato'}
+                  📨 Todas as mensagens serão enviadas em sequência para cada contato
                 </p>
               </CardHeader>
               <CardContent className="space-y-5 px-6 pb-6">
@@ -1055,7 +1025,7 @@ export default function DisparosPage() {
                   className="w-full h-12 border-dashed border-primary text-primary hover:bg-primary/10 text-base"
                 >
                   <Plus className="w-5 h-5 mr-2" />
-                  {messageMode === 'sequence' ? 'Adicionar Etapa' : 'Nova Variação'}
+                  Adicionar Etapa
                 </Button>
               </CardContent>
             </Card>
