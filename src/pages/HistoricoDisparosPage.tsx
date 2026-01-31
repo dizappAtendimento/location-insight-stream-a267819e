@@ -176,28 +176,30 @@ const HistoricoDisparosPage = () => {
   };
 
   const getStatusBadge = (status: string | null, disparo?: Disparo) => {
-    // Se o disparo está completo mas o status ainda não foi atualizado, mostrar como finalizado
+    // Se o disparo está completo (100% de progresso), mostrar como finalizado
     if (disparo && isDisparoComplete(disparo) && 
-        status?.toLowerCase() !== "finalizado" && 
-        status?.toLowerCase() !== "enviado" &&
         status?.toLowerCase() !== "cancelado") {
-      return <Badge className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">Finalizado</Badge>;
+      return <Badge className="bg-success/20 text-success border-success/30 hover:bg-success/30">Finalizado</Badge>;
     }
     
     switch (status?.toLowerCase()) {
       case "em andamento":
       case "em_andamento":
-        return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/30">Em andamento</Badge>;
+        return <Badge className="bg-warning/20 text-warning border-warning/30 hover:bg-warning/30">Em andamento</Badge>;
       case "agendado":
-        return <Badge className="bg-purple-500/20 text-purple-500 border-purple-500/30 hover:bg-purple-500/30">Agendado</Badge>;
+        return <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">Agendado</Badge>;
       case "finalizado":
       case "enviado":
-        return <Badge className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">Finalizado</Badge>;
+        return <Badge className="bg-success/20 text-success border-success/30 hover:bg-success/30">Finalizado</Badge>;
       case "cancelado":
-        return <Badge className="bg-red-500/20 text-red-500 border-red-500/30 hover:bg-red-500/30">Cancelado</Badge>;
+        return <Badge className="bg-destructive/20 text-destructive border-destructive/30 hover:bg-destructive/30">Cancelado</Badge>;
       case "pausado":
-        return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/30">Pausado</Badge>;
+        return <Badge className="bg-warning/20 text-warning border-warning/30 hover:bg-warning/30">Pausado</Badge>;
       default:
+        // Se não há status mas já tem progresso, está em andamento
+        if (disparo && (disparo.MensagensDisparadas || 0) > 0) {
+          return <Badge className="bg-warning/20 text-warning border-warning/30 hover:bg-warning/30">Em andamento</Badge>;
+        }
         return <Badge className="bg-muted text-muted-foreground">Aguardando</Badge>;
     }
   };
