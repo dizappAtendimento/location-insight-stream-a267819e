@@ -579,6 +579,9 @@ export default function DisparosPage() {
               startTime: startTime,
               endTime: endTime,
               selectedDays: selectedDays,
+              // CRÍTICO: Modo de mensagem (sequence envia TODAS as mensagens para cada contato)
+              messageMode: messageMode,
+              sequenceInterval: messageMode === 'sequence' ? parseInt(String(sequenceInterval)) : 5,
               // Se não há agendamento, enviar hora atual para iniciar imediatamente
               scheduleData: scheduleEnabled && scheduleDateTime 
                 ? new Date(scheduleDateTime).toISOString() 
