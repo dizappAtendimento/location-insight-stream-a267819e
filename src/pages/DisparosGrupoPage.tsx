@@ -21,6 +21,8 @@ import {
   RefreshCw,
   Users,
   CheckCircle,
+  CheckCheck,
+  Check,
   Loader2,
   Sparkles,
   AlertTriangle,
@@ -930,11 +932,11 @@ export default function DisparosGrupoPage() {
                       }`}
                     >
                       <div
-                        className={`w-7 h-7 rounded-full bg-white flex items-center justify-center text-sm transition-transform ${
-                          markAll ? 'translate-x-7' : 'translate-x-0'
+                        className={`w-7 h-7 rounded-full bg-white flex items-center justify-center text-sm font-bold transition-transform ${
+                          markAll ? 'translate-x-7 text-primary' : 'translate-x-0 text-muted-foreground'
                         }`}
                       >
-                        {markAll ? '✓' : '✗'}
+                        {markAll ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
                       </div>
                     </div>
                   </div>
@@ -1024,8 +1026,9 @@ export default function DisparosGrupoPage() {
                                 {substituirVariaveis(messages[0].text)}
                               </p>
                             )}
-                            <div className="text-right text-[10px] text-black/40 mt-1">
-                              {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ✓✓
+                            <div className="text-right text-[10px] text-black/40 mt-1 flex items-center justify-end gap-1">
+                              {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              <CheckCheck className="w-3 h-3 text-[#53bdeb]" />
                             </div>
                           </div>
                         </div>
