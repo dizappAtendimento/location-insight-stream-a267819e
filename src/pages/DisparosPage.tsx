@@ -951,7 +951,21 @@ export default function DisparosPage() {
                         <div className="text-center py-8 text-muted-foreground">
                           <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                           <p className="text-base">Nenhum grupo carregado</p>
-                          <p className="text-sm">Clique em "Buscar Grupos" para listar</p>
+                          <p className="text-sm mb-4">Selecione conexões e clique para buscar</p>
+                          <Button
+                            variant="outline"
+                            size="default"
+                            onClick={fetchGroups}
+                            disabled={loadingGroups}
+                            className="gap-2"
+                          >
+                            {loadingGroups ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                            {loadingGroups ? 'Buscando...' : 'Puxar Grupos'}
+                          </Button>
                         </div>
                       ) : (
                         groups.map((group, index) => (
