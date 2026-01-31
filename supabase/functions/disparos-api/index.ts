@@ -1185,6 +1185,355 @@ Não use hashtags ou emojis em excesso.`;
         );
       }
 
+      // ====== CRM Actions ======
+      case 'get-crm-colunas': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { data, error } = await supabase
+          .from('SAAS_CRM_Colunas')
+          .select('*')
+          .eq('idUsuario', userId)
+          .order('ordem', { ascending: true });
+
+        if (error) {
+          console.error('[Disparos API] Error fetching CRM columns:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Found ${data?.length || 0} CRM columns for user`);
+        
+        return new Response(
+          JSON.stringify({ data: data || [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'create-default-crm-colunas': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const defaultColumns = [
+          { nome: 'Novos', cor: 'bg-blue-500', ordem: 0, idUsuario: userId },
+          { nome: 'Em Contato', cor: 'bg-amber-500', ordem: 1, idUsuario: userId },
+          { nome: 'Negociacao', cor: 'bg-purple-500', ordem: 2, idUsuario: userId },
+          { nome: 'Fechado', cor: 'bg-green-500', ordem: 3, idUsuario: userId },
+        ];
+
+        const { data, error } = await supabase
+          .from('SAAS_CRM_Colunas')
+          .insert(defaultColumns)
+          .select();
+
+        if (error) {
+          console.error('[Disparos API] Error creating default CRM columns:', error);
+          throw error;
+        }
+
+        console.log(`[Disparos API] Created ${data?.length || 0} default CRM columns`);
+        
+        return new Response(
+          JSON.stringify({ data: data || [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'get-crm-leads': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { instanceNames } = await req.json().catch(() => ({ instanceNames: [] }));
+
+        let leadsData: any[] = [];
+        
+        // Buscar leads das conexoes do usuario (se houver instanceNames)
+        if (instanceNames && instanceNames.length > 0) {
+          const { data, error } = await supabase
+            .from('SAAS_CRM_Leads')
+            .select('*')
+            .eq('idUsuario', userId)
+            .in('instanceName', instanceNames)
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          leadsData = data || [];
+        }
+
+        // Tambem buscar leads sem instanceName (criados manualmente)
+        const { data: manualLeads, error: manualError } = await supabase
+          .from('SAAS_CRM_Leads')
+          .select('*')
+          .eq('idUsuario', userId)
+          .is('instanceName', null)
+          .order('created_at', { ascending: false });
+
+        if (manualError) throw manualError;
+        
+        // Combinar e ordenar por data
+        const allLeads = [...leadsData, ...(manualLeads || [])].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        console.log(`[Disparos API] Found ${allLeads.length} CRM leads for user`);
+        
+        return new Response(
+          JSON.stringify({ data: allLeads }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'update-crm-coluna': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const body = await req.json().catch(() => ({}));
+        const { columnId, nome, cor } = body;
+
+        if (!columnId) {
+          return new Response(
+            JSON.stringify({ error: 'columnId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const updateData: any = {};
+        if (nome !== undefined) updateData.nome = nome;
+        if (cor !== undefined) updateData.cor = cor;
+
+        const { data, error } = await supabase
+          .from('SAAS_CRM_Colunas')
+          .update(updateData)
+          .eq('id', columnId)
+          .eq('idUsuario', userId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Disparos API] Error updating CRM column:', error);
+          throw error;
+        }
+
+        return new Response(
+          JSON.stringify({ data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'update-crm-lead': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const body = await req.json().catch(() => ({}));
+        const { leadId, idColuna, nome, telefone, valor, mensagem } = body;
+
+        if (!leadId) {
+          return new Response(
+            JSON.stringify({ error: 'leadId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const updateData: any = { updated_at: new Date().toISOString() };
+        if (idColuna !== undefined) updateData.idColuna = idColuna;
+        if (nome !== undefined) updateData.nome = nome;
+        if (telefone !== undefined) updateData.telefone = telefone;
+        if (valor !== undefined) updateData.valor = valor;
+        if (mensagem !== undefined) updateData.mensagem = mensagem;
+
+        const { data, error } = await supabase
+          .from('SAAS_CRM_Leads')
+          .update(updateData)
+          .eq('id', leadId)
+          .eq('idUsuario', userId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Disparos API] Error updating CRM lead:', error);
+          throw error;
+        }
+
+        return new Response(
+          JSON.stringify({ data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'create-crm-lead': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const body = await req.json().catch(() => ({}));
+        const { idColuna, nome, telefone, valor, mensagem } = body;
+
+        if (!idColuna) {
+          return new Response(
+            JSON.stringify({ error: 'idColuna is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { data, error } = await supabase
+          .from('SAAS_CRM_Leads')
+          .insert({
+            idUsuario: userId,
+            idColuna,
+            nome: nome || null,
+            telefone: telefone || null,
+            valor: valor || 0,
+            mensagem: mensagem || null,
+            instanceName: null // Manual lead
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Disparos API] Error creating CRM lead:', error);
+          throw error;
+        }
+
+        return new Response(
+          JSON.stringify({ data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'delete-crm-lead': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const body = await req.json().catch(() => ({}));
+        const { leadId } = body;
+
+        if (!leadId) {
+          return new Response(
+            JSON.stringify({ error: 'leadId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error } = await supabase
+          .from('SAAS_CRM_Leads')
+          .delete()
+          .eq('id', leadId)
+          .eq('idUsuario', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error deleting CRM lead:', error);
+          throw error;
+        }
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'add-crm-coluna': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const body = await req.json().catch(() => ({}));
+        const { nome, cor, ordem } = body;
+
+        const { data, error } = await supabase
+          .from('SAAS_CRM_Colunas')
+          .insert({
+            idUsuario: userId,
+            nome: nome || 'Nova Coluna',
+            cor: cor || 'bg-blue-500',
+            ordem: ordem || 0
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Disparos API] Error adding CRM column:', error);
+          throw error;
+        }
+
+        return new Response(
+          JSON.stringify({ data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'delete-crm-coluna': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'userId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const body = await req.json().catch(() => ({}));
+        const { columnId, newColumnId } = body;
+
+        if (!columnId) {
+          return new Response(
+            JSON.stringify({ error: 'columnId is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Move leads to new column if specified
+        if (newColumnId) {
+          await supabase
+            .from('SAAS_CRM_Leads')
+            .update({ idColuna: newColumnId })
+            .eq('idColuna', columnId)
+            .eq('idUsuario', userId);
+        }
+
+        const { error } = await supabase
+          .from('SAAS_CRM_Colunas')
+          .delete()
+          .eq('id', columnId)
+          .eq('idUsuario', userId);
+
+        if (error) {
+          console.error('[Disparos API] Error deleting CRM column:', error);
+          throw error;
+        }
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),

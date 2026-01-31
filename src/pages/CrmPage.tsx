@@ -395,60 +395,37 @@ const CrmPage = () => {
       setUserConnections(connections);
       const userInstanceNames = connections.map((c: { instanceName: string }) => c.instanceName);
 
-      // Buscar colunas
-      const { data: colunasData, error: colunasError } = await supabase
-        .from('SAAS_CRM_Colunas')
-        .select('*')
-        .eq('idUsuario', user.id)
-        .order('ordem', { ascending: true });
+      // Buscar colunas via edge function (bypassa RLS)
+      const { data: colunasResponse, error: colunasError } = await supabase.functions.invoke('disparos-api', {
+        body: { action: 'get-crm-colunas', userId: user.id }
+      });
 
       if (colunasError) throw colunasError;
 
-      // Se não houver colunas, criar as padrão
-      if (!colunasData || colunasData.length === 0) {
-        const { data: newColunas, error: insertError } = await supabase
-          .from('SAAS_CRM_Colunas')
-          .insert(defaultColumns.map(c => ({ ...c, idUsuario: user.id })))
-          .select();
+      const colunasData = colunasResponse?.data || [];
+
+      // Se não houver colunas, criar as padrão via edge function
+      if (colunasData.length === 0) {
+        const { data: newColunasResponse, error: insertError } = await supabase.functions.invoke('disparos-api', {
+          body: { action: 'create-default-crm-colunas', userId: user.id }
+        });
 
         if (insertError) throw insertError;
-        setColumns(newColunas || []);
+        setColumns(newColunasResponse?.data || []);
       } else {
         setColumns(colunasData);
       }
 
-      // Buscar leads apenas das conexões do usuário
-      // Se não tiver conexões, mostrar apenas leads sem instanceName (manuais)
-      let leadsData: any[] = [];
-      
-      if (userInstanceNames.length > 0) {
-        const { data, error } = await supabase
-          .from('SAAS_CRM_Leads')
-          .select('*')
-          .eq('idUsuario', user.id)
-          .in('instanceName', userInstanceNames)
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        leadsData = data || [];
-      }
+      // Buscar leads via edge function
+      const { data: leadsResponse, error: leadsError } = await supabase.functions.invoke('disparos-api', {
+        body: { action: 'get-crm-leads', userId: user.id, instanceNames: userInstanceNames }
+      });
 
-      // Também buscar leads sem instanceName (criados manualmente)
-      const { data: manualLeads, error: manualError } = await supabase
-        .from('SAAS_CRM_Leads')
-        .select('*')
-        .eq('idUsuario', user.id)
-        .is('instanceName', null)
-        .order('created_at', { ascending: false });
+      if (leadsError) throw leadsError;
 
-      if (manualError) throw manualError;
-      
-      // Combinar e ordenar por data
-      const allLeads = [...leadsData, ...(manualLeads || [])].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      const allLeads = leadsResponse?.data || [];
 
-      setLeads(allLeads.map(l => ({
+      setLeads(allLeads.map((l: any) => ({
         id: l.id,
         idColuna: l.idColuna,
         nome: l.nome,
@@ -609,10 +586,9 @@ const CrmPage = () => {
 
   const moveLeadToColumn = async (leadId: number, newColunaId: number) => {
     try {
-      const { error } = await supabase
-        .from('SAAS_CRM_Leads')
-        .update({ idColuna: newColunaId })
-        .eq('id', leadId);
+      const { error } = await supabase.functions.invoke('disparos-api', {
+        body: { action: 'update-crm-lead', userId: user?.id, leadId, idColuna: newColunaId }
+      });
 
       if (error) throw error;
 
@@ -693,16 +669,18 @@ const CrmPage = () => {
   const saveLeadChanges = async () => {
     if (!selectedLead) return;
     try {
-      const { error } = await supabase
-        .from('SAAS_CRM_Leads')
-        .update({
+      const { error } = await supabase.functions.invoke('disparos-api', {
+        body: { 
+          action: 'update-crm-lead', 
+          userId: user?.id, 
+          leadId: selectedLead.id,
           nome: selectedLead.nome,
           telefone: selectedLead.telefone,
           valor: selectedLead.valor,
           mensagem: selectedLead.mensagem,
           idColuna: selectedLead.idColuna,
-        })
-        .eq('id', selectedLead.id);
+        }
+      });
 
       if (error) throw error;
 
@@ -720,17 +698,16 @@ const CrmPage = () => {
 
   const deleteLead = async (leadId: number) => {
     try {
-      const { error } = await supabase
-        .from('SAAS_CRM_Leads')
-        .delete()
-        .eq('id', leadId);
+      const { error } = await supabase.functions.invoke('disparos-api', {
+        body: { action: 'delete-crm-lead', userId: user?.id, leadId }
+      });
 
       if (error) throw error;
 
       setLeads(prev => prev.filter(lead => lead.id !== leadId));
       setIsDetailOpen(false);
       if (soundEnabled) playDeleteLeadSound();
-      toast({ title: "Lead excluído!" });
+      toast({ title: "Lead excluido!" });
     } catch (error) {
       console.error('Erro ao excluir lead:', error);
       toast({ title: "Erro ao excluir", variant: "destructive" });
@@ -765,10 +742,9 @@ const CrmPage = () => {
 
   const saveColumnTitle = async (colunaId: number) => {
     try {
-      const { error } = await supabase
-        .from('SAAS_CRM_Colunas')
-        .update({ nome: columnTitle })
-        .eq('id', colunaId);
+      const { error } = await supabase.functions.invoke('disparos-api', {
+        body: { action: 'update-crm-coluna', userId: user?.id, columnId: colunaId, nome: columnTitle }
+      });
 
       if (error) throw error;
 
@@ -790,20 +766,21 @@ const CrmPage = () => {
       const availableColor = colorOptions.find(c => !usedColors.includes(c)) || colorOptions[0];
       const maxOrdem = Math.max(...columns.map(c => c.ordem), -1);
 
-      const { data, error } = await supabase
-        .from('SAAS_CRM_Colunas')
-        .insert({ 
-          idUsuario: user.id, 
+      const { data: response, error } = await supabase.functions.invoke('disparos-api', {
+        body: { 
+          action: 'add-crm-coluna', 
+          userId: user.id, 
           nome: 'Nova Coluna', 
           cor: availableColor,
           ordem: maxOrdem + 1 
-        })
-        .select()
-        .single();
+        }
+      });
 
       if (error) throw error;
 
-      setColumns(prev => [...prev, data]);
+      if (response?.data) {
+        setColumns(prev => [...prev, response.data]);
+      }
       toast({ title: "Coluna adicionada!" });
     } catch (error) {
       console.error('Erro ao adicionar coluna:', error);
@@ -819,26 +796,26 @@ const CrmPage = () => {
     try {
       // Move leads para primeira coluna
       const firstColumn = columns.find(c => c.id !== colunaId);
-      if (firstColumn) {
-        await supabase
-          .from('SAAS_CRM_Leads')
-          .update({ idColuna: firstColumn.id })
-          .eq('idColuna', colunaId);
+      
+      const { error } = await supabase.functions.invoke('disparos-api', {
+        body: { 
+          action: 'delete-crm-coluna', 
+          userId: user?.id, 
+          columnId: colunaId,
+          newColumnId: firstColumn?.id
+        }
+      });
 
+      if (error) throw error;
+
+      if (firstColumn) {
         setLeads(prev => prev.map(lead => 
           lead.idColuna === colunaId ? { ...lead, idColuna: firstColumn.id } : lead
         ));
       }
 
-      const { error } = await supabase
-        .from('SAAS_CRM_Colunas')
-        .delete()
-        .eq('id', colunaId);
-
-      if (error) throw error;
-
       setColumns(prev => prev.filter(col => col.id !== colunaId));
-      toast({ title: "Coluna excluída!" });
+      toast({ title: "Coluna excluida!" });
     } catch (error) {
       console.error('Erro ao excluir coluna:', error);
       toast({ title: "Erro ao excluir coluna", variant: "destructive" });
@@ -847,10 +824,9 @@ const CrmPage = () => {
 
   const changeColumnColor = async (colunaId: number, newColor: string) => {
     try {
-      const { error } = await supabase
-        .from('SAAS_CRM_Colunas')
-        .update({ cor: newColor })
-        .eq('id', colunaId);
+      const { error } = await supabase.functions.invoke('disparos-api', {
+        body: { action: 'update-crm-coluna', userId: user?.id, columnId: colunaId, cor: newColor }
+      });
 
       if (error) throw error;
 
@@ -875,33 +851,35 @@ const CrmPage = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('SAAS_CRM_Leads')
-        .insert({
-          idUsuario: user.id,
+      const { data: response, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'create-crm-lead',
+          userId: user.id,
           idColuna: firstColumn.id,
           nome: newLead.nome,
           telefone: newLead.telefone,
           valor: newLead.valor,
           mensagem: newLead.mensagem || null,
-        })
-        .select()
-        .single();
+        }
+      });
 
       if (error) throw error;
 
-      setLeads(prev => [{
-        id: data.id,
-        idColuna: data.idColuna,
-        nome: data.nome,
-        telefone: data.telefone,
-        mensagem: data.mensagem,
-        valor: Number(data.valor) || 0,
-        created_at: data.created_at,
-        instanceName: null,
-        idLista: null,
-        nomeLista: null,
-      }, ...prev]);
+      if (response?.data) {
+        const data = response.data;
+        setLeads(prev => [{
+          id: data.id,
+          idColuna: data.idColuna,
+          nome: data.nome,
+          telefone: data.telefone,
+          mensagem: data.mensagem,
+          valor: Number(data.valor) || 0,
+          created_at: data.created_at,
+          instanceName: null,
+          idLista: null,
+          nomeLista: null,
+        }, ...prev]);
+      }
       setNewLead({ nome: '', telefone: '', valor: 0, mensagem: '' });
       setIsAddingLead(false);
       toast({ title: "Lead adicionado!" });
