@@ -800,9 +800,9 @@ export default function DisparosPage() {
                       type="number"
                       value={sequenceInterval}
                       onChange={e => setSequenceInterval(Number(e.target.value))}
-                      className="w-20 h-9"
+                      className="w-24 h-9"
                       min={1}
-                      max={60}
+                      max={86400}
                     />
                     <span className="text-sm text-muted-foreground">segundos</span>
                   </div>
