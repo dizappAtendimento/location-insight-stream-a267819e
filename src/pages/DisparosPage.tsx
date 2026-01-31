@@ -53,10 +53,19 @@ interface Lista {
   tipo: string | null;
 }
 
+interface MediaItem {
+  id: number;
+  type: string;
+  filename: string;
+  link: string;
+  mimetype?: string;
+}
+
 interface MessageItem {
   id: number;
   text: string;
-  media: { type: string; filename: string; link: string; mimetype?: string } | null;
+  medias: MediaItem[]; // Changed from single media to array
+  aiEnabled: boolean; // Individual AI toggle per message
 }
 
 type MessageMode = 'variation' | 'sequence';
@@ -93,7 +102,7 @@ export default function DisparosPage() {
   const [selectedConnections, setSelectedConnections] = useState<number[]>([]);
   const [lists, setLists] = useState<Lista[]>([]);
   const [selectedLists, setSelectedLists] = useState<number[]>([]);
-  const [messages, setMessages] = useState<MessageItem[]>([{ id: 1, text: '', media: null }]);
+  const [messages, setMessages] = useState<MessageItem[]>([{ id: 1, text: '', medias: [], aiEnabled: false }]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [csvContacts, setCsvContacts] = useState<string[]>([]);
@@ -114,8 +123,7 @@ export default function DisparosPage() {
   const [messageMode, setMessageMode] = useState<MessageMode>('variation');
   const [sequenceInterval, setSequenceInterval] = useState(5); // segundos entre mensagens da sequência
   
-  // IA
-  const [aiEnabled, setAiEnabled] = useState(false);
+  // IA - Configurações globais para geração
   const [aiInstructions, setAiInstructions] = useState('');
   const [aiCount, setAiCount] = useState(3);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -239,11 +247,15 @@ export default function DisparosPage() {
   };
 
   const addMessage = () => {
-    setMessages(prev => [...prev, { id: Date.now(), text: '', media: null }]);
+    setMessages(prev => [...prev, { id: Date.now(), text: '', medias: [], aiEnabled: false }]);
   };
 
   const updateMessageText = (id: number, text: string) => {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, text } : m));
+  };
+
+  const toggleMessageAI = (id: number) => {
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, aiEnabled: !m.aiEnabled } : m));
   };
 
   const insertVariable = (msgId: number, variable: string) => {
@@ -255,7 +267,7 @@ export default function DisparosPage() {
     }));
   };
 
-  const handleFileUpload = async (id: number, file: File, type: string) => {
+  const handleFileUpload = async (msgId: number, file: File, type: string) => {
     if (!file) return;
     if (file.size > 16 * 1024 * 1024) {
       toast.error('Arquivo muito grande (Max 16MB)');
@@ -282,14 +294,18 @@ export default function DisparosPage() {
           if (error) throw error;
           if (!data?.url) throw new Error('Link não retornado');
 
-          setMessages(prev => prev.map(m => m.id === id ? {
+          const newMedia: MediaItem = {
+            id: Date.now(),
+            type,
+            filename: file.name,
+            link: data.url,
+            mimetype: file.type,
+          };
+
+          // Add media to the message's medias array
+          setMessages(prev => prev.map(m => m.id === msgId ? {
             ...m,
-            media: { 
-              type, 
-              filename: file.name, 
-              link: data.url,
-              mimetype: file.type 
-            }
+            medias: [...m.medias, newMedia]
           } : m));
           toast.success('Mídia carregada com sucesso!');
         } catch (e) {
@@ -315,8 +331,11 @@ export default function DisparosPage() {
     }
   };
 
-  const removeMedia = (id: number) => {
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, media: null } : m));
+  const removeMedia = (msgId: number, mediaId: number) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { 
+      ...m, 
+      medias: m.medias.filter(media => media.id !== mediaId)
+    } : m));
   };
 
   // Handler para CSV
@@ -339,12 +358,12 @@ export default function DisparosPage() {
     reader.readAsText(file);
   };
 
-  const generateAI = async () => {
+  const generateAIForMessage = async (msgId: number) => {
     if (!user?.id) return;
     
-    const seeds = messages.filter(m => m.text.trim()).map(m => m.text);
-    if (seeds.length === 0) {
-      toast.error('Escreva pelo menos uma mensagem base para a IA');
+    const msg = messages.find(m => m.id === msgId);
+    if (!msg || !msg.text.trim()) {
+      toast.error('Escreva uma mensagem base para a IA gerar variações');
       return;
     }
 
@@ -355,7 +374,7 @@ export default function DisparosPage() {
           action: 'generate-ai-message',
           userId: user.id,
           disparoData: {
-            variacoesMensagens: seeds,
+            variacoesMensagens: [msg.text],
             instrucoesAdicionais: aiInstructions,
             quantidadeMensagens: parseInt(String(aiCount))
           }
@@ -369,18 +388,66 @@ export default function DisparosPage() {
         const newMsgs: MessageItem[] = data.mensagens.mensagens.map((txt: string, idx: number) => ({
           id: Date.now() + idx,
           text: txt,
-          media: null
+          medias: [],
+          aiEnabled: false
         }));
         setMessages(prev => [...prev, ...newMsgs]); 
-        toast.success(`${newMsgs.length} mensagens geradas!`);
+        toast.success(`${newMsgs.length} variações geradas!`);
       } else if (data?.message) {
         const newMsg: MessageItem = {
           id: Date.now(),
           text: data.message,
-          media: null
+          medias: [],
+          aiEnabled: false
         };
         setMessages(prev => [...prev, newMsg]);
-        toast.success('Mensagem gerada!');
+        toast.success('Variação gerada!');
+      } else {
+        throw new Error('Formato inválido da resposta');
+      }
+    } catch (err: any) {
+      console.error('Erro ao gerar mensagem com IA:', err);
+      toast.error(err.message || 'Erro ao gerar mensagem com IA');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
+  const generateAIForAll = async () => {
+    if (!user?.id) return;
+    
+    const aiEnabledMsgs = messages.filter(m => m.aiEnabled && m.text.trim());
+    if (aiEnabledMsgs.length === 0) {
+      toast.error('Ative a IA em pelo menos uma mensagem com texto');
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'generate-ai-message',
+          userId: user.id,
+          disparoData: {
+            variacoesMensagens: aiEnabledMsgs.map(m => m.text),
+            instrucoesAdicionais: aiInstructions,
+            quantidadeMensagens: parseInt(String(aiCount))
+          }
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data && data.mensagens && data.mensagens.mensagens) {
+        const newMsgs: MessageItem[] = data.mensagens.mensagens.map((txt: string, idx: number) => ({
+          id: Date.now() + idx,
+          text: txt,
+          medias: [],
+          aiEnabled: false
+        }));
+        setMessages(prev => [...prev, ...newMsgs]); 
+        toast.success(`${newMsgs.length} variações geradas!`);
       } else {
         throw new Error('Formato inválido da resposta');
       }
@@ -426,10 +493,14 @@ export default function DisparosPage() {
         apikey: c.apikey
       }));
 
-    const messagesData = messages.filter(m => m.text || m.media).map(m => {
+    const messagesData = messages.filter(m => m.text || m.medias.length > 0).map(m => {
       const obj: any = {};
       if (m.text) obj.text = m.text;
-      if (m.media) obj.media = m.media;
+      // Support multiple medias - send array or first media for backwards compatibility
+      if (m.medias.length > 0) {
+        obj.media = m.medias[0]; // Primary media for backwards compatibility
+        obj.medias = m.medias; // All medias for new system
+      }
       return obj;
     });
 
@@ -513,7 +584,7 @@ export default function DisparosPage() {
         // Reset
         setSelectedConnections([]);
         setSelectedLists([]);
-        setMessages([{ id: 1, text: '', media: null }]);
+        setMessages([{ id: 1, text: '', medias: [], aiEnabled: false }]);
         setSelectedDays([]);
         setCsvContacts([]);
       }
@@ -738,7 +809,7 @@ export default function DisparosPage() {
                 )}
                 {messages.map((msg, idx) => (
                   <div key={msg.id} className="p-5 rounded-xl border border-border/50 bg-background/50 space-y-4 transition-all duration-200 hover:border-primary/30">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-3">
                         {messageMode === 'sequence' && (
                           <span className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
@@ -749,15 +820,36 @@ export default function DisparosPage() {
                           {messageMode === 'sequence' ? `Etapa ${idx + 1}` : `Mensagem ${idx + 1}`}
                         </Label>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeMessage(msg.id)}
-                        className="text-destructive hover:text-destructive"
-                        disabled={messages.length <= 1}
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </Button>
+                      <div className="flex items-center gap-3">
+                        {/* Toggle IA individual por etapa */}
+                        <div 
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all ${
+                            msg.aiEnabled 
+                              ? 'bg-emerald-500/20 border border-emerald-500/40' 
+                              : 'bg-muted/50 border border-border/50'
+                          }`}
+                          onClick={() => toggleMessageAI(msg.id)}
+                        >
+                          <Sparkles className={`w-4 h-4 ${msg.aiEnabled ? 'text-emerald-500' : 'text-muted-foreground'}`} />
+                          <span className={`text-xs font-medium ${msg.aiEnabled ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                            IA
+                          </span>
+                          <Switch
+                            checked={msg.aiEnabled}
+                            onCheckedChange={() => toggleMessageAI(msg.id)}
+                            className="scale-75"
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeMessage(msg.id)}
+                          className="text-destructive hover:text-destructive"
+                          disabled={messages.length <= 1}
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Variáveis disponíveis */}
@@ -784,17 +876,28 @@ export default function DisparosPage() {
                       className="min-h-[120px] resize-none font-mono text-base"
                     />
 
-                    {msg.media && (
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
-                        <span className="text-base text-foreground flex items-center gap-2"><FileText className="w-4 h-4" /> {msg.media.filename} ({msg.media.type})</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeMedia(msg.id)}
-                          className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                    {/* Lista de mídias anexadas */}
+                    {msg.medias.length > 0 && (
+                      <div className="space-y-2">
+                        {msg.medias.map((media) => (
+                          <div key={media.id} className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
+                            <span className="text-sm text-foreground flex items-center gap-2">
+                              {media.type === 'image' && <Image className="w-4 h-4" />}
+                              {media.type === 'video' && <Video className="w-4 h-4" />}
+                              {media.type === 'audio' && <FileAudio className="w-4 h-4" />}
+                              {media.type === 'document' && <FileText className="w-4 h-4" />}
+                              {media.filename} ({media.type})
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMedia(msg.id, media.id)}
+                              className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     )}
 
@@ -831,49 +934,57 @@ export default function DisparosPage() {
                   {messageMode === 'sequence' ? 'Adicionar Etapa' : 'Nova Variação'}
                 </Button>
 
-                {/* IA */}
-                <div className="p-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Sparkles className="w-5 h-5 text-emerald-500" />
-                      <span className="text-base font-medium">🤖 Gerar com IA</span>
+                {/* IA - Configurações globais */}
+                {messages.some(m => m.aiEnabled) && (
+                  <div className="p-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 space-y-4">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div className="flex items-center gap-3">
+                        <Sparkles className="w-5 h-5 text-emerald-500" />
+                        <span className="text-base font-medium">
+                          🤖 Gerar Variações com IA
+                        </span>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          {messages.filter(m => m.aiEnabled).length} etapa(s) marcada(s)
+                        </span>
+                      </div>
                     </div>
-                    <Switch
-                      checked={aiEnabled}
-                      onCheckedChange={setAiEnabled}
-                    />
-                  </div>
-                  {aiEnabled && (
+                    <p className="text-sm text-muted-foreground">
+                      A IA irá criar variações das mensagens marcadas acima com o ícone ✨
+                    </p>
                     <div className="flex flex-wrap gap-3 items-center">
-                      <Input
-                        type="number"
-                        value={aiCount}
-                        onChange={e => setAiCount(Number(e.target.value))}
-                        className="w-20 h-11"
-                        min={1}
-                        max={10}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm">Variações:</Label>
+                        <Input
+                          type="number"
+                          value={aiCount}
+                          onChange={e => setAiCount(Number(e.target.value))}
+                          className="w-20 h-10"
+                          min={1}
+                          max={10}
+                        />
+                      </div>
                       <Input
                         type="text"
-                        placeholder="Instruções (ex: seja persuasivo)"
+                        placeholder="Instruções (ex: seja persuasivo, mais informal)"
                         value={aiInstructions}
                         onChange={e => setAiInstructions(e.target.value)}
-                        className="flex-1 min-w-[200px] h-11"
+                        className="flex-1 min-w-[200px] h-10"
                       />
                       <Button
-                        onClick={generateAI}
-                        disabled={isGeneratingAI}
-                        className="bg-emerald-500 hover:bg-emerald-600 h-11 px-6"
+                        onClick={generateAIForAll}
+                        disabled={isGeneratingAI || !messages.some(m => m.aiEnabled && m.text.trim())}
+                        className="bg-emerald-500 hover:bg-emerald-600 h-10 px-6"
                       >
                         {isGeneratingAI ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <Loader2 className="w-5 h-5 animate-spin mr-2" />
                         ) : (
-                          'Gerar'
+                          <Sparkles className="w-4 h-4 mr-2" />
                         )}
+                        {isGeneratingAI ? 'Gerando...' : 'Gerar Variações'}
                       </Button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1038,39 +1149,40 @@ export default function DisparosPage() {
                   
                   {/* Chat Area */}
                   <div className="flex-1 bg-[#e8ded3] p-3 overflow-y-auto">
-                    {messages[0]?.text || messages[0]?.media ? (
+                    {messages[0]?.text || messages[0]?.medias?.length > 0 ? (
                       <div className="space-y-2">
                         {messages.map((m, i) => (
                           <div key={i} className="flex justify-end">
                             <div className="bg-[#dcf8c6] p-2 px-3 rounded-lg rounded-tr-none max-w-[85%] shadow-sm">
-                              {m.media && (
-                                <div className="mb-2 rounded overflow-hidden">
-                                  {m.media.type === 'image' ? (
-                                    <div className="relative">
-                                      <img src={m.media.link} alt="Preview" className="w-full max-h-32 object-cover rounded" />
+                              {/* Render all medias */}
+                              {m.medias.length > 0 && (
+                                <div className="mb-2 space-y-2">
+                                  {m.medias.map((media, mediaIdx) => (
+                                    <div key={mediaIdx} className="rounded overflow-hidden">
+                                      {media.type === 'image' ? (
+                                        <img src={media.link} alt="Preview" className="w-full max-h-32 object-cover rounded" />
+                                      ) : media.type === 'video' ? (
+                                        <video 
+                                          src={media.link} 
+                                          controls
+                                          className="w-full max-h-32 object-cover rounded"
+                                          preload="metadata"
+                                        />
+                                      ) : media.type === 'audio' ? (
+                                        <div className="bg-[#c7e8bd] rounded p-2 flex items-center gap-2">
+                                          <div className="w-8 h-8 rounded-full bg-[#075e54] flex items-center justify-center">
+                                            <FileAudio className="w-4 h-4 text-white" />
+                                          </div>
+                                          <div className="flex-1 h-1 bg-black/20 rounded" />
+                                        </div>
+                                      ) : (
+                                        <div className="bg-black/10 p-2 rounded flex items-center gap-2">
+                                          <FileText className="w-5 h-5 text-[#075e54]" />
+                                          <span className="text-xs text-black/70 truncate">{media.filename || 'Documento'}</span>
+                                        </div>
+                                      )}
                                     </div>
-                                  ) : m.media.type === 'video' ? (
-                                    <div className="relative rounded overflow-hidden">
-                                      <video 
-                                        src={m.media.link} 
-                                        controls
-                                        className="w-full max-h-32 object-cover rounded"
-                                        preload="metadata"
-                                      />
-                                    </div>
-                                  ) : m.media.type === 'audio' ? (
-                                    <div className="bg-[#c7e8bd] rounded p-2 flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-full bg-[#075e54] flex items-center justify-center">
-                                        <FileAudio className="w-4 h-4 text-white" />
-                                      </div>
-                                      <div className="flex-1 h-1 bg-black/20 rounded" />
-                                    </div>
-                                  ) : (
-                                    <div className="bg-black/10 p-2 rounded flex items-center gap-2">
-                                      <FileText className="w-5 h-5 text-[#075e54]" />
-                                      <span className="text-xs text-black/70 truncate">{m.media.filename || 'Documento'}</span>
-                                    </div>
-                                  )}
+                                  ))}
                                 </div>
                               )}
                               {m.text && <p className="text-sm text-black whitespace-pre-wrap leading-relaxed">{substituirVariaveis(m.text)}</p>}
