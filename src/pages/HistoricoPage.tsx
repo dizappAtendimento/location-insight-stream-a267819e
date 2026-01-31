@@ -55,7 +55,9 @@ interface Disparo {
   TipoDisparo: string | null;
   StatusDisparo: string | null;
   TotalDisparos: number | null;
+  TotalDestinatarios: number | null;
   MensagensDisparadas: number | null;
+  DestinatariosAlcancados: number | null;
   DataAgendamento: string | null;
   intervaloMin: number | null;
   intervaloMax: number | null;
@@ -552,7 +554,36 @@ const HistoricoPage = () => {
 
   const calculateProgress = (total: number | null, sent: number | null) => {
     if (!total || total === 0) return 0;
-    return Math.round(((sent || 0) / total) * 100);
+    return Math.min(100, Math.round(((sent || 0) / total) * 100));
+  };
+
+  // Calcular previsão de término baseado no intervalo médio e mensagens restantes
+  const calculateEstimatedEnd = (disparo: Disparo): string | null => {
+    const total = disparo.TotalDestinatarios || disparo.TotalDisparos || 0;
+    const sent = disparo.DestinatariosAlcancados || disparo.MensagensDisparadas || 0;
+    const remaining = total - sent;
+    
+    if (remaining <= 0) return null;
+    if (disparo.StatusDisparo?.toLowerCase() === 'finalizado' || 
+        disparo.StatusDisparo?.toLowerCase() === 'cancelado' ||
+        disparo.StatusDisparo?.toLowerCase() === 'pausado') return null;
+    
+    const avgInterval = ((disparo.intervaloMin || 30) + (disparo.intervaloMax || 60)) / 2;
+    const pauseAfter = disparo.PausaAposMensagens || 0;
+    const pauseMinutes = disparo.PausaMinutos || 0;
+    
+    let totalSeconds = remaining * avgInterval;
+    
+    // Add pause time
+    if (pauseAfter > 0 && pauseMinutes > 0) {
+      const pauseCycles = Math.floor(remaining / pauseAfter);
+      totalSeconds += pauseCycles * pauseMinutes * 60;
+    }
+    
+    const now = new Date();
+    const endDate = new Date(now.getTime() + totalSeconds * 1000);
+    
+    return format(endDate, 'dd/MM HH:mm', { locale: ptBR });
   };
 
   return (
@@ -927,6 +958,7 @@ const HistoricoPage = () => {
                         <TableHead className="text-foreground font-semibold text-center">Total</TableHead>
                         <TableHead className="text-foreground font-semibold text-center">Enviados</TableHead>
                         <TableHead className="text-foreground font-semibold">Progresso</TableHead>
+                        <TableHead className="text-foreground font-semibold">Previsão</TableHead>
                         <TableHead className="text-foreground font-semibold">Status</TableHead>
                         <TableHead className="text-foreground font-semibold text-right">Ações</TableHead>
                       </TableRow>
@@ -934,7 +966,11 @@ const HistoricoPage = () => {
                     <TableBody>
                       {filteredDisparos.map((disparo) => {
                         const { date, time } = formatDate(disparo.created_at);
-                        const progress = calculateProgress(disparo.TotalDisparos, disparo.MensagensDisparadas);
+                        // Usar TotalDestinatarios para progresso (destinatários únicos)
+                        const totalDest = disparo.TotalDestinatarios || disparo.TotalDisparos || 0;
+                        const sentDest = disparo.DestinatariosAlcancados || disparo.MensagensDisparadas || 0;
+                        const progress = calculateProgress(totalDest, sentDest);
+                        const estimatedEnd = calculateEstimatedEnd(disparo);
                         const isPaused = disparo.StatusDisparo?.toLowerCase() === 'pausado';
                         const isRunning = disparo.StatusDisparo?.toLowerCase() === 'em andamento' || disparo.StatusDisparo?.toLowerCase() === 'em_andamento';
                         const canPauseResume = isPaused || isRunning;
@@ -951,16 +987,26 @@ const HistoricoPage = () => {
                             </TableCell>
                             <TableCell>{getTipoBadge(disparo.TipoDisparo)}</TableCell>
                             <TableCell className="text-center font-semibold text-primary">
-                              {disparo.TotalDisparos || 0}
+                              {totalDest}
                             </TableCell>
                             <TableCell className="text-center font-semibold text-primary">
-                              {disparo.MensagensDisparadas || 0}
+                              {sentDest}
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
                                 <Progress value={progress} className="w-24 h-2" />
-                                <div className="text-xs text-muted-foreground">{progress}%</div>
+                                <div className="text-xs text-muted-foreground">{sentDest}/{totalDest} ({progress}%)</div>
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              {estimatedEnd ? (
+                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  <span>{estimatedEnd}</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              )}
                             </TableCell>
                             <TableCell>{getStatusBadge(disparo.StatusDisparo)}</TableCell>
                             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
