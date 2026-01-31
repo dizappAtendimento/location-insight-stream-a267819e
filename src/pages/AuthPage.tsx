@@ -544,18 +544,18 @@ export default function AuthPage() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-highlight text-white hover:bg-highlight/90 font-medium text-base" 
+                  className="w-full h-12 bg-highlight text-white hover:bg-highlight/90 font-medium text-base flex items-center justify-center gap-2" 
                   disabled={isLoading || isGoogleLoading}
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Entrando...
+                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                      <span>Entrando...</span>
                     </>
                   ) : (
                     <>
-                      Entrar
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      <span>Entrar</span>
+                      <ArrowRight className="h-4 w-4 shrink-0" />
                     </>
                   )}
                 </Button>
@@ -720,18 +720,18 @@ export default function AuthPage() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-highlight text-white hover:bg-highlight/90 font-medium text-base mt-2" 
+                  className="w-full h-12 bg-highlight text-white hover:bg-highlight/90 font-medium text-base mt-2 flex items-center justify-center gap-2" 
                   disabled={isRegistering}
                 >
                   {isRegistering ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Cadastrando...
+                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                      <span>Cadastrando...</span>
                     </>
                   ) : (
                     <>
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Criar Conta
+                      <UserPlus className="h-4 w-4 shrink-0" />
+                      <span>Criar Conta</span>
                     </>
                   )}
                 </Button>
