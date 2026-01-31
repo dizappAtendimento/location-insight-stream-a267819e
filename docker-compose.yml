@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  dizapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dizapp-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - dizapp-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dizapp.rule=Host(`seu-dominio.com`)"
+      - "traefik.http.routers.dizapp.entrypoints=websecure"
+      - "traefik.http.routers.dizapp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.dizapp.loadbalancer.server.port=80"
+
+networks:
+  dizapp-network:
+    driver: bridge
