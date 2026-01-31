@@ -174,7 +174,15 @@ const HistoricoDisparosPage = () => {
     };
   };
 
-  const getStatusBadge = (status: string | null) => {
+  const getStatusBadge = (status: string | null, disparo?: Disparo) => {
+    // Se o disparo está completo mas o status ainda não foi atualizado, mostrar como finalizado
+    if (disparo && isDisparoComplete(disparo) && 
+        status?.toLowerCase() !== "finalizado" && 
+        status?.toLowerCase() !== "enviado" &&
+        status?.toLowerCase() !== "cancelado") {
+      return <Badge className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">Finalizado</Badge>;
+    }
+    
     switch (status?.toLowerCase()) {
       case "em andamento":
       case "em_andamento":
@@ -212,7 +220,15 @@ const HistoricoDisparosPage = () => {
 
   const calculateProgress = (total: number | null, sent: number | null) => {
     if (!total || total === 0) return 0;
-    return Math.round(((sent || 0) / total) * 100);
+    // Limitar a 100% máximo (pode acontecer em modo sequência quando sent > total original)
+    return Math.min(100, Math.round(((sent || 0) / total) * 100));
+  };
+
+  // Verificar se o disparo está completo (para exibição de status)
+  const isDisparoComplete = (disparo: Disparo) => {
+    const sent = disparo.MensagensDisparadas || 0;
+    const total = disparo.TotalDisparos || 0;
+    return total > 0 && sent >= total;
   };
 
   return (
@@ -351,7 +367,7 @@ const HistoricoDisparosPage = () => {
                             <div className="text-xs text-muted-foreground">{progress}%</div>
                           </div>
                         </TableCell>
-                        <TableCell>{getStatusBadge(disparo.StatusDisparo)}</TableCell>
+                        <TableCell>{getStatusBadge(disparo.StatusDisparo, disparo)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
