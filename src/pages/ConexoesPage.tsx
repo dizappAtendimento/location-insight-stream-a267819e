@@ -1203,7 +1203,7 @@ const ConexoesPage = () => {
                 </div>
                 {qrTimeRemaining <= 30 && (
                   <div className="text-xs text-amber-400 animate-pulse">
-                    ⚠️ O QR Code expira em breve!
+                    O QR Code expira em breve!
                   </div>
                 )}
               </div>
@@ -1264,7 +1264,7 @@ const ConexoesPage = () => {
           {hasPendingDispatches && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
               <p className="text-sm text-amber-400 font-medium mb-2">
-                ⚠️ Disparos pendentes detectados
+                Disparos pendentes detectados
               </p>
               <p className="text-xs text-muted-foreground">
                 Esta conexão possui disparos pendentes. Você pode aguardar a finalização ou forçar a exclusão, 
