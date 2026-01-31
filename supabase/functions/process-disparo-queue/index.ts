@@ -45,14 +45,6 @@ serve(async (req) => {
     const evolutionUrl = configs['api_evolution_url'] || 'https://evo.dizapp.com.br';
     const evolutionKey = configs['api_evolution_key'];
 
-    if (!evolutionKey) {
-      console.error('[Process Queue] Evolution API key not configured');
-      return new Response(
-        JSON.stringify({ error: 'Evolution API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Buscar mensagens pendentes que estão prontas para enviar
     const now = new Date().toISOString();
     
@@ -84,6 +76,15 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ processed: 0, message: 'No pending messages' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Só verifica a chave se houver mensagens para processar
+    if (!evolutionKey) {
+      console.error('[Process Queue] Evolution API key not configured, skipping processing');
+      return new Response(
+        JSON.stringify({ error: 'Evolution API key not configured', pendingCount: pendingMessages.length }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
