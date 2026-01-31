@@ -72,7 +72,7 @@ export default function AdminPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 animate-in fade-in duration-500">
+      <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6 animate-in fade-in duration-500">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
             <Shield className="w-6 h-6 text-primary" />

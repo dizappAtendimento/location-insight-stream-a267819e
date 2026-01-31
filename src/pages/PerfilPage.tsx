@@ -103,7 +103,7 @@ export default function PerfilPage() {
 
   return (
     <DashboardLayout>
-      <div className="w-full max-w-4xl mx-auto p-6 lg:p-8 space-y-8">
+      <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Meu Perfil</h1>
           <p className="text-muted-foreground mt-1">Gerencie suas informações pessoais</p>

@@ -80,7 +80,7 @@ const extractorItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { state, setOpen } = useSidebar();
+  const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const collapsed = state === 'collapsed';
@@ -95,6 +95,13 @@ export function AppSidebar() {
 
   const handleNotifications = () => {
     toast.info('Você não tem novas notificações');
+  };
+
+  // Close sidebar on mobile when navigating
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   // Filtrar menu baseado nos produtos ativos
@@ -147,10 +154,11 @@ export function AppSidebar() {
                     className="p-0 h-auto"
                   >
                     <Link 
-                      to={item.url} 
+                      to={item.url}
+                      onClick={handleNavClick}
                       className={cn(
                         "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
-                        collapsed && "justify-center px-0",
+                        collapsed && !isMobile && "justify-center px-0",
                         isActive(item.url) 
                           ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
                           : "text-slate-400 hover:text-white hover:bg-slate-800/40"
@@ -160,7 +168,7 @@ export function AppSidebar() {
                         className="w-4 h-4 shrink-0 transition-transform duration-300 ease-out group-hover/link:scale-110" 
                         strokeWidth={1.5} 
                       />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                      {(!collapsed || isMobile) && <span className="text-sm">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -192,9 +200,10 @@ export function AppSidebar() {
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={handleNavClick}
                         className={cn(
                           "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
-                          collapsed && "justify-center px-0",
+                          collapsed && !isMobile && "justify-center px-0",
                           "text-slate-400 hover:text-white hover:bg-slate-800/40"
                         )}
                       >
@@ -205,14 +214,15 @@ export function AppSidebar() {
                           )} 
                           strokeWidth={1.5} 
                         />
-                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                        {(!collapsed || isMobile) && <span className="text-sm">{item.title}</span>}
                       </a>
                     ) : (
                       <Link 
-                        to={item.url} 
+                        to={item.url}
+                        onClick={handleNavClick}
                         className={cn(
                           "group/link flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-300 ease-out w-full",
-                          collapsed && "justify-center px-0",
+                          collapsed && !isMobile && "justify-center px-0",
                           isActive(item.url) 
                             ? "bg-slate-800/80 text-white shadow-lg shadow-slate-900/50" 
                             : "text-slate-400 hover:text-white hover:bg-slate-800/40"
@@ -225,7 +235,7 @@ export function AppSidebar() {
                           )} 
                           strokeWidth={1.5} 
                         />
-                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                        {(!collapsed || isMobile) && <span className="text-sm">{item.title}</span>}
                       </Link>
                     )}
                   </SidebarMenuButton>

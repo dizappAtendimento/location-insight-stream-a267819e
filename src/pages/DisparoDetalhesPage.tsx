@@ -529,7 +529,7 @@ export default function DisparoDetalhesPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50">
           <div>
