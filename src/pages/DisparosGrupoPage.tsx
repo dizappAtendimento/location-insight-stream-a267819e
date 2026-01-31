@@ -57,6 +57,14 @@ interface Lista {
   tipo: string | null;
 }
 
+interface GrupoInstancia {
+  id: string;
+  subject: string;
+  size: number;
+  owner?: string;
+  creation?: number;
+}
+
 interface MessageItem {
   id: number;
   text: string;
@@ -80,6 +88,11 @@ export default function DisparosGrupoPage() {
   const [markAll, setMarkAll] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Estados para grupos da instância
+  const [instanceGroups, setInstanceGroups] = useState<GrupoInstancia[]>([]);
+  const [selectedInstanceGroups, setSelectedInstanceGroups] = useState<string[]>([]);
+  const [loadingInstanceGroups, setLoadingInstanceGroups] = useState(false);
 
   // AI States
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -221,7 +234,62 @@ export default function DisparosGrupoPage() {
 
   // --- Handlers ---
   const handleSelectConnection = (conn: Connection) => {
-    setSelectedConnection(selectedConnection?.id === conn.id ? null : conn);
+    const wasSelected = selectedConnection?.id === conn.id;
+    setSelectedConnection(wasSelected ? null : conn);
+    
+    // Limpar grupos da instância ao trocar conexão
+    if (!wasSelected && selectedConnection?.id !== conn.id) {
+      setInstanceGroups([]);
+      setSelectedInstanceGroups([]);
+    }
+  };
+
+  // Buscar grupos da instância selecionada
+  const fetchInstanceGroups = async () => {
+    if (!selectedConnection || !user?.id) {
+      toast.error('Selecione uma conexão primeiro');
+      return;
+    }
+
+    setLoadingInstanceGroups(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: {
+          action: 'fetch-groups',
+          instanceName: selectedConnection.instance,
+          apikey: selectedConnection.apikey,
+          userId: user.id,
+        }
+      });
+
+      if (error) throw error;
+
+      const groups = data?.groups || [];
+      setInstanceGroups(groups.map((g: any) => ({
+        id: g.id,
+        subject: g.subject || g.name || 'Grupo sem nome',
+        size: g.size || 0,
+        owner: g.owner,
+        creation: g.creation,
+      })));
+
+      if (groups.length === 0) {
+        toast.info('Nenhum grupo encontrado nesta conexão');
+      } else {
+        toast.success(`${groups.length} grupos encontrados!`);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao buscar grupos da instância');
+    } finally {
+      setLoadingInstanceGroups(false);
+    }
+  };
+
+  const toggleInstanceGroup = (groupId: string) => {
+    setSelectedInstanceGroups(prev =>
+      prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
+    );
   };
 
   const toggleList = (id: number) => {
@@ -358,8 +426,9 @@ export default function DisparosGrupoPage() {
       toast.error('Selecione uma conexão');
       return;
     }
-    if (selectedLists.length === 0) {
-      toast.error('Selecione uma lista de grupos');
+    // Validar que pelo menos uma lista OU grupos da instância foram selecionados
+    if (selectedLists.length === 0 && selectedInstanceGroups.length === 0) {
+      toast.error('Selecione uma lista de grupos ou grupos da instância');
       return;
     }
     if (!sendDate) {
@@ -388,6 +457,15 @@ export default function DisparosGrupoPage() {
         apikey: selectedConnection.apikey
       }],
       idLista: selectedLists,
+      // Grupos selecionados diretamente da instância (WhatsApp IDs)
+      gruposInstancia: selectedInstanceGroups.map(id => {
+        const grupo = instanceGroups.find(g => g.id === id);
+        return {
+          id,
+          nome: grupo?.subject || 'Grupo',
+          participantes: grupo?.size || 0
+        };
+      }),
       mensagens: messages.filter(m => m.text || m.media).map(m => ({
         text: m.text,
         type: 'text',
@@ -416,6 +494,8 @@ export default function DisparosGrupoPage() {
         // Reset form
         setSelectedConnection(null);
         setSelectedLists([]);
+        setSelectedInstanceGroups([]);
+        setInstanceGroups([]);
         setMessages([{ id: 1, text: '', media: null }]);
         setSendDate('');
         setMarkAll(false);
@@ -567,6 +647,103 @@ export default function DisparosGrupoPage() {
                     <p className="text-base text-yellow-500">
                       Certifique-se que o WhatsApp selecionado está em todos os grupos da lista.
                     </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Grupos da Instância */}
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm opacity-0 animate-fade-in transition-all duration-300" style={{ animationDelay: '120ms', animationFillMode: 'forwards' }}>
+              <CardHeader className="pb-4 px-6 pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Users className="w-6 h-6 text-primary" />
+                    <div>
+                      <CardTitle className="text-xl font-semibold">Grupos da Instância</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Selecione grupos diretamente do WhatsApp conectado
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchInstanceGroups}
+                    disabled={!selectedConnection || loadingInstanceGroups}
+                    className="gap-2"
+                  >
+                    {loadingInstanceGroups ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    {loadingInstanceGroups ? 'Buscando...' : 'Puxar Grupos'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                {!selectedConnection ? (
+                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl">
+                    <Wifi className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Selecione uma conexão primeiro</p>
+                  </div>
+                ) : instanceGroups.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm mb-3">Clique em "Puxar Grupos" para listar os grupos</p>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={fetchInstanceGroups}
+                      disabled={loadingInstanceGroups}
+                      className="gap-2"
+                    >
+                      {loadingInstanceGroups ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Buscando...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          Puxar Grupos
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{instanceGroups.length} grupo(s) encontrado(s)</span>
+                      <span>{selectedInstanceGroups.length} selecionado(s)</span>
+                    </div>
+                    <div className="grid gap-3 max-h-[300px] overflow-y-auto pr-2">
+                      {instanceGroups.map((grupo, index) => (
+                        <div
+                          key={grupo.id}
+                          onClick={() => toggleInstanceGroup(grupo.id)}
+                          className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between ${
+                            selectedInstanceGroups.includes(grupo.id)
+                              ? 'border-primary bg-primary/10 shadow-sm'
+                              : 'border-border/50 bg-muted/20 hover:border-primary/40'
+                          }`}
+                          style={{ animationDelay: `${index * 20}ms` }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Users className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{grupo.subject}</p>
+                              <p className="text-xs text-muted-foreground">{grupo.size} participantes</p>
+                            </div>
+                          </div>
+                          {selectedInstanceGroups.includes(grupo.id) && (
+                            <CheckCircle className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </CardContent>
