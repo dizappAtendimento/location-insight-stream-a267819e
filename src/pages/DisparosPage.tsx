@@ -828,17 +828,25 @@ export default function DisparosPage() {
                               ? 'bg-emerald-500/20 border border-emerald-500/40' 
                               : 'bg-muted/50 border border-border/50'
                           }`}
-                          onClick={() => toggleMessageAI(msg.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleMessageAI(msg.id);
+                          }}
                         >
                           <Sparkles className={`w-4 h-4 ${msg.aiEnabled ? 'text-emerald-500' : 'text-muted-foreground'}`} />
                           <span className={`text-xs font-medium ${msg.aiEnabled ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                             IA
                           </span>
-                          <Switch
-                            checked={msg.aiEnabled}
-                            onCheckedChange={() => toggleMessageAI(msg.id)}
-                            className="scale-75"
-                          />
+                          <div 
+                            className={`w-8 h-4 rounded-full transition-colors ${msg.aiEnabled ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div 
+                              className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${
+                                msg.aiEnabled ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'
+                              }`}
+                            />
+                          </div>
                         </div>
                         <Button
                           variant="ghost"
