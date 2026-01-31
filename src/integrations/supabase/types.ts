@@ -1353,6 +1353,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_disparo_count: {
+        Args: { p_disparo_id: number }
+        Returns: undefined
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       p_expire_users_daily: { Args: never; Returns: undefined }
       pause_disparo:
