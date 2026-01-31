@@ -168,14 +168,21 @@ serve(async (req) => {
 
         // Preparar payload para Evolution API
         const payload = msg.Payload || {};
-        const mediaPayload = payload.media;
+        
+        // NEW: Support for multiple medias
+        const mediasArray = payload.medias || (payload.media ? [payload.media] : []);
 
-        let evolutionPayload: any;
-        let endpoint: string;
-
-        if (mediaPayload?.link) {
-          // Envio com mídia
-          const mediaType = mediaPayload.type || 'document';
+        // Send all medias sequentially, then send text if any
+        for (let mediaIndex = 0; mediaIndex < mediasArray.length; mediaIndex++) {
+          const mediaItem = mediasArray[mediaIndex];
+          if (!mediaItem?.link) continue;
+          
+          const mediaType = mediaItem.type || 'document';
+          let evolutionPayload: any;
+          let endpoint: string;
+          
+          // Only add caption/text to the first media item
+          const caption = mediaIndex === 0 && messageText && mediasArray.length === 1 ? messageText : undefined;
           
           switch (mediaType) {
             case 'image':
@@ -183,9 +190,9 @@ serve(async (req) => {
               evolutionPayload = {
                 number: remoteJid,
                 mediatype: 'image',
-                media: mediaPayload.link,
-                caption: messageText || undefined,
-                fileName: mediaPayload.filename,
+                media: mediaItem.link,
+                caption: caption,
+                fileName: mediaItem.filename,
               };
               break;
             case 'video':
@@ -193,16 +200,16 @@ serve(async (req) => {
               evolutionPayload = {
                 number: remoteJid,
                 mediatype: 'video',
-                media: mediaPayload.link,
-                caption: messageText || undefined,
-                fileName: mediaPayload.filename,
+                media: mediaItem.link,
+                caption: caption,
+                fileName: mediaItem.filename,
               };
               break;
             case 'audio':
               endpoint = '/message/sendWhatsAppAudio/';
               evolutionPayload = {
                 number: remoteJid,
-                audio: mediaPayload.link,
+                audio: mediaItem.link,
               };
               break;
             case 'document':
@@ -211,51 +218,72 @@ serve(async (req) => {
               evolutionPayload = {
                 number: remoteJid,
                 mediatype: 'document',
-                media: mediaPayload.link,
-                caption: messageText || undefined,
-                fileName: mediaPayload.filename,
-                mimetype: mediaPayload.mimetype,
+                media: mediaItem.link,
+                caption: caption,
+                fileName: mediaItem.filename,
+                mimetype: mediaItem.mimetype,
               };
               break;
           }
-        } else {
-          // Envio de texto simples - verificar se há texto
-          if (!messageText || messageText.trim() === '') {
-            throw new Error('Mensagem sem texto e sem mídia - nada para enviar');
+
+          // Send this media
+          const mediaApiUrl = `${evolutionUrl}${endpoint}${connection.instanceName}`;
+          console.log(`[Process Queue] Sending media ${mediaIndex + 1}/${mediasArray.length} to ${mediaApiUrl}`);
+
+          const mediaResponse = await fetch(mediaApiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': connection.Apikey || evolutionKey,
+            },
+            body: JSON.stringify(evolutionPayload),
+          });
+
+          if (!mediaResponse.ok) {
+            const mediaError = await mediaResponse.json().catch(() => ({}));
+            throw new Error(`Evolution API error on media ${mediaIndex + 1}: ${mediaResponse.status} - ${JSON.stringify(mediaError)}`);
           }
-          endpoint = '/message/sendText/';
-          evolutionPayload = {
+          
+          // Small delay between media items
+          if (mediaIndex < mediasArray.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+
+        // Send text message if there's text and either no medias or multiple medias (where caption wasn't used)
+        if (messageText && messageText.trim() !== '' && (mediasArray.length === 0 || mediasArray.length > 1)) {
+          const textEndpoint = '/message/sendText/';
+          const textPayload = {
             number: remoteJid,
             text: messageText,
           };
+          
+          const textApiUrl = `${evolutionUrl}${textEndpoint}${connection.instanceName}`;
+          console.log(`[Process Queue] Sending text to ${textApiUrl}`);
+
+          const textResponse = await fetch(textApiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': connection.Apikey || evolutionKey,
+            },
+            body: JSON.stringify(textPayload),
+          });
+
+          if (!textResponse.ok) {
+            const textError = await textResponse.json().catch(() => ({}));
+            throw new Error(`Evolution API error on text: ${textResponse.status} - ${JSON.stringify(textError)}`);
+          }
         }
 
-        // Enviar via Evolution API
-        const apiUrl = `${evolutionUrl}${endpoint}${connection.instanceName}`;
-        console.log(`[Process Queue] Sending to ${apiUrl}`);
-
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': connection.Apikey || evolutionKey,
-          },
-          body: JSON.stringify(evolutionPayload),
-        });
-
-        const responseData = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(`Evolution API error: ${response.status} - ${JSON.stringify(responseData)}`);
-        }
 
         // Atualizar como enviado com sucesso
         await supabase
           .from('SAAS_Detalhes_Disparos')
           .update({
             Status: 'sent',
-            statusHttp: response.status.toString(),
-            respostaHttp: responseData,
+            statusHttp: '200',
+            respostaHttp: { success: true, mediaCount: mediasArray.length },
             dataEnvio: new Date().toISOString(),
           })
           .eq('id', msg.id);
