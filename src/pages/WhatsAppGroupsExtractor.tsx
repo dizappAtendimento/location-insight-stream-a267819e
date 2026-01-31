@@ -169,6 +169,10 @@ const WhatsAppGroupsExtractor = () => {
   // Filters for extracted groups
   const [groupFilter, setGroupFilter] = useState('');
   const [groupTypeFilter, setGroupTypeFilter] = useState<'all' | 'group' | 'community'>('all');
+  
+  // Multi-connection selection for group fetching
+  const [selectedConnections, setSelectedConnections] = useState<number[]>([]);
+  const [isLoadingMultiGroups, setIsLoadingMultiGroups] = useState(false);
 
   // Load instances only once on mount
   const [instancesLoaded, setInstancesLoaded] = useState(false);
@@ -362,6 +366,86 @@ const WhatsAppGroupsExtractor = () => {
       toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro ao buscar grupos", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Toggle connection selection for multi-fetch
+  const toggleConnection = (id: number) => {
+    setSelectedConnections(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  // Fetch groups from multiple selected connections
+  const fetchGroupsFromMultipleConnections = async () => {
+    if (selectedConnections.length === 0) {
+      toast({ title: "Erro", description: "Selecione pelo menos uma conexão primeiro", variant: "destructive" });
+      return;
+    }
+
+    setIsLoadingMultiGroups(true);
+    setGroups([]);
+    
+    try {
+      const selectedConns = instances.filter(c => selectedConnections.includes(c.id) && c.status === 'connected');
+      
+      if (selectedConns.length === 0) {
+        toast({ title: "Erro", description: "Nenhuma conexão ativa selecionada", variant: "destructive" });
+        setIsLoadingMultiGroups(false);
+        return;
+      }
+
+      interface GroupWithConnection extends WhatsAppGroup {
+        connectionName: string;
+      }
+
+      const allGroups: GroupWithConnection[] = [];
+
+      for (const conn of selectedConns) {
+        try {
+          const { data, error } = await supabase.functions.invoke('evolution-api', {
+            body: { action: 'fetch-groups', instanceName: conn.instanceName }
+          });
+
+          if (error) {
+            console.error(`Erro ao buscar grupos de ${conn.NomeConexao || conn.instanceName}:`, error);
+            continue;
+          }
+
+          const fetchedGroups = data?.groups || [];
+          
+          // Map and add connection info
+          const mappedGroups: GroupWithConnection[] = fetchedGroups.map((g: any) => ({
+            ...g,
+            connectionName: conn.NomeConexao || conn.instanceName
+          }));
+
+          allGroups.push(...mappedGroups);
+        } catch (err) {
+          console.error(`Erro ao buscar grupos de ${conn.NomeConexao || conn.instanceName}:`, err);
+        }
+      }
+
+      setGroups(allGroups);
+      
+      if (allGroups.length > 0) {
+        toast({ title: "Sucesso", description: `${allGroups.length} grupos encontrados de ${selectedConns.length} conexão(ões)` });
+        
+        addRecord({
+          type: 'whatsapp-groups',
+          segment: `Grupos de ${selectedConns.length} conexões`,
+          totalResults: allGroups.length,
+          emailsFound: 0,
+          phonesFound: 0,
+        });
+      } else {
+        toast({ title: "Aviso", description: "Nenhum grupo encontrado nas conexões selecionadas" });
+      }
+    } catch (err) {
+      console.error('Erro ao buscar grupos:', err);
+      toast({ title: "Erro", description: "Erro ao buscar grupos", variant: "destructive" });
+    } finally {
+      setIsLoadingMultiGroups(false);
     }
   };
 
@@ -986,9 +1070,66 @@ const WhatsAppGroupsExtractor = () => {
               )}
 
               {connectedInstances.length > 0 && (
-                <div className="pt-4 border-t border-border/50 space-y-3">
+                <div className="pt-4 border-t border-border/50 space-y-4">
+                  {/* Multi-connection selection */}
+                  <div className="p-4 rounded-xl border border-border/50 bg-background/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Grupos das conexões selecionadas</p>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedConnections.length === 0 
+                            ? 'Selecione conexões acima'
+                            : `${selectedConnections.length} conexão(ões) selecionada(s)`
+                          }
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchGroupsFromMultipleConnections}
+                        disabled={isLoadingMultiGroups}
+                        className="gap-2"
+                      >
+                        {isLoadingMultiGroups ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                        {isLoadingMultiGroups ? 'Buscando...' : 'Puxar Grupos'}
+                      </Button>
+                    </div>
+                    
+                    {/* Connection checkboxes */}
+                    <div className="space-y-2 max-h-[150px] overflow-y-auto">
+                      {connectedInstances.map((instance) => (
+                        <div 
+                          key={`check-${instance.id}`}
+                          onClick={() => toggleConnection(instance.id)}
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${
+                            selectedConnections.includes(instance.id)
+                              ? 'bg-[#25D366]/10 border border-[#25D366]/30'
+                              : 'bg-secondary/30 hover:bg-secondary/50'
+                          }`}
+                        >
+                          <Checkbox 
+                            checked={selectedConnections.includes(instance.id)}
+                            onCheckedChange={() => toggleConnection(instance.id)}
+                            className="data-[state=checked]:bg-[#25D366] data-[state=checked]:border-[#25D366]"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{instance.NomeConexao || instance.instanceName}</p>
+                          </div>
+                          <Badge variant="default" className="text-xs bg-[#25D366]">
+                            Conectado
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Single instance selection (alternative) */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Instância para Extração</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Ou selecione uma instância única:</Label>
                     <Select value={selectedInstance} onValueChange={setSelectedInstance}>
                       <SelectTrigger><SelectValue placeholder="Selecione uma instância conectada" /></SelectTrigger>
                       <SelectContent>
