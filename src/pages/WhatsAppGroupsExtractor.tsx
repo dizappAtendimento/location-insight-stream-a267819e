@@ -1003,7 +1003,7 @@ const WhatsAppGroupsExtractor = () => {
                   <Button 
                     onClick={fetchGroups} 
                     className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0F7A6D]" 
-                    disabled={isLoading || !selectedInstance}
+                    disabled={isLoading}
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
                     {isLoading ? 'Buscando grupos...' : 'Extrair Grupos'}
