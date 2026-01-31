@@ -928,7 +928,7 @@ export default function DisparosPage() {
                         variant="outline"
                         size="default"
                         onClick={fetchGroups}
-                        disabled={loadingGroups || selectedConnections.length === 0}
+                        disabled={loadingGroups}
                         className="gap-2"
                       >
                         {loadingGroups ? (
