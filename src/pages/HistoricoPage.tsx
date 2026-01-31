@@ -958,7 +958,6 @@ const HistoricoPage = () => {
                         <TableHead className="text-foreground font-semibold text-center">Total</TableHead>
                         <TableHead className="text-foreground font-semibold text-center">Enviados</TableHead>
                         <TableHead className="text-foreground font-semibold">Progresso</TableHead>
-                        <TableHead className="text-foreground font-semibold">Previsão</TableHead>
                         <TableHead className="text-foreground font-semibold">Status</TableHead>
                         <TableHead className="text-foreground font-semibold text-right">Ações</TableHead>
                       </TableRow>
@@ -970,9 +969,10 @@ const HistoricoPage = () => {
                         const totalDest = disparo.TotalDestinatarios || disparo.TotalDisparos || 0;
                         const sentDest = disparo.DestinatariosAlcancados || disparo.MensagensDisparadas || 0;
                         const progress = calculateProgress(totalDest, sentDest);
-                        const estimatedEnd = calculateEstimatedEnd(disparo);
-                        const isPaused = disparo.StatusDisparo?.toLowerCase() === 'pausado';
-                        const isRunning = disparo.StatusDisparo?.toLowerCase() === 'em andamento' || disparo.StatusDisparo?.toLowerCase() === 'em_andamento';
+                        // Se progresso = 100%, status é finalizado
+                        const displayStatus = progress >= 100 ? 'Finalizado' : disparo.StatusDisparo;
+                        const isPaused = displayStatus?.toLowerCase() === 'pausado';
+                        const isRunning = displayStatus?.toLowerCase() === 'em andamento' || displayStatus?.toLowerCase() === 'em_andamento';
                         const canPauseResume = isPaused || isRunning;
 
                         return (
@@ -998,17 +998,7 @@ const HistoricoPage = () => {
                                 <div className="text-xs text-muted-foreground">{sentDest}/{totalDest} ({progress}%)</div>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              {estimatedEnd ? (
-                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  <span>{estimatedEnd}</span>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>{getStatusBadge(disparo.StatusDisparo)}</TableCell>
+                            <TableCell>{getStatusBadge(displayStatus)}</TableCell>
                             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
