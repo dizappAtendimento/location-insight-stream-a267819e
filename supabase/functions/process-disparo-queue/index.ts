@@ -169,20 +169,17 @@ serve(async (req) => {
         // Preparar payload para Evolution API
         const payload = msg.Payload || {};
         
-        // NEW: Support for multiple medias
-        const mediasArray = payload.medias || (payload.media ? [payload.media] : []);
+        // NEW: Each detail now has a single media (or none)
+        const mediaItem = payload.media;
 
-        // Send all medias sequentially, then send text if any
-        for (let mediaIndex = 0; mediaIndex < mediasArray.length; mediaIndex++) {
-          const mediaItem = mediasArray[mediaIndex];
-          if (!mediaItem?.link) continue;
-          
+        if (mediaItem?.link) {
+          // Send media
           const mediaType = mediaItem.type || 'document';
           let evolutionPayload: any;
           let endpoint: string;
           
-          // Only add caption/text to the first media item
-          const caption = mediaIndex === 0 && messageText && mediasArray.length === 1 ? messageText : undefined;
+          // Add caption if there's text
+          const caption = messageText && messageText.trim() !== '' ? messageText : undefined;
           
           switch (mediaType) {
             case 'image':
@@ -226,9 +223,9 @@ serve(async (req) => {
               break;
           }
 
-          // Send this media
+          // Send media
           const mediaApiUrl = `${evolutionUrl}${endpoint}${connection.instanceName}`;
-          console.log(`[Process Queue] Sending media ${mediaIndex + 1}/${mediasArray.length} to ${mediaApiUrl}`);
+          console.log(`[Process Queue] Sending media to ${mediaApiUrl}`);
 
           const mediaResponse = await fetch(mediaApiUrl, {
             method: 'POST',
@@ -241,17 +238,10 @@ serve(async (req) => {
 
           if (!mediaResponse.ok) {
             const mediaError = await mediaResponse.json().catch(() => ({}));
-            throw new Error(`Evolution API error on media ${mediaIndex + 1}: ${mediaResponse.status} - ${JSON.stringify(mediaError)}`);
+            throw new Error(`Evolution API error on media: ${mediaResponse.status} - ${JSON.stringify(mediaError)}`);
           }
-          
-          // Small delay between media items
-          if (mediaIndex < mediasArray.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
-
-        // Send text message if there's text and either no medias or multiple medias (where caption wasn't used)
-        if (messageText && messageText.trim() !== '' && (mediasArray.length === 0 || mediasArray.length > 1)) {
+        } else if (messageText && messageText.trim() !== '') {
+          // Text only (no media)
           const textEndpoint = '/message/sendText/';
           const textPayload = {
             number: remoteJid,
@@ -274,6 +264,8 @@ serve(async (req) => {
             const textError = await textResponse.json().catch(() => ({}));
             throw new Error(`Evolution API error on text: ${textResponse.status} - ${JSON.stringify(textError)}`);
           }
+        } else {
+          console.log(`[Process Queue] Skipping message ${msg.id} - no text and no media`);
         }
 
 
@@ -283,7 +275,7 @@ serve(async (req) => {
           .update({
             Status: 'sent',
             statusHttp: '200',
-            respostaHttp: { success: true, mediaCount: mediasArray.length },
+            respostaHttp: { success: true, hasMedia: !!mediaItem },
             dataEnvio: new Date().toISOString(),
           })
           .eq('id', msg.id);
