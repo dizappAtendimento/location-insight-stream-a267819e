@@ -705,9 +705,17 @@ export default function DisparoDetalhesPage() {
 
           {/* Messages */}
           <div className="p-6 rounded-xl bg-card/50 backdrop-blur border border-border/50">
-            <div className="flex items-center gap-2 mb-4">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Mensagens ({disparo.Mensagens?.length || 0})</h2>
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Mensagens ({disparo.Mensagens?.length || 0})</h2>
+              </div>
+              {disparo.Mensagens && disparo.Mensagens.length > 1 && (
+                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Intervalo entre etapas: {disparo.intervaloMin || 5}s a {disparo.intervaloMax || 15}s
+                </Badge>
+              )}
             </div>
             <div className="space-y-3 max-h-[300px] overflow-y-auto">
               {disparo.Mensagens?.map((msg, idx) => (
@@ -715,6 +723,9 @@ export default function DisparoDetalhesPage() {
                   <div className="flex items-center gap-2 mb-2">
                     {getMessageTypeIcon(msg)}
                     <Badge variant="outline" className="text-xs">
+                      Etapa {idx + 1}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
                       {msg.mediaType || "Texto"}
                     </Badge>
                   </div>
