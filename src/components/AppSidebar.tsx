@@ -288,25 +288,25 @@ export function AppSidebar() {
             <DropdownMenuSeparator className="bg-slate-700/60" />
             <DropdownMenuItem 
               onClick={toggleTheme}
-              className="text-slate-300 hover:text-white hover:bg-slate-700/50 focus:text-white focus:bg-slate-700/50 cursor-pointer"
+              className="text-slate-300 hover:text-white hover:bg-slate-700/50 focus:text-white focus:bg-slate-700/50 data-[highlighted]:bg-slate-700/50 data-[highlighted]:text-white cursor-pointer"
             >
               {isDark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
               {isDark ? 'Modo Claro' : 'Modo Escuro'}
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={handleNotifications}
-              className="text-slate-300 hover:text-white hover:bg-slate-700/50 focus:text-white focus:bg-slate-700/50 cursor-pointer"
+              className="text-slate-300 hover:text-white hover:bg-slate-700/50 focus:text-white focus:bg-slate-700/50 data-[highlighted]:bg-slate-700/50 data-[highlighted]:text-white cursor-pointer"
             >
               <Bell className="w-4 h-4 mr-2" />
               Notificações
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="text-slate-300 hover:text-white hover:bg-slate-700/50 focus:text-white focus:bg-slate-700/50 cursor-pointer">
+            <DropdownMenuItem asChild className="text-slate-300 hover:text-white hover:bg-slate-700/50 focus:text-white focus:bg-slate-700/50 data-[highlighted]:bg-slate-700/50 data-[highlighted]:text-white cursor-pointer">
               <Link to="/perfil">
                 <User className="w-4 h-4 mr-2" />
                 Meu Perfil
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="text-slate-300 hover:text-white hover:bg-slate-700/50 focus:text-white focus:bg-slate-700/50 cursor-pointer">
+            <DropdownMenuItem asChild className="text-slate-300 hover:text-white hover:bg-slate-700/50 focus:text-white focus:bg-slate-700/50 data-[highlighted]:bg-slate-700/50 data-[highlighted]:text-white cursor-pointer">
               <Link to="/configuracoes">
                 <Settings className="w-4 h-4 mr-2" />
                 Configurações
@@ -315,7 +315,7 @@ export function AppSidebar() {
             <DropdownMenuSeparator className="bg-slate-700/60" />
             <DropdownMenuItem 
               onClick={logout}
-              className="text-red-400 hover:text-red-300 hover:bg-slate-700/50 focus:text-red-300 focus:bg-slate-700/50 cursor-pointer"
+              className="text-red-400 hover:text-red-300 hover:bg-slate-700/50 focus:text-red-300 focus:bg-slate-700/50 data-[highlighted]:bg-slate-700/50 data-[highlighted]:text-red-300 cursor-pointer"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Sair
