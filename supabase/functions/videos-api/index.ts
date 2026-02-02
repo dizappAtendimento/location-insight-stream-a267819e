@@ -24,7 +24,7 @@ serve(async (req) => {
     // Get all active modules with their videos
     if (action === 'get-public-videos') {
       const { data: modulos, error: modulosError } = await supabase
-        .from('SAAS_Video_Modulos')
+        .from('saas_video_modulos')
         .select('*')
         .eq('ativo', true)
         .order('ordem', { ascending: true });
@@ -38,7 +38,7 @@ serve(async (req) => {
       }
 
       const { data: videos, error: videosError } = await supabase
-        .from('SAAS_Videos')
+        .from('saas_videos')
         .select('*')
         .eq('ativo', true)
         .order('ordem', { ascending: true });
@@ -68,7 +68,7 @@ serve(async (req) => {
     // Get all modules (including inactive) for admin
     if (action === 'admin-get-modulos') {
       const { data, error } = await supabase
-        .from('SAAS_Video_Modulos')
+        .from('saas_video_modulos')
         .select('*')
         .order('ordem', { ascending: true });
 
@@ -90,7 +90,7 @@ serve(async (req) => {
       const { idModulo } = body;
       
       let query = supabase
-        .from('SAAS_Videos')
+        .from('saas_videos')
         .select('*')
         .order('ordem', { ascending: true });
 
@@ -118,7 +118,7 @@ serve(async (req) => {
       const { nome, descricao, ordem } = body;
 
       const { data, error } = await supabase
-        .from('SAAS_Video_Modulos')
+        .from('saas_video_modulos')
         .insert({ nome, descricao, ordem: ordem || 0, ativo: true })
         .select()
         .single();
@@ -142,7 +142,7 @@ serve(async (req) => {
       const { id, nome, descricao, ordem, ativo } = body;
 
       const { data, error } = await supabase
-        .from('SAAS_Video_Modulos')
+        .from('saas_video_modulos')
         .update({ nome, descricao, ordem, ativo })
         .eq('id', id)
         .select()
@@ -167,7 +167,7 @@ serve(async (req) => {
       const { id } = body;
 
       const { error } = await supabase
-        .from('SAAS_Video_Modulos')
+        .from('saas_video_modulos')
         .delete()
         .eq('id', id);
 
@@ -190,7 +190,7 @@ serve(async (req) => {
       const { idModulo, titulo, descricao, youtube_url, ordem } = body;
 
       const { data, error } = await supabase
-        .from('SAAS_Videos')
+        .from('saas_videos')
         .insert({ idModulo, titulo, descricao, youtube_url, ordem: ordem || 0, ativo: true })
         .select()
         .single();
@@ -214,7 +214,7 @@ serve(async (req) => {
       const { id, idModulo, titulo, descricao, youtube_url, ordem, ativo } = body;
 
       const { data, error } = await supabase
-        .from('SAAS_Videos')
+        .from('saas_videos')
         .update({ idModulo, titulo, descricao, youtube_url, ordem, ativo })
         .eq('id', id)
         .select()
@@ -239,7 +239,7 @@ serve(async (req) => {
       const { id } = body;
 
       const { error } = await supabase
-        .from('SAAS_Videos')
+        .from('saas_videos')
         .delete()
         .eq('id', id);
 
