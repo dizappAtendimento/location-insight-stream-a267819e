@@ -10,7 +10,8 @@ import { AdminUsers } from '@/components/admin/AdminUsers';
 import { AdminPlans } from '@/components/admin/AdminPlans';
 import { AdminSuperAdmins } from '@/components/admin/AdminSuperAdmins';
 import AdminCupons from '@/components/admin/AdminCupons';
-import { Shield, Users, CreditCard, BarChart3, Crown, Ticket } from 'lucide-react';
+import { AdminVideos } from '@/components/admin/AdminVideos';
+import { Shield, Users, CreditCard, BarChart3, Crown, Ticket, Video } from 'lucide-react';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -105,6 +106,10 @@ export default function AdminPage() {
               <Ticket className="w-4 h-4" />
               Cupons
             </TabsTrigger>
+            <TabsTrigger value="videos" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Video className="w-4 h-4" />
+              Vídeos
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="stats" className="space-y-6">
@@ -125,6 +130,10 @@ export default function AdminPage() {
 
           <TabsContent value="cupons" className="space-y-6">
             <AdminCupons />
+          </TabsContent>
+
+          <TabsContent value="videos" className="space-y-6">
+            <AdminVideos />
           </TabsContent>
         </Tabs>
       </div>
