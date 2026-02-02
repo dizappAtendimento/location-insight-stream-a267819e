@@ -279,7 +279,7 @@ export function AppSidebar() {
             side="top" 
             align="start" 
             sideOffset={8}
-            className="w-56 z-50 bg-[#12141c] border border-slate-700/80 shadow-xl shadow-black/40"
+            className="dark w-56 z-50 bg-[#12141c] border border-slate-700/80 shadow-xl shadow-black/40"
           >
             <DropdownMenuLabel className="flex flex-col gap-0.5 text-white">
               <span className="font-medium">{user?.nome || 'Usuário'}</span>
