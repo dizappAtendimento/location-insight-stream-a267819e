@@ -22,7 +22,7 @@ interface Modulo {
 
 interface VideoItem {
   id: number;
-  idModulo: number;
+  idmodulo: number;
   titulo: string;
   descricao: string | null;
   youtube_url: string;
@@ -144,7 +144,7 @@ export function AdminVideos() {
     if (video) {
       setEditingVideo(video);
       setVideoForm({ 
-        idModulo: video.idModulo, 
+        idModulo: video.idmodulo, 
         titulo: video.titulo, 
         descricao: video.descricao || '', 
         youtube_url: video.youtube_url, 
@@ -152,7 +152,7 @@ export function AdminVideos() {
       });
     } else {
       setEditingVideo(null);
-      const videosDoModulo = videos.filter(v => v.idModulo === moduloId);
+      const videosDoModulo = videos.filter(v => v.idmodulo === moduloId);
       setVideoForm({ 
         idModulo: moduloId || modulos[0]?.id || 0, 
         titulo: '', 
@@ -292,7 +292,7 @@ export function AdminVideos() {
       ) : (
         <Accordion type="multiple" className="space-y-3">
           {modulos.map((modulo) => {
-            const moduloVideos = videos.filter(v => v.idModulo === modulo.id);
+            const moduloVideos = videos.filter(v => v.idmodulo === modulo.id);
             return (
               <AccordionItem 
                 key={modulo.id} 

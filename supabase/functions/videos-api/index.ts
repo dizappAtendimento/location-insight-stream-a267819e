@@ -51,10 +51,10 @@ serve(async (req) => {
         );
       }
 
-      // Group videos by module
+      // Group videos by module (using lowercase idmodulo from DB)
       const modulosComVideos = modulos?.map(modulo => ({
         ...modulo,
-        videos: videos?.filter(v => v.idModulo === modulo.id) || []
+        videos: videos?.filter(v => v.idmodulo === modulo.id) || []
       })) || [];
 
       return new Response(
@@ -95,7 +95,7 @@ serve(async (req) => {
         .order('ordem', { ascending: true });
 
       if (idModulo) {
-        query = query.eq('idModulo', idModulo);
+        query = query.eq('idmodulo', idModulo);
       }
 
       const { data, error } = await query;
@@ -185,13 +185,13 @@ serve(async (req) => {
       );
     }
 
-    // Create video
+    // Create video - use lowercase column name 'idmodulo'
     if (action === 'create-video') {
       const { idModulo, titulo, descricao, youtube_url, ordem } = body;
 
       const { data, error } = await supabase
         .from('saas_videos')
-        .insert({ idModulo, titulo, descricao, youtube_url, ordem: ordem || 0, ativo: true })
+        .insert({ idmodulo: idModulo, titulo, descricao, youtube_url, ordem: ordem || 0, ativo: true })
         .select()
         .single();
 
@@ -209,13 +209,13 @@ serve(async (req) => {
       );
     }
 
-    // Update video
+    // Update video - use lowercase column name 'idmodulo'
     if (action === 'update-video') {
       const { id, idModulo, titulo, descricao, youtube_url, ordem, ativo } = body;
 
       const { data, error } = await supabase
         .from('saas_videos')
-        .update({ idModulo, titulo, descricao, youtube_url, ordem, ativo })
+        .update({ idmodulo: idModulo, titulo, descricao, youtube_url, ordem, ativo })
         .eq('id', id)
         .select()
         .single();
