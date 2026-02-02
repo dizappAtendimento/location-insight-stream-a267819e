@@ -302,85 +302,140 @@ export default function VideosPage() {
             <div className="lg:col-span-2 space-y-5">
               {selectedVideo ? (
                 <>
-                  {/* Video Player */}
-                  <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/20 border border-border/50">
-                    <div className="aspect-video bg-black">
-                      {(() => {
-                        const linkType = getLinkType(selectedVideo.youtube_url);
-                        const youtubeId = getYouTubeId(selectedVideo.youtube_url);
-                        const driveId = getGoogleDriveId(selectedVideo.youtube_url);
-                        
-                        if (isPlaying) {
-                          if (linkType === 'youtube' && youtubeId) {
-                            return (
-                              <iframe
-                                src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=0&fs=1&iv_load_policy=3&cc_load_policy=0`}
-                                title={selectedVideo.titulo}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="w-full h-full"
-                              />
-                            );
-                          } else if (linkType === 'drive' && driveId) {
-                            return (
-                              <iframe
-                                src={`https://drive.google.com/file/d/${driveId}/preview`}
-                                title={selectedVideo.titulo}
-                                allow="autoplay; encrypted-media"
-                                allowFullScreen
-                                className="w-full h-full"
-                              />
-                            );
+                  {/* Premium Video Player */}
+                  <div className="relative group">
+                    {/* Glow effect */}
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 via-primary/30 to-primary/50 rounded-2xl blur opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
+                    
+                    {/* Player container */}
+                    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-background to-muted/20 border border-border/50 shadow-2xl">
+                      {/* Top bar with source indicator */}
+                      <div className="absolute top-0 left-0 right-0 z-10 px-4 py-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {getLinkType(selectedVideo.youtube_url) === 'youtube' ? (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/20 backdrop-blur-sm border border-destructive/30">
+                                <Play className="h-3 w-3 text-destructive fill-destructive" />
+                                <span className="text-xs font-medium text-destructive">YouTube</span>
+                              </div>
+                            ) : getLinkType(selectedVideo.youtube_url) === 'drive' ? (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/20 backdrop-blur-sm border border-primary/30">
+                                <svg className="h-3 w-3 text-primary" viewBox="0 0 87.3 78" fill="currentColor">
+                                  <path d="M6.6 66.85l14.45-25L35.5 66.85H6.6zm21.75-37.7L43.3 3h28.95L57.3 29.15H28.35zm50.6 37.7H49.5l14.45-25 29.45 0-14.45 25z"/>
+                                </svg>
+                                <span className="text-xs font-medium text-primary">Google Drive</span>
+                              </div>
+                            ) : null}
+                          </div>
+                          {selectedVideo.media_avaliacao > 0 && (
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-warning/20 backdrop-blur-sm border border-warning/30">
+                              <Star className="h-3 w-3 text-warning fill-warning" />
+                              <span className="text-xs font-medium text-warning">{selectedVideo.media_avaliacao.toFixed(1)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Video area */}
+                      <div className="aspect-video bg-black/95">
+                        {(() => {
+                          const linkType = getLinkType(selectedVideo.youtube_url);
+                          const youtubeId = getYouTubeId(selectedVideo.youtube_url);
+                          const driveId = getGoogleDriveId(selectedVideo.youtube_url);
+                          
+                          if (isPlaying) {
+                            if (linkType === 'youtube' && youtubeId) {
+                              return (
+                                <iframe
+                                  src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=0&fs=1&iv_load_policy=3&cc_load_policy=0`}
+                                  title={selectedVideo.titulo}
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="w-full h-full"
+                                />
+                              );
+                            } else if (linkType === 'drive' && driveId) {
+                              return (
+                                <iframe
+                                  src={`https://drive.google.com/file/d/${driveId}/preview`}
+                                  title={selectedVideo.titulo}
+                                  allow="autoplay; encrypted-media"
+                                  allowFullScreen
+                                  className="w-full h-full"
+                                />
+                              );
+                            }
                           }
-                        }
-                        
-                        // Thumbnail/Play button state
-                        return (
-                          <button
-                            onClick={handlePlayClick}
-                            className="w-full h-full relative group cursor-pointer"
-                          >
-                            {linkType === 'youtube' && youtubeId ? (
-                              <img
-                                src={`https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`}
-                                alt={selectedVideo.titulo}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.src = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
-                                }}
-                              />
-                            ) : linkType === 'drive' ? (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-                                <div className="text-center">
-                                  <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                                    <svg className="h-10 w-10 text-primary" viewBox="0 0 87.3 78" fill="currentColor">
-                                      <path d="M6.6 66.85l14.45-25L35.5 66.85H6.6zm21.75-37.7L43.3 3h28.95L57.3 29.15H28.35zm50.6 37.7H49.5l14.45-25 29.45 0-14.45 25z"/>
-                                      <path d="M43.65 66.85H6.6l14.45-25h37.05l-14.45 25zm-8.2-37.7L21.05 3h28.95l14.45 26.15H35.45z" opacity=".5"/>
-                                    </svg>
+                          
+                          // Premium thumbnail/play button
+                          return (
+                            <button
+                              onClick={handlePlayClick}
+                              className="w-full h-full relative group/play cursor-pointer overflow-hidden"
+                            >
+                              {linkType === 'youtube' && youtubeId ? (
+                                <img
+                                  src={`https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`}
+                                  alt={selectedVideo.titulo}
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover/play:scale-105"
+                                  onError={(e) => {
+                                    e.currentTarget.src = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+                                  }}
+                                />
+                              ) : linkType === 'drive' ? (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-background">
+                                  <div className="text-center animate-fade-in">
+                                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mx-auto mb-4 border border-primary/20 shadow-xl shadow-primary/10">
+                                      <svg className="h-12 w-12 text-primary" viewBox="0 0 87.3 78" fill="currentColor">
+                                        <path d="M6.6 66.85l14.45-25L35.5 66.85H6.6zm21.75-37.7L43.3 3h28.95L57.3 29.15H28.35zm50.6 37.7H49.5l14.45-25 29.45 0-14.45 25z"/>
+                                        <path d="M43.65 66.85H6.6l14.45-25h37.05l-14.45 25zm-8.2-37.7L21.05 3h28.95l14.45 26.15H35.45z" opacity=".5"/>
+                                      </svg>
+                                    </div>
+                                    <p className="text-muted-foreground text-sm font-medium">Vídeo do Google Drive</p>
+                                    <p className="text-muted-foreground/60 text-xs mt-1">Clique para reproduzir</p>
                                   </div>
-                                  <p className="text-white/60 text-sm">Vídeo do Google Drive</p>
+                                </div>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-background">
+                                  <Play className="h-20 w-20 text-muted-foreground/30" />
+                                </div>
+                              )}
+                              
+                              {/* Gradient overlays */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
+                              
+                              {/* Premium play button */}
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="relative">
+                                  {/* Pulse ring */}
+                                  <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" style={{ animationDuration: '2s' }} />
+                                  {/* Button */}
+                                  <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-primary to-primary/80 group-hover/play:from-primary group-hover/play:to-primary/90 group-hover/play:scale-110 transition-all duration-300 flex items-center justify-center shadow-2xl shadow-primary/40 border-2 border-primary-foreground/20 backdrop-blur-sm">
+                                    <Play className="h-8 w-8 md:h-10 md:w-10 text-primary-foreground ml-1" fill="currentColor" />
+                                  </div>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-                                <Play className="h-16 w-16 text-muted-foreground/50" />
+                              
+                              {/* Bottom info bar */}
+                              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
+                                <div className="flex items-end justify-between gap-4">
+                                  <div className="flex-1">
+                                    <h2 className="text-white text-lg md:text-xl font-bold drop-shadow-lg line-clamp-2">
+                                      {selectedVideo.titulo}
+                                    </h2>
+                                    {selectedVideo.descricao && (
+                                      <p className="text-white/70 text-sm mt-1 line-clamp-1 drop-shadow">
+                                        {selectedVideo.descricao}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/50 transition-all duration-300" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-20 h-20 rounded-full bg-primary/95 backdrop-blur-sm group-hover:bg-primary group-hover:scale-110 transition-all duration-300 flex items-center justify-center shadow-2xl shadow-primary/30 border border-primary-foreground/20">
-                                <Play className="h-9 w-9 text-primary-foreground ml-1" fill="currentColor" />
-                              </div>
-                            </div>
-                            {/* Video title overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
-                              <h2 className="text-white text-lg md:text-xl font-semibold drop-shadow-lg line-clamp-2">
-                                {selectedVideo.titulo}
-                              </h2>
-                            </div>
-                          </button>
-                        );
-                      })()}
+                            </button>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
                   
