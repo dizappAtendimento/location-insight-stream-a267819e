@@ -561,9 +561,9 @@ export default function DisparosPage() {
       setSendingStatus('Preparando disparo...');
       
       // Pequeno delay para mostrar status inicial
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise<void>((res) => { setTimeout(() => res(), 500); });
       setSendingStatus('Validando conexões...');
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise<void>((res) => { setTimeout(() => res(), 300); });
       setSendingStatus('Enviando para o servidor...');
       
       // Usar edge function ao invés de API externa
@@ -606,7 +606,7 @@ export default function DisparosPage() {
       if (error) throw error;
       
       setSendingStatus('Finalizando...');
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise<void>((res) => { setTimeout(() => res(), 300); });
       
       if (result?.error) {
         toast.error(result.error);
