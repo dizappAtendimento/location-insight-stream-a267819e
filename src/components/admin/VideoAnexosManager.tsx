@@ -289,17 +289,17 @@ export function VideoAnexosManager({ videoId, videoTitulo, isOpen, onClose }: Vi
 
             {/* Link Tab */}
             <TabsContent value="link" className="mt-4">
-              <div className="p-5 rounded-2xl border border-dashed border-blue-500/30 bg-gradient-to-br from-blue-500/5 to-transparent space-y-4 hover:border-blue-500/50 transition-colors">
+              <div className="p-5 rounded-2xl border border-dashed border-link/30 bg-gradient-to-br from-link/5 to-transparent space-y-4 hover:border-link/50 transition-colors">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    <Link className="h-3.5 w-3.5 text-blue-500" />
+                    <Link className="h-3.5 w-3.5 text-link" />
                     URL do Link (Drive, Dropbox, etc.)
                   </Label>
                   <Input
                     value={linkForm.url}
                     onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
                     placeholder="https://drive.google.com/..."
-                    className="bg-card/50 border-border/50 focus:border-blue-500/50 transition-colors"
+                    className="bg-card/50 border-border/50 focus:border-link/50 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
@@ -308,7 +308,7 @@ export function VideoAnexosManager({ videoId, videoTitulo, isOpen, onClose }: Vi
                     value={linkForm.nome}
                     onChange={(e) => setLinkForm({ ...linkForm, nome: e.target.value })}
                     placeholder="Ex: Planilha de Exemplo"
-                    className="bg-card/50 border-border/50 focus:border-blue-500/50 transition-colors"
+                    className="bg-card/50 border-border/50 focus:border-link/50 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
@@ -317,13 +317,13 @@ export function VideoAnexosManager({ videoId, videoTitulo, isOpen, onClose }: Vi
                     value={linkForm.descricao}
                     onChange={(e) => setLinkForm({ ...linkForm, descricao: e.target.value })}
                     placeholder="Breve descrição..."
-                    className="bg-card/50 border-border/50 focus:border-blue-500/50 transition-colors"
+                    className="bg-card/50 border-border/50 focus:border-link/50 transition-colors"
                   />
                 </div>
                 <Button 
                   onClick={addDriveLink} 
                   disabled={isAddingLink || !linkForm.url || !linkForm.nome}
-                  className="w-full gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-lg shadow-blue-500/20 transition-all duration-200"
+                  className="w-full gap-2 bg-gradient-to-r from-link to-link/80 hover:from-link/90 hover:to-link/70 text-link-foreground shadow-lg shadow-link/20 transition-all duration-200"
                 >
                   {isAddingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link className="h-4 w-4" />}
                   Adicionar Link
@@ -368,11 +368,11 @@ export function VideoAnexosManager({ videoId, videoTitulo, isOpen, onClose }: Vi
                   >
                     <div className={`p-2.5 rounded-xl shadow-sm ${
                       isLink(anexo) 
-                        ? 'bg-gradient-to-br from-blue-500/20 to-blue-500/5 border border-blue-500/20' 
+                        ? 'bg-gradient-to-br from-link/20 to-link/5 border border-link/20' 
                         : 'bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20'
                     }`}>
                       {isLink(anexo) ? (
-                        <ExternalLink className="h-4 w-4 text-blue-500" />
+                        <ExternalLink className="h-4 w-4 text-link" />
                       ) : (
                         <FileText className="h-4 w-4 text-primary" />
                       )}
