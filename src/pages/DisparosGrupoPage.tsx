@@ -481,16 +481,28 @@ export default function DisparosGrupoPage() {
     };
 
     try {
-      const res = await fetch(API_URLS.disparoGrupo, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      // Usar edge function ao invés de API externa
+      const { data: result, error } = await supabase.functions.invoke('disparos-api', {
+        body: {
+          action: 'create-disparo-grupo',
+          userId: user?.id,
+          disparoData: {
+            connections: payload.connections,
+            idLista: payload.idLista,
+            gruposInstancia: payload.gruposInstancia,
+            mensagens: payload.mensagens,
+            settings: payload.settings,
+            TipoDisparo: 'grupo',
+          }
+        }
       });
       
-      const result = await res.json();
+      if (error) throw error;
       
-      if (result.plano) {
+      if (result?.plano) {
         toast.error(`Limite atingido: ${result.plano}`);
+      } else if (result?.error) {
+        toast.error(result.error);
       } else {
         toast.success('Disparo em grupos agendado!');
         // Reset form
@@ -503,7 +515,8 @@ export default function DisparosGrupoPage() {
         setMarkAll(false);
       }
     } catch (e: any) {
-      toast.error('Erro ao agendar: ' + e.message);
+      console.error('Erro ao agendar disparo:', e);
+      toast.error('Erro ao agendar: ' + (e.message || 'Tente novamente'));
     } finally {
       setLoading(false);
     }
