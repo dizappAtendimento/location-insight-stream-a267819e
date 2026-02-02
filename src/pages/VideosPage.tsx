@@ -243,25 +243,25 @@ export default function VideosPage() {
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
-        {/* Premium Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 shadow-lg shadow-primary/10">
-              <GraduationCap className="h-7 w-7 text-primary" />
+        {/* Header - Compact on mobile */}
+        <div className="mb-4 md:mb-8">
+          <div className="flex items-center gap-3 md:gap-4 mb-2">
+            <div className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
+              <GraduationCap className="h-5 w-5 md:h-7 md:w-7 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+              <h1 className="text-xl md:text-3xl font-bold text-foreground tracking-tight">
                 Central de Aprendizado
               </h1>
-              <p className="text-muted-foreground mt-0.5">
+              <p className="text-xs md:text-sm text-muted-foreground mt-0.5 hidden sm:block">
                 Domine todas as funcionalidades da plataforma
               </p>
             </div>
           </div>
           
-          {/* Stats Bar */}
+          {/* Stats Bar - Hidden on mobile */}
           {!isLoading && modulos.length > 0 && (
-            <div className="flex items-center gap-6 mt-6 flex-wrap">
+            <div className="hidden sm:flex items-center gap-6 mt-4 flex-wrap">
               <div className="flex items-center gap-2 text-sm">
                 <div className="p-1.5 rounded-lg bg-primary/10">
                   <BookOpen className="h-4 w-4 text-primary" />
@@ -296,20 +296,20 @@ export default function VideosPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 md:gap-6">
             {/* Video Player Section */}
-            <div className="lg:col-span-2 space-y-5">
+            <div className="lg:col-span-2 space-y-4 md:space-y-5 order-1">
               {selectedVideo ? (
                 <>
-                  {/* Premium Video Player */}
+                  {/* Video Player */}
                   <div className="relative group">
-                    {/* Glow effect */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 via-primary/30 to-primary/50 rounded-2xl blur opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
+                    {/* Glow effect - hidden on mobile */}
+                    <div className="hidden md:block absolute -inset-0.5 bg-gradient-to-r from-primary/50 via-primary/30 to-primary/50 rounded-2xl blur opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
                     
                     {/* Player container */}
-                    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-background to-muted/20 border border-border/50 shadow-2xl">
+                    <div className="relative rounded-xl md:rounded-2xl overflow-hidden bg-gradient-to-br from-background to-muted/20 border border-border/50 shadow-xl md:shadow-2xl">
                       {/* Top bar with source indicator */}
-                      <div className="absolute top-0 left-0 right-0 z-10 px-4 py-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+                      <div className="absolute top-0 left-0 right-0 z-10 px-3 py-2 md:px-4 md:py-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {getLinkType(selectedVideo.youtube_url) === 'youtube' ? (
@@ -605,18 +605,18 @@ export default function VideosPage() {
             </div>
 
             {/* Sidebar - Course Modules */}
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4 order-2">
               <div className="flex items-center justify-between px-1">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <h3 className="text-sm md:text-base font-semibold text-foreground flex items-center gap-2">
                   <BookOpen className="h-4 w-4 text-primary" />
-                  Conteúdo do Curso
+                  Conteúdo
                 </h3>
                 <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
                   {totalVideos} aulas
                 </span>
               </div>
               
-              <ScrollArea className="h-[calc(100vh-280px)] pr-2">
+              <ScrollArea className="h-[250px] lg:h-[calc(100vh-280px)] pr-2">
                 <Accordion type="multiple" defaultValue={modulos.map(m => m.id.toString())} className="space-y-2">
                   {modulos.map((modulo, moduleIndex) => (
                     <AccordionItem 
