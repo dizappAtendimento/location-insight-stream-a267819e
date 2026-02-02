@@ -956,6 +956,123 @@ export type Database = {
           },
         ]
       }
+      saas_video_anexos: {
+        Row: {
+          arquivo_url: string
+          created_at: string
+          descricao: string | null
+          id: number
+          nome: string
+          ordem: number
+          tamanho: number | null
+          tipo: string | null
+          video_id: number
+        }
+        Insert: {
+          arquivo_url: string
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          nome: string
+          ordem?: number
+          tamanho?: number | null
+          tipo?: string | null
+          video_id: number
+        }
+        Update: {
+          arquivo_url?: string
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          nome?: string
+          ordem?: number
+          tamanho?: number | null
+          tipo?: string | null
+          video_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_video_anexos_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "saas_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_video_avaliacoes: {
+        Row: {
+          created_at: string
+          id: number
+          nota: number
+          updated_at: string
+          user_id: string
+          video_id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          nota: number
+          updated_at?: string
+          user_id: string
+          video_id: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          nota?: number
+          updated_at?: string
+          user_id?: string
+          video_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_video_avaliacoes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "saas_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_video_comentarios: {
+        Row: {
+          comentario: string
+          created_at: string
+          id: number
+          user_avatar: string | null
+          user_id: string
+          user_nome: string | null
+          video_id: number
+        }
+        Insert: {
+          comentario: string
+          created_at?: string
+          id?: number
+          user_avatar?: string | null
+          user_id: string
+          user_nome?: string | null
+          video_id: number
+        }
+        Update: {
+          comentario?: string
+          created_at?: string
+          id?: number
+          user_avatar?: string | null
+          user_id?: string
+          user_nome?: string | null
+          video_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_video_comentarios_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "saas_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saas_video_modulos: {
         Row: {
           ativo: boolean
