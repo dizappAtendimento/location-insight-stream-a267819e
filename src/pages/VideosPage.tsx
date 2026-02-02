@@ -104,7 +104,7 @@ export default function VideosPage() {
                   <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl relative">
                     {isPlaying && getYouTubeId(selectedVideo.youtube_url) ? (
                       <iframe
-                        src={`https://www.youtube.com/embed/${getYouTubeId(selectedVideo.youtube_url)}?autoplay=1&rel=0&modestbranding=1&showinfo=0`}
+                        src={`https://www.youtube-nocookie.com/embed/${getYouTubeId(selectedVideo.youtube_url)}?autoplay=1&rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=0&fs=1&iv_load_policy=3&cc_load_policy=0`}
                         title={selectedVideo.titulo}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
