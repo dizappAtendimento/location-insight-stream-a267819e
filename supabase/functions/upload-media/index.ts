@@ -16,16 +16,23 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userId, base64Data, fileName, contentType } = await req.json();
+    const body = await req.json();
+    
+    // Support both old format (userId, base64Data) and new format (file, bucket, folder)
+    const base64Data = body.file || body.base64Data;
+    const fileName = body.fileName;
+    const bucket = body.bucket || 'media-disparos';
+    const folder = body.folder || body.userId;
+    const contentType = body.contentType;
 
-    if (!userId || !base64Data) {
+    if (!base64Data) {
       return new Response(
-        JSON.stringify({ error: 'userId e base64Data são obrigatórios' }),
+        JSON.stringify({ error: 'file/base64Data é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[Upload Media] Processing media for user ${userId}, file: ${fileName}`);
+    console.log(`[Upload Media] Processing media for bucket ${bucket}, folder: ${folder}, file: ${fileName}`);
 
     // Decode base64 to Uint8Array
     let base64Content = base64Data;
@@ -43,11 +50,13 @@ serve(async (req) => {
 
     // Create file path
     const fileExt = fileName?.split('.').pop() || 'bin';
-    const filePath = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = folder 
+      ? `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+      : `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
     // Upload to storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('media-disparos')
+      .from(bucket)
       .upload(filePath, bytes, {
         contentType: contentType || 'application/octet-stream',
         upsert: true,
@@ -65,7 +74,7 @@ serve(async (req) => {
 
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from('media-disparos')
+      .from(bucket)
       .getPublicUrl(filePath);
 
     const publicUrl = urlData.publicUrl;
