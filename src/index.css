@@ -62,6 +62,11 @@
     --warning-foreground: 0 0% 0%;
     --info: 201 90% 40%;
     --info-foreground: 0 0% 100%;
+    
+    /* External link color */
+    --link: 217 91% 60%;
+    --link-foreground: 0 0% 100%;
+    --link-glow: 217 91% 70%;
   }
 
   .dark {
@@ -130,6 +135,11 @@
     --warning-foreground: 0 0% 0%;
     --info: 201 100% 60%;
     --info-foreground: 0 0% 100%;
+    
+    /* External link color - Dark */
+    --link: 217 91% 65%;
+    --link-foreground: 0 0% 100%;
+    --link-glow: 217 91% 75%;
   }
 }
 
