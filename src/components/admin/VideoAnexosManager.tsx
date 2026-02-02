@@ -199,23 +199,34 @@ export function VideoAnexosManager({ videoId, videoTitulo, isOpen, onClose }: Vi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Anexos: {videoTitulo}
+      <DialogContent className="bg-gradient-to-b from-card to-card/95 border-border/50 max-w-lg shadow-2xl backdrop-blur-xl">
+        <DialogHeader className="pb-4 border-b border-border/30">
+          <DialogTitle className="flex items-center gap-3 text-lg">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 shadow-lg shadow-primary/10">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <span className="text-foreground">Anexos do Vídeo</span>
+              <p className="text-xs text-muted-foreground font-normal mt-0.5 truncate max-w-[280px]">{videoTitulo}</p>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-5 py-4">
           {/* Tabs for Upload vs Link */}
           <Tabs defaultValue="upload" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upload" className="gap-2">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/30 p-1 rounded-xl border border-border/30">
+              <TabsTrigger 
+                value="upload" 
+                className="gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200"
+              >
                 <Upload className="h-4 w-4" />
                 Upload
               </TabsTrigger>
-              <TabsTrigger value="link" className="gap-2">
+              <TabsTrigger 
+                value="link" 
+                className="gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200"
+              >
                 <Link className="h-4 w-4" />
                 Link Externo
               </TabsTrigger>
@@ -223,43 +234,52 @@ export function VideoAnexosManager({ videoId, videoTitulo, isOpen, onClose }: Vi
 
             {/* Upload Tab */}
             <TabsContent value="upload" className="mt-4">
-              <div className="p-4 rounded-lg border border-dashed border-border bg-muted/30 space-y-3">
+              <div className="p-5 rounded-2xl border border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent space-y-4 hover:border-primary/50 transition-colors">
                 <div className="space-y-2">
-                  <Label>Arquivo</Label>
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Upload className="h-3.5 w-3.5 text-primary" />
+                    Arquivo
+                  </Label>
                   <Input
                     type="file"
                     onChange={handleFileSelect}
-                    className="bg-card border-border"
+                    className="bg-card/50 border-border/50 hover:border-primary/50 transition-colors file:bg-primary/10 file:text-primary file:border-0 file:rounded-lg file:px-3 file:py-1 file:mr-3 file:font-medium file:text-sm cursor-pointer"
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
                   />
                   {selectedFile && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                    </p>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/10 border border-primary/20">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <p className="text-xs text-primary font-medium truncate flex-1">
+                        {selectedFile.name}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {formatFileSize(selectedFile.size)}
+                      </span>
+                    </div>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Nome do Anexo</Label>
+                  <Label className="text-sm font-medium">Nome do Anexo</Label>
                   <Input
                     value={anexoForm.nome}
                     onChange={(e) => setAnexoForm({ ...anexoForm, nome: e.target.value })}
                     placeholder="Ex: Material de apoio"
-                    className="bg-card border-border"
+                    className="bg-card/50 border-border/50 focus:border-primary/50 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Descrição (opcional)</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Descrição (opcional)</Label>
                   <Input
                     value={anexoForm.descricao}
                     onChange={(e) => setAnexoForm({ ...anexoForm, descricao: e.target.value })}
                     placeholder="Breve descrição..."
-                    className="bg-card border-border"
+                    className="bg-card/50 border-border/50 focus:border-primary/50 transition-colors"
                   />
                 </div>
                 <Button 
                   onClick={uploadAnexo} 
                   disabled={isUploading || !selectedFile}
-                  className="w-full gap-2"
+                  className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 transition-all duration-200"
                 >
                   {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Enviar Anexo
@@ -269,38 +289,41 @@ export function VideoAnexosManager({ videoId, videoTitulo, isOpen, onClose }: Vi
 
             {/* Link Tab */}
             <TabsContent value="link" className="mt-4">
-              <div className="p-4 rounded-lg border border-dashed border-border bg-muted/30 space-y-3">
+              <div className="p-5 rounded-2xl border border-dashed border-blue-500/30 bg-gradient-to-br from-blue-500/5 to-transparent space-y-4 hover:border-blue-500/50 transition-colors">
                 <div className="space-y-2">
-                  <Label>URL do Link (Drive, Dropbox, etc.)</Label>
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Link className="h-3.5 w-3.5 text-blue-500" />
+                    URL do Link (Drive, Dropbox, etc.)
+                  </Label>
                   <Input
                     value={linkForm.url}
                     onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
                     placeholder="https://drive.google.com/..."
-                    className="bg-card border-border"
+                    className="bg-card/50 border-border/50 focus:border-blue-500/50 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Nome do Anexo</Label>
+                  <Label className="text-sm font-medium">Nome do Anexo</Label>
                   <Input
                     value={linkForm.nome}
                     onChange={(e) => setLinkForm({ ...linkForm, nome: e.target.value })}
                     placeholder="Ex: Planilha de Exemplo"
-                    className="bg-card border-border"
+                    className="bg-card/50 border-border/50 focus:border-blue-500/50 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Descrição (opcional)</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Descrição (opcional)</Label>
                   <Input
                     value={linkForm.descricao}
                     onChange={(e) => setLinkForm({ ...linkForm, descricao: e.target.value })}
                     placeholder="Breve descrição..."
-                    className="bg-card border-border"
+                    className="bg-card/50 border-border/50 focus:border-blue-500/50 transition-colors"
                   />
                 </div>
                 <Button 
                   onClick={addDriveLink} 
                   disabled={isAddingLink || !linkForm.url || !linkForm.nome}
-                  className="w-full gap-2"
+                  className="w-full gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-lg shadow-blue-500/20 transition-all duration-200"
                 >
                   {isAddingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link className="h-4 w-4" />}
                   Adicionar Link
@@ -310,40 +333,67 @@ export function VideoAnexosManager({ videoId, videoTitulo, isOpen, onClose }: Vi
           </Tabs>
 
           {/* List of Anexos */}
-          <div className="space-y-2">
-            <Label>Anexos adicionados</Label>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Anexos adicionados</Label>
+              {anexos.length > 0 && (
+                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                  {anexos.length} {anexos.length === 1 ? 'anexo' : 'anexos'}
+                </span>
+              )}
+            </div>
             {isLoading ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="flex justify-center py-8">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">Carregando...</span>
+                </div>
               </div>
             ) : anexos.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum anexo adicionado ainda
-              </p>
+              <div className="text-center py-8 rounded-xl border border-dashed border-border/50 bg-muted/10">
+                <FileText className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum anexo adicionado ainda
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Faça upload de arquivos ou adicione links
+                </p>
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
                 {anexos.map((anexo) => (
                   <div 
                     key={anexo.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border"
+                    className="group flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-muted/30 to-muted/10 border border-border/30 hover:border-primary/30 hover:from-primary/5 hover:to-transparent transition-all duration-200"
                   >
-                    <div className="p-2 rounded bg-primary/10">
+                    <div className={`p-2.5 rounded-xl shadow-sm ${
+                      isLink(anexo) 
+                        ? 'bg-gradient-to-br from-blue-500/20 to-blue-500/5 border border-blue-500/20' 
+                        : 'bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20'
+                    }`}>
                       {isLink(anexo) ? (
-                        <ExternalLink className="h-4 w-4 text-primary" />
+                        <ExternalLink className="h-4 w-4 text-blue-500" />
                       ) : (
                         <FileText className="h-4 w-4 text-primary" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{anexo.nome}</p>
+                      <p className="font-medium text-foreground truncate text-sm">{anexo.nome}</p>
                       <p className="text-xs text-muted-foreground">
-                        {isLink(anexo) ? 'Link externo' : `${anexo.tipo?.toUpperCase()} • ${formatFileSize(anexo.tamanho)}`}
+                        {isLink(anexo) ? (
+                          <span className="flex items-center gap-1">
+                            <ExternalLink className="h-3 w-3" />
+                            Link externo
+                          </span>
+                        ) : (
+                          <span>{anexo.tipo?.toUpperCase()} • {formatFileSize(anexo.tamanho)}</span>
+                        )}
                       </p>
                     </div>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="text-destructive hover:text-destructive"
+                      className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-200 h-8 w-8"
                       onClick={() => deleteAnexo(anexo.id)}
                     >
                       <Trash2 className="h-4 w-4" />
