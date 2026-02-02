@@ -45,7 +45,7 @@ export function AdminVideos() {
   // Video form
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
-  const [videoForm, setVideoForm] = useState({ idModulo: 0, titulo: '', descricao: '', youtube_url: '', ordem: 0 });
+  const [videoForm, setVideoForm] = useState({ idModulo: 0, titulo: '', descricao: '', youtube_url: '', ordem: 0, tipoLink: 'youtube' as 'youtube' | 'drive' });
   const [isSavingVideo, setIsSavingVideo] = useState(false);
   
   // Anexos manager
@@ -148,12 +148,15 @@ export function AdminVideos() {
   const openVideoDialog = (video?: VideoItem, moduloId?: number) => {
     if (video) {
       setEditingVideo(video);
+      // Detect if it's a Drive link or YouTube link
+      const isDriveLink = video.youtube_url.includes('drive.google.com');
       setVideoForm({ 
         idModulo: video.idmodulo, 
         titulo: video.titulo, 
         descricao: video.descricao || '', 
         youtube_url: video.youtube_url, 
-        ordem: video.ordem 
+        ordem: video.ordem,
+        tipoLink: isDriveLink ? 'drive' : 'youtube'
       });
     } else {
       setEditingVideo(null);
@@ -163,7 +166,8 @@ export function AdminVideos() {
         titulo: '', 
         descricao: '', 
         youtube_url: '', 
-        ordem: videosDoModulo.length 
+        ordem: videosDoModulo.length,
+        tipoLink: 'youtube'
       });
     }
     setIsVideoDialogOpen(true);
@@ -414,11 +418,26 @@ export function AdminVideos() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Link do YouTube</Label>
+              <Label>Tipo de Link</Label>
+              <Select 
+                value={videoForm.tipoLink} 
+                onValueChange={(v) => setVideoForm({ ...videoForm, tipoLink: v as 'youtube' | 'drive', youtube_url: '' })}
+              >
+                <SelectTrigger className="bg-slate-800 border-slate-700">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="youtube">YouTube</SelectItem>
+                  <SelectItem value="drive">Google Drive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{videoForm.tipoLink === 'youtube' ? 'Link do YouTube' : 'Link do Google Drive'}</Label>
               <Input
                 value={videoForm.youtube_url}
                 onChange={(e) => setVideoForm({ ...videoForm, youtube_url: e.target.value })}
-                placeholder="https://www.youtube.com/watch?v=..."
+                placeholder={videoForm.tipoLink === 'youtube' ? 'https://www.youtube.com/watch?v=...' : 'https://drive.google.com/file/d/...'}
                 className="bg-slate-800 border-slate-700"
               />
             </div>
