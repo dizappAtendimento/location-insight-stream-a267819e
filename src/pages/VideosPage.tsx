@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { 
   Loader2, Play, BookOpen, GraduationCap, Star, MessageSquare, 
-  FileText, Download, Send, Trash2, User, ExternalLink, PlayCircle, ChevronRight
+  FileText, Download, Send, Trash2, User, ExternalLink, PlayCircle, ChevronRight, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -78,6 +79,7 @@ export default function VideosPage() {
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
+  const [isMobileModulesOpen, setIsMobileModulesOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
@@ -606,100 +608,184 @@ export default function VideosPage() {
 
             {/* Sidebar - Course Modules */}
             <div className="space-y-3 md:space-y-4 order-2">
-              <div className="flex items-center justify-between px-1">
-                <h3 className="text-sm md:text-base font-semibold text-foreground flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                  Conteúdo
-                </h3>
-                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                  {totalVideos} aulas
-                </span>
-              </div>
-              
-              <ScrollArea className="h-[250px] lg:h-[calc(100vh-280px)] pr-2">
-                <Accordion type="multiple" defaultValue={modulos.map(m => m.id.toString())} className="space-y-2">
-                  {modulos.map((modulo, moduleIndex) => (
-                    <AccordionItem 
-                      key={modulo.id} 
-                      value={modulo.id.toString()}
-                      className="bg-card/50 border border-border/30 rounded-xl overflow-hidden hover:border-border/50 transition-colors"
-                    >
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/20 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-xs font-bold text-primary">
-                            {moduleIndex + 1}
-                          </div>
-                          <div className="text-left">
-                            <span className="font-medium text-foreground text-sm">{modulo.nome}</span>
-                            <span className="text-xs text-muted-foreground ml-2">
-                              {modulo.videos.length} {modulo.videos.length === 1 ? 'aula' : 'aulas'}
-                            </span>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-2 pb-2">
-                        <div className="space-y-1">
-                          {modulo.videos.map((video, videoIndex) => (
-                            <button
-                              key={video.id}
-                              onClick={() => setSelectedVideo(video)}
-                              className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 ${
-                                selectedVideo?.id === video.id 
-                                  ? 'bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30 shadow-sm' 
-                                  : 'hover:bg-muted/30 border border-transparent'
-                              }`}
-                            >
-                              <div className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-                                selectedVideo?.id === video.id 
-                                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
-                                  : 'bg-muted/50 text-muted-foreground'
-                              }`}>
-                                {selectedVideo?.id === video.id ? (
-                                  <Play className="h-3.5 w-3.5" fill="currentColor" />
-                                ) : (
-                                  <span className="text-xs font-medium">{videoIndex + 1}</span>
-                                )}
+              {/* Mobile: Collapsible */}
+              <div className="lg:hidden">
+                <Collapsible open={isMobileModulesOpen} onOpenChange={setIsMobileModulesOpen}>
+                  <CollapsibleTrigger asChild>
+                    <button className="w-full flex items-center justify-between p-3 rounded-xl bg-card/50 border border-border/30 hover:border-border/50 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-semibold text-foreground">Conteúdo do Curso</span>
+                        <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                          {totalVideos} aulas
+                        </span>
+                      </div>
+                      {isMobileModulesOpen ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2">
+                    <ScrollArea className="h-[300px] pr-2">
+                      <Accordion type="multiple" defaultValue={modulos.map(m => m.id.toString())} className="space-y-2">
+                        {modulos.map((modulo, moduleIndex) => (
+                          <AccordionItem 
+                            key={modulo.id} 
+                            value={modulo.id.toString()}
+                            className="bg-card/50 border border-border/30 rounded-xl overflow-hidden"
+                          >
+                            <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-muted/20 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-xs font-bold text-primary">
+                                  {moduleIndex + 1}
+                                </div>
+                                <span className="font-medium text-foreground text-sm">{modulo.nome}</span>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <span className={`text-sm truncate block transition-colors ${
+                            </AccordionTrigger>
+                            <AccordionContent className="px-2 pb-2">
+                              <div className="space-y-1">
+                                {modulo.videos.map((video, videoIndex) => (
+                                  <button
+                                    key={video.id}
+                                    onClick={() => {
+                                      setSelectedVideo(video);
+                                      setIsMobileModulesOpen(false);
+                                    }}
+                                    className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-all ${
+                                      selectedVideo?.id === video.id 
+                                        ? 'bg-primary/10 border border-primary/30' 
+                                        : 'hover:bg-muted/30'
+                                    }`}
+                                  >
+                                    <div className={`flex items-center justify-center w-6 h-6 rounded-md transition-colors ${
+                                      selectedVideo?.id === video.id 
+                                        ? 'bg-primary text-primary-foreground' 
+                                        : 'bg-muted/50 text-muted-foreground'
+                                    }`}>
+                                      {selectedVideo?.id === video.id ? (
+                                        <Play className="h-3 w-3" fill="currentColor" />
+                                      ) : (
+                                        <span className="text-xs">{videoIndex + 1}</span>
+                                      )}
+                                    </div>
+                                    <span className={`text-sm truncate flex-1 ${
+                                      selectedVideo?.id === video.id 
+                                        ? 'text-foreground font-medium' 
+                                        : 'text-muted-foreground'
+                                    }`}>
+                                      {video.titulo}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </ScrollArea>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+
+              {/* Desktop: Always visible */}
+              <div className="hidden lg:block">
+                <div className="flex items-center justify-between px-1 mb-3">
+                  <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    Conteúdo
+                  </h3>
+                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                    {totalVideos} aulas
+                  </span>
+                </div>
+                
+                <ScrollArea className="h-[calc(100vh-280px)] pr-2">
+                  <Accordion type="multiple" defaultValue={modulos.map(m => m.id.toString())} className="space-y-2">
+                    {modulos.map((modulo, moduleIndex) => (
+                      <AccordionItem 
+                        key={modulo.id} 
+                        value={modulo.id.toString()}
+                        className="bg-card/50 border border-border/30 rounded-xl overflow-hidden hover:border-border/50 transition-colors"
+                      >
+                        <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/20 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-xs font-bold text-primary">
+                              {moduleIndex + 1}
+                            </div>
+                            <div className="text-left">
+                              <span className="font-medium text-foreground text-sm">{modulo.nome}</span>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {modulo.videos.length} {modulo.videos.length === 1 ? 'aula' : 'aulas'}
+                              </span>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-2 pb-2">
+                          <div className="space-y-1">
+                            {modulo.videos.map((video, videoIndex) => (
+                              <button
+                                key={video.id}
+                                onClick={() => setSelectedVideo(video)}
+                                className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 ${
                                   selectedVideo?.id === video.id 
-                                    ? 'text-foreground font-medium' 
-                                    : 'text-muted-foreground'
+                                    ? 'bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30 shadow-sm' 
+                                    : 'hover:bg-muted/30 border border-transparent'
+                                }`}
+                              >
+                                <div className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                                  selectedVideo?.id === video.id 
+                                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
+                                    : 'bg-muted/50 text-muted-foreground'
                                 }`}>
-                                  {video.titulo}
-                                </span>
-                                <div className="flex items-center gap-3 mt-1">
-                                  {video.media_avaliacao > 0 && (
-                                    <div className="flex items-center gap-1">
-                                      <Star className="h-3 w-3 text-warning fill-warning" />
-                                      <span className="text-xs text-muted-foreground">{video.media_avaliacao.toFixed(1)}</span>
-                                    </div>
-                                  )}
-                                  {video.total_comentarios > 0 && (
-                                    <div className="flex items-center gap-1">
-                                      <MessageSquare className="h-3 w-3 text-muted-foreground/70" />
-                                      <span className="text-xs text-muted-foreground">{video.total_comentarios}</span>
-                                    </div>
-                                  )}
-                                  {video.anexos.length > 0 && (
-                                    <div className="flex items-center gap-1">
-                                      <FileText className="h-3 w-3 text-muted-foreground/70" />
-                                      <span className="text-xs text-muted-foreground">{video.anexos.length}</span>
-                                    </div>
+                                  {selectedVideo?.id === video.id ? (
+                                    <Play className="h-3.5 w-3.5" fill="currentColor" />
+                                  ) : (
+                                    <span className="text-xs font-medium">{videoIndex + 1}</span>
                                   )}
                                 </div>
-                              </div>
-                              {selectedVideo?.id === video.id && (
-                                <ChevronRight className="h-4 w-4 text-primary" />
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </ScrollArea>
+                                <div className="flex-1 min-w-0">
+                                  <span className={`text-sm truncate block transition-colors ${
+                                    selectedVideo?.id === video.id 
+                                      ? 'text-foreground font-medium' 
+                                      : 'text-muted-foreground'
+                                  }`}>
+                                    {video.titulo}
+                                  </span>
+                                  <div className="flex items-center gap-3 mt-1">
+                                    {video.media_avaliacao > 0 && (
+                                      <div className="flex items-center gap-1">
+                                        <Star className="h-3 w-3 text-warning fill-warning" />
+                                        <span className="text-xs text-muted-foreground">{video.media_avaliacao.toFixed(1)}</span>
+                                      </div>
+                                    )}
+                                    {video.total_comentarios > 0 && (
+                                      <div className="flex items-center gap-1">
+                                        <MessageSquare className="h-3 w-3 text-muted-foreground/70" />
+                                        <span className="text-xs text-muted-foreground">{video.total_comentarios}</span>
+                                      </div>
+                                    )}
+                                    {video.anexos.length > 0 && (
+                                      <div className="flex items-center gap-1">
+                                        <FileText className="h-3 w-3 text-muted-foreground/70" />
+                                        <span className="text-xs text-muted-foreground">{video.anexos.length}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                {selectedVideo?.id === video.id && (
+                                  <ChevronRight className="h-4 w-4 text-primary" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </ScrollArea>
+              </div>
             </div>
           </div>
         )}
