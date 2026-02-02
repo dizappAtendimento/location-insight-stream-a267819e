@@ -73,9 +73,9 @@ const extractorItems = [
   { title: 'Google Places', url: '/places', icon: MapPin, colorClass: 'text-places' },
   { title: 'WhatsApp', url: '/grupos', icon: WhatsAppIcon, colorClass: 'text-whatsapp' },
   { title: 'CNPJ', url: '/cnpj', icon: Building2, colorClass: 'text-amber-500' },
-  { title: 'Vídeos', url: 'https://www.youtube.com/@dizappcombr', icon: Video, colorClass: 'text-red-500', external: true },
   { title: 'Suporte', url: 'https://api.whatsapp.com/send/?phone=5561992557146&text&type=phone_number&app_absent=0', icon: Headphones, colorClass: 'text-emerald-400', external: true },
   { title: 'Planos', url: '/configuracoes?tab=planos', icon: CreditCard, colorClass: 'text-amber-400' },
+  { title: 'Vídeos', url: 'https://www.youtube.com/@dizappcombr', icon: Video, colorClass: 'text-red-500', external: true },
 ];
 
 
