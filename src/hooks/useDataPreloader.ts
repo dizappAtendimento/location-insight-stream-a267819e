@@ -47,14 +47,28 @@ export const setToCache = (key: string, data: any) => {
   }
 };
 
+// Track if preload is already running to prevent duplicate calls
+let isPreloading = false;
+
 export const preloadUserData = async (userId: string) => {
-  if (!userId) return;
+  if (!userId || isPreloading) return;
   
+  // Check if we already have valid cache
+  const hasValidCache = getFromCache(getCacheKey('conexoes', userId));
+  if (hasValidCache) {
+    console.log('[Preloader] Using cached data');
+    return;
+  }
+  
+  isPreloading = true;
   console.log('[Preloader] Starting data preload for user:', userId);
   const startTime = Date.now();
   
   try {
-    // Carregar tudo em paralelo
+    // Carregar tudo em paralelo com AbortController para timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    
     const [connectionsRes, listasRes, disparosRes] = await Promise.all([
       supabase.functions.invoke('evolution-api', {
         body: { action: 'list-user-instances', userId }
@@ -66,6 +80,8 @@ export const preloadUserData = async (userId: string) => {
         body: { action: 'get-disparos', userId }
       })
     ]);
+    
+    clearTimeout(timeoutId);
 
     // Processar e cachear conexões
     if (!connectionsRes.error) {
@@ -122,6 +138,8 @@ export const preloadUserData = async (userId: string) => {
     console.log(`[Preloader] Data preloaded in ${Date.now() - startTime}ms`);
   } catch (e) {
     console.error('[Preloader] Error preloading data:', e);
+  } finally {
+    isPreloading = false;
   }
 };
 
