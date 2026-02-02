@@ -7,13 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { 
   Loader2, Play, BookOpen, GraduationCap, Star, MessageSquare, 
-  FileText, Download, Send, Trash2, User, ExternalLink, PlayCircle,
-  Clock, Users, Award, ChevronRight
+  FileText, Download, Send, Trash2, User, ExternalLink, PlayCircle, ChevronRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -439,155 +438,45 @@ export default function VideosPage() {
                     </div>
                   </div>
                   
-                  {/* Video Info */}
-                  <div className="space-y-4">
-                    <div>
-                      <h2 className="text-xl font-semibold text-foreground">{selectedVideo.titulo}</h2>
-                      {selectedVideo.descricao && (
-                        <p className="text-muted-foreground mt-2 leading-relaxed">{selectedVideo.descricao}</p>
+                  {/* Video Info - Minimalist */}
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-semibold text-foreground">{selectedVideo.titulo}</h2>
+                    {selectedVideo.descricao && (
+                      <p className="text-sm text-muted-foreground leading-relaxed">{selectedVideo.descricao}</p>
+                    )}
+                  </div>
+
+                  {/* Rating Section - Minimalist */}
+                  <div className="py-4 border-y border-border/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-muted-foreground">Avaliação:</span>
+                        <div className="flex items-center gap-2">
+                          {renderStars(selectedVideo.media_avaliacao)}
+                          <span className="text-sm font-medium text-foreground">
+                            {selectedVideo.media_avaliacao.toFixed(1)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            ({selectedVideo.total_avaliacoes})
+                          </span>
+                        </div>
+                      </div>
+                      {user && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Sua nota:</span>
+                          {renderStars(0, true, 'h-5 w-5')}
+                        </div>
                       )}
-                    </div>
-                    
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/10 border border-warning/20">
-                        {renderStars(selectedVideo.media_avaliacao)}
-                        <span className="text-sm font-medium text-warning">
-                          {selectedVideo.media_avaliacao.toFixed(1)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          ({selectedVideo.total_avaliacoes})
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50">
-                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {selectedVideo.total_comentarios} comentários
-                        </span>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Tabs Section */}
-                  <Tabs defaultValue="comments" className="mt-6">
-                    <TabsList className="bg-muted/30 p-1 rounded-xl border border-border/30 w-full md:w-auto">
-                      <TabsTrigger 
-                        value="comments" 
-                        className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                        <span className="hidden sm:inline">Comentários</span>
-                        <span className="sm:hidden">Chat</span>
-                      </TabsTrigger>
-                      {selectedVideo.anexos.length > 0 && (
-                        <TabsTrigger 
-                          value="attachments" 
-                          className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
-                        >
-                          <FileText className="h-4 w-4" />
-                          <span className="hidden sm:inline">Materiais</span>
-                          <span className="sm:hidden">Docs</span>
-                          <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                            {selectedVideo.anexos.length}
-                          </span>
-                        </TabsTrigger>
-                      )}
-                      <TabsTrigger 
-                        value="rating" 
-                        className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
-                      >
-                        <Star className="h-4 w-4" />
-                        Avaliar
-                      </TabsTrigger>
-                    </TabsList>
-
-                    {/* Comments Tab */}
-                    <TabsContent value="comments" className="mt-4 space-y-4">
-                      {user ? (
-                        <div className="flex gap-3 p-4 rounded-xl bg-gradient-to-r from-muted/30 to-transparent border border-border/30">
-                          <Avatar className="h-10 w-10 border-2 border-primary/20">
-                            <AvatarImage src={user?.avatar_url || undefined} />
-                            <AvatarFallback className="bg-primary/10 text-primary">
-                              <User className="h-5 w-5" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 space-y-3">
-                            <Textarea
-                              value={newComment}
-                              onChange={(e) => setNewComment(e.target.value)}
-                              placeholder="Compartilhe sua opinião sobre este vídeo..."
-                              className="bg-card/50 border-border/50 resize-none focus:border-primary/50 transition-colors"
-                              rows={3}
-                            />
-                            <Button 
-                              onClick={handleSendComment} 
-                              disabled={!newComment.trim() || isSendingComment}
-                              size="sm"
-                              className="gap-2 shadow-lg shadow-primary/20"
-                            >
-                              {isSendingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                              Publicar
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 rounded-xl border border-dashed border-border/50 bg-muted/10">
-                          <User className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">Faça login para comentar</p>
-                        </div>
-                      )}
-
-                      {isLoadingDetails ? (
-                        <div className="flex justify-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        </div>
-                      ) : comentarios.length === 0 ? (
-                        <div className="text-center py-12 rounded-xl border border-dashed border-border/50 bg-muted/10">
-                          <MessageSquare className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                          <p className="text-muted-foreground">Nenhum comentário ainda</p>
-                          <p className="text-sm text-muted-foreground/70 mt-1">Seja o primeiro a comentar!</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {comentarios.map((comentario) => (
-                            <div 
-                              key={comentario.id} 
-                              className="group flex gap-3 p-4 rounded-xl bg-card/50 border border-border/30 hover:border-border/50 transition-colors"
-                            >
-                              <Avatar className="h-10 w-10 border border-border/50">
-                                <AvatarImage src={comentario.user_avatar || undefined} />
-                                <AvatarFallback className="bg-muted">
-                                  <User className="h-5 w-5 text-muted-foreground" />
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="font-medium text-foreground">{comentario.user_nome || 'Usuário'}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {format(new Date(comentario.created_at), "dd MMM, HH:mm", { locale: ptBR })}
-                                  </span>
-                                </div>
-                                <p className="text-muted-foreground mt-1 leading-relaxed">{comentario.comentario}</p>
-                                {user?.id === comentario.user_id && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteComment(comentario.id)}
-                                    className="mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <Trash2 className="h-3 w-3 mr-1" />
-                                    Excluir
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    {/* Attachments Tab */}
-                    <TabsContent value="attachments" className="mt-4">
+                  {/* Materials Section - Minimalist */}
+                  {selectedVideo.anexos.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Materiais ({selectedVideo.anexos.length})
+                      </h3>
                       <div className="space-y-2">
                         {selectedVideo.anexos.map((anexo) => (
                           <a
@@ -595,66 +484,115 @@ export default function VideosPage() {
                             href={anexo.arquivo_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group flex items-center gap-4 p-4 rounded-xl bg-card/50 border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200"
+                            className="flex items-center gap-3 p-3 rounded-lg border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all group"
                           >
-                            <div className={`p-3 rounded-xl shadow-sm ${
+                            <div className={`p-2 rounded-lg ${
                               isLink(anexo)
-                                ? 'bg-gradient-to-br from-link/20 to-link/5 border border-link/20'
-                                : 'bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20'
+                                ? 'bg-link/10'
+                                : 'bg-primary/10'
                             }`}>
                               {isLink(anexo) ? (
-                                <ExternalLink className="h-5 w-5 text-link" />
+                                <ExternalLink className="h-4 w-4 text-link" />
                               ) : (
-                                <FileText className="h-5 w-5 text-primary" />
+                                <FileText className="h-4 w-4 text-primary" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                              <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                                 {anexo.nome}
                               </p>
                               {anexo.descricao && (
-                                <p className="text-sm text-muted-foreground truncate mt-0.5">{anexo.descricao}</p>
+                                <p className="text-xs text-muted-foreground truncate">{anexo.descricao}</p>
                               )}
                             </div>
-                            <div className="p-2 rounded-lg bg-muted/50 group-hover:bg-primary/10 transition-colors">
-                              <Download className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                            </div>
+                            <Download className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                           </a>
                         ))}
                       </div>
-                    </TabsContent>
+                    </div>
+                  )}
 
-                    {/* Rating Tab */}
-                    <TabsContent value="rating" className="mt-4">
-                      <Card className="bg-gradient-to-br from-card to-card/50 border-border/30">
-                        <CardContent className="py-10 text-center">
-                          {user ? (
-                            <div className="space-y-4">
-                              <div className="p-3 rounded-2xl bg-warning/10 w-fit mx-auto">
-                                <Award className="h-8 w-8 text-warning" />
+                  {/* Comments Section - Minimalist */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Comentários ({selectedVideo.total_comentarios})
+                    </h3>
+                    
+                    {user ? (
+                      <div className="flex gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user?.avatar_url || undefined} />
+                          <AvatarFallback className="bg-muted text-xs">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-2">
+                          <Textarea
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder="Escreva um comentário..."
+                            className="bg-transparent border-border/50 resize-none text-sm min-h-[60px]"
+                            rows={2}
+                          />
+                          <Button 
+                            onClick={handleSendComment} 
+                            disabled={!newComment.trim() || isSendingComment}
+                            size="sm"
+                            variant="outline"
+                            className="gap-2"
+                          >
+                            {isSendingComment ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                            Enviar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border/30 rounded-lg">
+                        Faça login para comentar
+                      </p>
+                    )}
+
+                    {isLoadingDetails ? (
+                      <div className="flex justify-center py-6">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : comentarios.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-6 text-center">
+                        Nenhum comentário ainda
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {comentarios.map((comentario) => (
+                          <div key={comentario.id} className="flex gap-3 group">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={comentario.user_avatar || undefined} />
+                              <AvatarFallback className="bg-muted text-xs">
+                                <User className="h-4 w-4" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-foreground">{comentario.user_nome || 'Usuário'}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(comentario.created_at), "dd/MM/yy", { locale: ptBR })}
+                                </span>
                               </div>
-                              <p className="text-muted-foreground">
-                                {userRating ? 'Você avaliou este vídeo' : 'Avalie este conteúdo'}
-                              </p>
-                              <div className="flex justify-center py-2">
-                                {renderStars(0, true, 'h-10 w-10')}
-                              </div>
-                              {userRating && (
-                                <p className="text-sm text-muted-foreground">
-                                  Sua avaliação: <span className="font-medium text-warning">{userRating} estrela{userRating > 1 ? 's' : ''}</span>
-                                </p>
+                              <p className="text-sm text-muted-foreground mt-0.5">{comentario.comentario}</p>
+                              {user?.id === comentario.user_id && (
+                                <button
+                                  onClick={() => handleDeleteComment(comentario.id)}
+                                  className="text-xs text-destructive hover:underline mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  Excluir
+                                </button>
                               )}
                             </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <Award className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-                              <p className="text-muted-foreground">Faça login para avaliar</p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <div className="aspect-video rounded-2xl flex items-center justify-center border-2 border-dashed border-border/50 bg-muted/10">
