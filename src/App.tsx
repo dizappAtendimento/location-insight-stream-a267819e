@@ -35,6 +35,7 @@ const MaturadorPage = lazy(() => import("./pages/MaturadorPage"));
 const WhatsAppConfigPage = lazy(() => import("./pages/WhatsAppConfigPage"));
 const ContratarPage = lazy(() => import("./pages/ContratarPage"));
 const PerfilPage = lazy(() => import("./pages/PerfilPage"));
+const VideosPage = lazy(() => import("./pages/VideosPage"));
 
 // Optimized QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -92,6 +93,7 @@ const App = () => (
                 <Route path="/api-docs" element={<ProtectedRoute><ApiDocsPage /></ProtectedRoute>} />
                 <Route path="/crm" element={<ProtectedRoute><CrmPage /></ProtectedRoute>} />
                 <Route path="/maturador" element={<ProtectedRoute><MaturadorPage /></ProtectedRoute>} />
+                <Route path="/videos" element={<ProtectedRoute><VideosPage /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

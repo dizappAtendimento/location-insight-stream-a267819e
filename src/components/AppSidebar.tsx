@@ -75,7 +75,7 @@ const extractorItems = [
   { title: 'CNPJ', url: '/cnpj', icon: Building2, colorClass: 'text-amber-500' },
   { title: 'Suporte', url: 'https://api.whatsapp.com/send/?phone=5561992557146&text&type=phone_number&app_absent=0', icon: Headphones, colorClass: 'text-emerald-400', external: true },
   { title: 'Planos', url: '/configuracoes?tab=planos', icon: CreditCard, colorClass: 'text-amber-400' },
-  { title: 'Vídeos', url: 'https://www.youtube.com/@dizappcombr', icon: Video, colorClass: 'text-red-500', external: true },
+  { title: 'Vídeos', url: '/videos', icon: Video, colorClass: 'text-red-500' },
 ];
 
 

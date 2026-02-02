@@ -956,6 +956,74 @@ export type Database = {
           },
         ]
       }
+      saas_video_modulos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: number
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      saas_videos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: number
+          idmodulo: number
+          ordem: number
+          titulo: string
+          youtube_url: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          idmodulo: number
+          ordem?: number
+          titulo: string
+          youtube_url: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          idmodulo?: number
+          ordem?: number
+          titulo?: string
+          youtube_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_videos_idmodulo_fkey"
+            columns: ["idmodulo"]
+            isOneToOne: false
+            referencedRelation: "saas_video_modulos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       search_jobs: {
         Row: {
           completed_at: string | null
