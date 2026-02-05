@@ -29,13 +29,14 @@ serve(async (req) => {
 
     // Parse request body safely
     let action = '', instanceName = '', data: any = null, userId = '', apikey = '';
+    let rawBody: any = {};
     try {
-      const body = await req.json();
-      action = body.action || '';
-      instanceName = body.instanceName || '';
-      data = body.data || null;
-      userId = body.userId || '';
-      apikey = body.apikey || ''; // Support apikey at root level
+      rawBody = await req.json();
+      action = rawBody.action || '';
+      instanceName = rawBody.instanceName || '';
+      data = rawBody.data || null;
+      userId = rawBody.userId || '';
+      apikey = rawBody.apikey || ''; // Support apikey at root level
     } catch (parseError) {
       console.error("[Evolution API] Error parsing request body:", parseError);
       return new Response(
@@ -1076,7 +1077,10 @@ serve(async (req) => {
 
       case "send-message":
         // Envia mensagem de texto ou mídia via Evolution API
-        const { to, message, media } = data || {};
+        // Aceita parâmetros tanto no nível raiz quanto dentro de "data"
+        const to = data?.to || rawBody.to;
+        const message = data?.message || rawBody.message;
+        const media = data?.media || rawBody.media;
         
         if (!to) {
           return new Response(
