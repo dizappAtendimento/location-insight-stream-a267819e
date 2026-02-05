@@ -1074,6 +1074,106 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
+      case "send-message":
+        // Envia mensagem de texto ou mídia via Evolution API
+        const { to, message, media } = data || {};
+        
+        if (!to) {
+          return new Response(
+            JSON.stringify({ error: "Destinatário (to) é obrigatório" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Formata o número para o padrão WhatsApp
+        const cleanedNumber = to.replace(/\D/g, '');
+        const remoteJid = cleanedNumber.includes('@') ? cleanedNumber : `${cleanedNumber}@s.whatsapp.net`;
+
+        console.log(`[Evolution API] Sending message to ${remoteJid} via ${instanceName}`);
+
+        let sendResult;
+        
+        if (media?.url) {
+          // Enviar mídia
+          const mediaType = media.type || 'document';
+          let mediaEndpoint = '/message/sendMedia/';
+          let mediaPayload: any = {
+            number: remoteJid,
+            media: media.url,
+            caption: message || '',
+            fileName: media.filename,
+          };
+
+          switch (mediaType) {
+            case 'image':
+              mediaPayload.mediatype = 'image';
+              break;
+            case 'video':
+              mediaPayload.mediatype = 'video';
+              break;
+            case 'audio':
+              mediaEndpoint = '/message/sendWhatsAppAudio/';
+              mediaPayload = {
+                number: remoteJid,
+                audio: media.url,
+              };
+              break;
+            case 'document':
+            default:
+              mediaPayload.mediatype = 'document';
+              mediaPayload.mimetype = media.mimetype || 'application/octet-stream';
+              break;
+          }
+
+          const mediaResponse = await fetch(`${baseUrl}${mediaEndpoint}${instanceName}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(mediaPayload),
+          });
+
+          sendResult = await mediaResponse.json();
+          
+          if (!mediaResponse.ok) {
+            console.error(`[Evolution API] Error sending media:`, sendResult);
+            return new Response(
+              JSON.stringify({ error: sendResult?.message || 'Erro ao enviar mídia', details: sendResult }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else if (message) {
+          // Enviar texto
+          const textResponse = await fetch(`${baseUrl}/message/sendText/${instanceName}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              number: remoteJid,
+              text: message,
+            }),
+          });
+
+          sendResult = await textResponse.json();
+          
+          if (!textResponse.ok) {
+            console.error(`[Evolution API] Error sending text:`, sendResult);
+            return new Response(
+              JSON.stringify({ error: sendResult?.message || 'Erro ao enviar texto', details: sendResult }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          return new Response(
+            JSON.stringify({ error: "Mensagem (message) ou mídia (media) é obrigatório" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log(`[Evolution API] Message sent successfully to ${remoteJid}`);
+        
+        return new Response(
+          JSON.stringify({ success: true, result: sendResult }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       case "setup-crm-webhook":
         // Configura webhook do CRM em uma instância existente
         const crmWebhookEndpoint = `${SUPABASE_URL}/functions/v1/crm-webhook`;
