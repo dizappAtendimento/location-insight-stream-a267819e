@@ -1159,8 +1159,17 @@ serve(async (req) => {
           
           if (!textResponse.ok) {
             console.error(`[Evolution API] Error sending text:`, sendResult);
+            
+            // Melhora mensagem de erro para casos comuns
+            let errorMessage = sendResult?.message || 'Erro ao enviar texto';
+            if (sendResult?.response?.message?.some((m: string) => m.includes("Cannot read properties of undefined"))) {
+              errorMessage = `A instância "${instanceName}" não está conectada ou não está pronta para enviar mensagens. Verifique se o WhatsApp está conectado.`;
+            } else if (sendResult?.response?.message?.some((m: string) => m.includes("does not exist"))) {
+              errorMessage = `A instância "${instanceName}" não foi encontrada. Verifique o nome da instância.`;
+            }
+            
             return new Response(
-              JSON.stringify({ error: sendResult?.message || 'Erro ao enviar texto', details: sendResult }),
+              JSON.stringify({ error: errorMessage, details: sendResult }),
               { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
